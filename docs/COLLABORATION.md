@@ -57,4 +57,8 @@ Claude a identificat opt constatări. Coordonatorul ChatGPT a analizat recomand�
 - Contul suspendat nu poate citi conversațiile, dar își păstrează accesul la propriile anunțuri și contestații.
 - Curățarea limitelor expirate este bounded, pentru ferestre expirate de peste o zi.
 
-Acestea sunt corecții aplicate de ChatGPT, nu de Claude. Coordonatorul a raportat apoi 27 de teste trecute; o suită suplimentară de regresii este în lucru, astfel că numărul final rămâne de confirmat. Claude nu a executat aceste teste și revizuirea nu certifică securitatea sau conformitatea produsului.
+Acestea sunt corecții aplicate de ChatGPT, nu de Claude. Coordonatorul a executat apoi suita finală: 35/35 teste trecute. Claude nu a executat aceste teste și revizuirea nu certifică securitatea sau conformitatea produsului.
+
+## Acces Gemini Argon
+
+Utilizatorul a confirmat Google AI Pro. Acesta oferă acces la Gemini 4 Argon în aplicația Gemini, conform anunțului Google din 13 octombrie 2026. Nu reprezintă o conexiune API din ChatGPT. Antigravity cu Argon necesită accesul aferent Ultra; API este o opțiune cu plată separată. Nicio contribuție Argon nu a fost încă primită. Sarcina pregătită pentru review se află în GEMINI_REVIEW.md.

@@ -6,15 +6,15 @@ Verificări raportate de coordonator la 15 octombrie 2026:
 
 | Verificare | Rezultat observat |
 | --- | --- |
-| Teste SQLite de securitate | **27 trecute** după corecțiile coordonatorului; regresii suplimentare în lucru, număr final de confirmat |
+| Teste SQLite de securitate | **35/35 trecute**, inclusiv regresiile după revizuirea Claude |
 | `npm run typecheck` | Trecut |
 | Sintaxă JavaScript | Trecut |
-| Build de producție | Un build reușit; build-ul sursei finale rămâne de confirmat |
+| Build de producție | Build-ul versiunii anterioare reușit; redesignul este construit separat la publicare |
 | `pnpm db:migrate` | Migrarea inițială locală aplicată; a doua rulare confirmată fără migrări în așteptare |
 | Smoke frontend în Node VM | 13 ecrane fără excepții JavaScript; **nu este QA în browser** |
 | JPEG pe server | Decodare/recodificare și eliminare metadate cu test de regresie |
 
-Nu sunt executate/confirmate teste pe iPhone fizic, cu două conturi SIWC găzduite sau cu furnizorul SMS extern real. Nu este confirmată aici publicarea finală sau execuția GitHub CI. Revizuirea read-only Claude a implementării a fost primită și a identificat opt constatări. ChatGPT a aplicat corecțiile confirmate; Claude nu a executat teste. Detalii în COLLABORATION.md.
+Nu sunt executate/confirmate teste pe iPhone fizic, cu două conturi SIWC găzduite sau cu furnizorul SMS extern real. Versiunea anterioară a fost publicată; GitHub Actions 38792032762 a trecut. Revizuirea read-only Claude a implementării a fost primită și a identificat opt constatări. ChatGPT a aplicat corecțiile confirmate; Claude nu a executat teste. Detalii în COLLABORATION.md.
 
 Testele SQLite verifică logica serverului cu date controlate. Nu dovedesc livrarea SMS, autentificarea multiutilizator în găzduire sau utilizabilitatea pe dispozitiv real.
 
@@ -62,4 +62,8 @@ Politica explicită implementată pentru conturi suspendate refuză citirea conv
 - Regresii suplimentare: nume de profil fără date de contact, conflicte de moderare, contestație independentă cu restabilirea accesului, cote înainte de procesarea imaginilor, tranziții concurente fără audit fals, editare după retragere și refuzul citirii conversațiilor de către conturi suspendate.
 - Testele adaptorului SMS utilizează răspunsuri controlate de test, nu trimiteri reale.
 
-Build-ul final și rezultatul GitHub Actions vor fi confirmate la predare. Nu sunt confirmate QA vizual, livrare SMS reală sau autentificare multiutilizator găzduită.
+Build-ul și GitHub Actions pentru redesign sunt verificate separat la publicare. Nu sunt confirmate QA vizual, livrare SMS reală sau autentificare multiutilizator găzduită.
+
+## Redesign: simplu, profesional, cozy și onest
+
+Căutare prioritară, taburi cumpărare/închiriere, filtre avansate compacte, patru intenții cu valori corecte pentru ciorne. Fără anunțuri sau statistici fictive. 11 scenarii DOM raportate de agentul frontend au trecut; suita serverului 35/35 a fost reluată cu succes de coordonator. Verificarea DOM nu este QA vizual în browser. Browser-control nu este disponibil în această sesiune; aspectul pe dispozitive și navigarea asistivă rămân de verificat.
