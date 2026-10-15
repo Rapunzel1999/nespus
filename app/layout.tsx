@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Nespus — Gesturi care rămân",
-  description: "Experiențe digitale personalizate de iubire, scuze și mulțumiri.",
+  title: "Între noi — Imobiliare Cluj",
+  description: "Locuințe între oameni. Pilot Cluj-Napoca.",
   icons: {
     icon: "/favicon.svg",
     shortcut: "/favicon.svg",

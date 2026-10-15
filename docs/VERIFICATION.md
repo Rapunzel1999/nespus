@@ -1,17 +1,65 @@
-# Verificări — 15 octombrie 2026
+# Criterii de acceptare și evidențe
 
-- `npm test`: 9 teste API reușite pe SQLite real în memorie, cu migrarea proiectului.
-- Creare, citire din cerere nouă, listare limitată la creator, QR SVG și ștergere autorizată.
-- Expirare la limita exactă pentru conținut și QR; ignorarea datei și stării de plată din client.
-- Câmpuri invalide, limite de text/corp, antet foto invalid, durate comerciale respinse.
-- Refuz pentru scrieri cross-origin/fără Origin și JSON malformat.
-- Cookie HttpOnly/SameSite, proprietate neexpusă, lipsa bazei tratată ca indisponibilitate.
-- Cotă atomică pe proprietar și fereastră de 24 ore.
-- Text malițios păstrat ca date JSON; componenta folosește textContent.
-- Sintaxă JavaScript și `npm run typecheck`: reușite.
+## Starea verificării la redactare
 
-Build-ul de producție Vinext a trecut. Publicarea este verificată separat prin rezultatul serviciului de găzduire; confirmarea finală din conversație indică starea efectivă.
+Verificări raportate de coordonator la 15 octombrie 2026:
 
-Nu este disponibil instrumentul autorizat de browser QA în acest runtime. Nu s-au efectuat teste vizuale ale MVP-ului, teste pe iPhone fizic, scanare QR cu telefonul, test auditiv, test de încărcare sau audit independent. Testele API nu confirmă Safari sau aspectul tuturor ecranelor. Capturile prototipului recuperat sunt istorice, fără pretenția că sunt teste noi.
+| Verificare | Rezultat observat |
+| --- | --- |
+| Teste SQLite de securitate | **27 trecute** după corecțiile coordonatorului; regresii suplimentare în lucru, număr final de confirmat |
+| `npm run typecheck` | Trecut |
+| Sintaxă JavaScript | Trecut |
+| Build de producție | Un build reușit; build-ul sursei finale rămâne de confirmat |
+| `pnpm db:migrate` | Migrarea inițială locală aplicată; a doua rulare confirmată fără migrări în așteptare |
+| Smoke frontend în Node VM | 13 ecrane fără excepții JavaScript; **nu este QA în browser** |
+| JPEG pe server | Decodare/recodificare și eliminare metadate cu test de regresie |
 
-Plățile sunt dezactivate; schema pentru conturi și comenzi nu înseamnă că aceste integrări sunt active.
+Nu sunt executate/confirmate teste pe iPhone fizic, cu două conturi SIWC găzduite sau cu furnizorul SMS extern real. Nu este confirmată aici publicarea finală sau execuția GitHub CI. Revizuirea read-only Claude a implementării a fost primită și a identificat opt constatări. ChatGPT a aplicat corecțiile confirmate; Claude nu a executat teste. Detalii în COLLABORATION.md.
+
+Testele SQLite verifică logica serverului cu date controlate. Nu dovedesc livrarea SMS, autentificarea multiutilizator în găzduire sau utilizabilitatea pe dispozitiv real.
+
+## Criterii MVP
+
+| Domeniu | Rezultat necesar | Evidență necesară |
+| --- | --- | --- |
+| Geografie | Nu publică imobile din afara municipiului Cluj-Napoca | Caz pozitiv și caz Florești/Baciu respins pe server |
+| Autentificare | Acțiunile protejate cer identitate SIWC reală | Cerere anonimă respinsă; verificare găzduită |
+| Ciorne | Contul poate salva o ciornă fără telefon confirmat | Persistență după reîncărcare și izolare între conturi |
+| Publicare | Telefon real + declarație + revizuire umană | Solicitare neeligibilă respinsă; aprobarea necesită moderator |
+| SMS neconfigurat | Nicio confirmare inventată, contactul/publicarea refuzate | Răspuns explicit fără schimbarea stării în confirmat |
+| Declarații | Acceptare explicită, versiune și dată persistate | Încercare fără acceptare respinsă; istoric verificat |
+| Telefon privat | Nu apare în HTML, API public, căutare sau metadate | Inspectarea răspunsurilor și teste de proiecție |
+| Dezvăluire | Numai solicitantul acceptat și autorizat | Cont terț și solicitant neacceptat respinși |
+| Conversații | Numai participanții pot citi și scrie | Cont A nu poate accesa conversația B–C |
+| Blocare | Blochează mesaje/contacte noi pe server | Cereri directe și concurente respinse conform regulii |
+| Rate limiting | Concurența nu ocolește limita de contacte | Mai multe cereri simultane cu limită controlată |
+| Fotografii | JPEG decodat/recodificat, max. 5 × 400.000 caractere data URL, max. 1.200 px/dimensiune | Tip invalid, depășire și metadate în fixture-uri verificate |
+| Moderare | Rol verificat, motiv și audit; fără aprobare automată | Utilizator obișnuit respins; acțiune moderator jurnalizată |
+| Raportare/contestare | Datele nu devin publice; deciziile sunt motivate | Autor terț fără acces; parcurs de caz verificat |
+| Editare | Modificarea materială nu ocolește moderarea | Anunț aprobat editat revine la revizuire |
+| Expirare | Anunțul nereconfirmat după 30 zile nu e public | Acces direct și căutare fără cron îl exclud |
+| Interfață | Utilizabilă pe mobil, tastatură, stări goale/eroare | QA vizual la lățimi mobile și desktop |
+| Demonstrații | Etichetate și separate de oferte reale | Niciun exemplu nu pretinde disponibilitate sau proprietar real |
+| Plăți | Nicio încasare sau confirmare fictivă | Absența checkout-ului activ |
+
+## Matrice minimă de conturi
+
+A = proprietar, B = solicitant, C = utilizator terț, M = moderator. Verificați separat fiecare operațiune cu A/B/C/M și anonim. Un ID greu de ghicit nu este o verificare de acces.
+
+Testele automate nu dovedesc livrarea SMS, funcționarea SIWC în găzduire, accesul multiutilizator sau utilizabilitatea pe un iPhone real. Aceste verificări rămân distincte până la executare.
+
+## Teste SMS și acces după suspendare
+
+Testele adaptorului SMS folosesc un test-double al furnizorului, inclusiv scenarii de provocare expirată și răspuns de aprobare. Aceste teste nu reprezintă confirmarea unui SMS real; furnizorul extern rămâne neconectat.
+
+Politica explicită implementată pentru conturi suspendate refuză citirea conversațiilor și contactele, păstrând accesul la lista proprie și la contestații. Această păstrare nu restabilește dreptul de publicare sau de contact.
+
+## Închiderea verificărilor locale
+
+- `npm test`: **35/35** teste trecute după integrarea corecțiilor din revizuirea Claude, pe migrarea de producție și SQLite real.
+- `npm run typecheck` și `node --check public/app.js`: trecute.
+- `npm run db:migrate`: migrare locală aplicată; a doua rulare a raportat `No migrations to apply`.
+- Regresii suplimentare: nume de profil fără date de contact, conflicte de moderare, contestație independentă cu restabilirea accesului, cote înainte de procesarea imaginilor, tranziții concurente fără audit fals, editare după retragere și refuzul citirii conversațiilor de către conturi suspendate.
+- Testele adaptorului SMS utilizează răspunsuri controlate de test, nu trimiteri reale.
+
+Build-ul final și rezultatul GitHub Actions vor fi confirmate la predare. Nu sunt confirmate QA vizual, livrare SMS reală sau autentificare multiutilizator găzduită.

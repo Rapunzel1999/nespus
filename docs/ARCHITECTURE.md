@@ -1,36 +1,80 @@
-# Arhitectură
+# Arhitectură și contracte de securitate
 
-Browser → rute Vinext → handler API → Cloudflare D1. Previzualizarea și destinatarul folosesc aceeași componentă. Textele utilizatorului intră în DOM prin `textContent`. Fotografiile sunt decodate, micșorate la 1200 px și recodificate JPEG în browser, apoi incluse în JSON-ul D1. API verifică limita și antetul JPEG; pentru volume comerciale, mută fotografiile în R2, cu ștergere coerentă.
+Acest document descrie ținta MVP-ului. Codul și verificările executate sunt sursa pentru starea implementată; o cerință scrisă aici nu reprezintă dovada implementării.
 
-| Rută | Rol |
+## Componente
+
+- Vinext / React pentru interfață și rutele serverului, pe Cloudflare Workers.
+- Cloudflare D1, binding `DB`, pentru date persistente și autorizări.
+- Sign in with ChatGPT gestionat de găzduire pentru autentificare.
+- Adaptor Twilio Verify pentru confirmarea telefonului; neconectat până la configurarea secretelor și verificare efectivă.
+- Proiect Sites separat de Nespus, cu acces inițial privat proprietarului.
+- Branch `imobiliare-cluj` în repository-ul existent; `main` și instanța Nespus rămân distincte.
+
+SIWC stabilește identitatea contului. Rutele protejate utilizează numai identitatea furnizată de infrastructura de încredere, niciodată un `userId` ales de client. O găzduire diferită trebuie să înlocuiască acest mecanism cu autentificare verificată; acceptarea unor antete arbitrare direct din internet nu este autentificare.
+
+## Modelul datelor
+
+| Tabel | Scop și relații |
 | --- | --- |
-| `GET /api/health` | Versiune, plăți dezactivate; nu verifică sănătatea bazei |
-| `POST /api/gifts` | Creare; JSON și Origin identic obligatorii |
-| `GET /api/gifts` | Maximum 50 mesaje ale browserului creatorului |
-| `GET /api/gifts/:id` | Citire; 404 pentru lipsă, ștergere sau expirare |
-| `GET /api/gifts/:id/qr` | QR SVG cu verificarea aceleiași expirări |
-| `DELETE /api/gifts/:id` | Ștergere definitivă, cookie creator și Origin identic |
+| `users` | Cheie stabilă SIWC, profil minimal, stare cont, rol acordat pe server, telefon privat și stare confirmare |
+| `listings` | Proprietar, categorie, vânzare/închiriere, date imobil, cartier public, fără coordonate, date private separate logic, fotografii, stare și termen de reconfirmare |
+| `favorites` | Asociere unică utilizator–anunț, citire doar pentru titular |
+| `contact_requests` | Anunț, solicitant, proprietar, scop, stare, decizie și permisiune individuală de dezvăluire telefon |
+| `viewings` | Solicitare legată de conversație, inițiator, moment și stare; numai proprietarul acceptă/refuză |
+| `messages` | Conversație/solicitare, autor, conținut și moment; acces numai participanților autorizați |
+| `blocks` | Persoana care blochează și persoana blocată; blochează contactele/mesajele conform regulii serverului |
+| `declarations` | Tip, versiune și momentul acceptării, legate de utilizator |
+| `reports` | Autor, țintă, categorie, context și stare; acces limitat |
+| `appeals` | Contestație legată de decizie și autor, cu soluție motivată |
+| `audit_events` | Acțiuni sensibile și moderare, cu autor, țintă și moment; fără secrete sau copii inutile de mesaje |
+| `phone_challenges` | Provocări de confirmare, expirare, tentative și rezultat; nu conține coduri în clar în răspunsuri publice |
+| `rate_limits` | Ferestre și contoare actualizate atomic pentru operațiuni limitate |
 
-ID-ul public are 122 biți aleatori (UUID v4 fără separatori). Cookie-ul anonim are două UUID-uri aleatoare, este HttpOnly, SameSite=Strict, Secure pe HTTPS. Baza păstrează numai SHA-256 al cookie-ului. Cookie-ul nu intră în link sau QR. Pierderea lui înseamnă pierderea administrării din UI până la implementarea conturilor. Nu există recuperare pe alt dispozitiv.
+## Contracte server obligatorii
 
-Oricine deține linkul poate citi mesajul pe o găzduire publică. Nu există verificare a identității destinatarului sau criptare cap-la-cap. Serverul poate procesa conținutul. `no-store`, `no-referrer`, `noindex`, CSP și lipsa serviciilor QR externe reduc divulgarea accidentală; nu împiedică destinatarii să copieze conținutul. Accesul privat al platformei de găzduire rămâne o restricție suplimentară, independentă de link.
+- Ciornele aparțin autorului. Publicarea cere telefon confirmat real, declarație validă, eligibilitate Cluj-Napoca și aprobare umană.
+- În lipsa furnizorului SMS, publicarea și solicitările noi eșuează explicit. Nu există OTP de test acceptat în producție.
+- Listele publice și pagina publică exclud telefonul, adresa exactă, e-mailul, identitatea furnizorului și datele interne. Construiți o proiecție explicită, fără serializarea întregului rând.
+- Telefonul se livrează numai solicitantului autorizat de o relație acceptată și de acordul explicit al proprietarului. Se verifică blocările, starea conturilor și starea anunțului la acces.
+- Citirea și scrierea mesajelor verifică participarea, restricțiile și starea blocărilor pe server.
+- Favoritele, ciornele, rapoartele și contestațiile nu sunt colecții publice.
+- Moderarea necesită rol de server. Un simplu parametru, e-mail afișat sau câmp din client nu oferă rol.
+- Limitele contactării trebuie să reziste cererilor concurente; verificarea urmată de incrementare neatomică nu este suficientă.
+- Publicarea expiră după 30 de zile fără reconfirmare. Toate citirile publice verifică termenul; cron-ul este auxiliar.
+- Modificările materiale revin în moderare; identitatea proprietarului nu poate fi mutată prin payload.
+- Plățile nu sunt active. Nu există tranzacții simulate ca reușite.
 
-## Durată și limite
+## Fotografii și limite de stocare
 
-Serverul acceptă 1/3/7 zile și ignoră `expiresAt`/`paid` trimise de client. După termen, conținutul și QR-ul sunt blocate. Expirarea accesului **nu șterge fizic** înregistrarea acum; creatorul o poate șterge. Înainte de lansare trebuie stabilită retenția și introdusă purjarea programată.
+În pilot: maximum cinci imagini JPEG, fiecare de cel mult **400.000 de caractere pentru întregul data URL base64**, adică aproximativ 300 KB binari. Nu este o limită de 400 KB binari. Corpul JSON complet este limitat la 2.100.000 de octeți.
 
-Limită atomică: 10 creații pe cookie în 24h, corp maximum 420.000 bytes, fotografie maximum 400.000 caractere. Aceasta nu este protecție completă anti-abuz: cookie-ul poate fi resetat, iar ștergerea scade numărul numărat. Lansarea publică necesită limitare globală/pe IP și control anti-bot.
+Serverul folosește `jpeg-js` pentru decodare și recodificarea pixelilor, eliminând metadatele. Limitele decodorului sunt 2 MP și 32 MB; fiecare dimensiune este de cel mult 1.200 px. Rezultatul recodificat este verificat din nou față de plafon. Comportamentul de eliminare a metadatelor are test de regresie.
 
-## Conturi și plăți
+Feed-ul returnează cel mult 24 de rezumate cu prima fotografie; favoritele și lista proprie cel mult 50 de rezumate. `GET /api/mine/:id` încarcă galeria completă a unui anunț propriu. Coada moderatorului încarcă cel mult 10 anunțuri în așteptare cu galerii complete. Aceste limite reduc răspunsurile, fără a rezolva scalarea imaginilor în D1.
 
-`gifts.account_id` poate lega mesajul de `accounts` numai după autentificare verificată și dovada cookie-ului anonim. Identitatea declarată de client nu este suficientă. `orders` rezervă suma în unități minore, moneda, statutul și un `provider_event_id` unic. Nicio rută nu creează comenzi acum.
+Aceasta este o arhitectură temporară pentru pilot. Următoarea etapă mută imaginile în object storage, introduce miniaturi și politici de ștergere. Nu se acceptă acte KYC în câmpurile de fotografie.
 
-Integrarea viitoare va calcula prețul pe server, va verifica semnătura webhook-ului și evenimentul furnizorului, va scrie idempotent comanda și dreptul de acces și abia apoi va extinde durata. Revenirea din checkout nu confirmă plata. `PLANS` conține propuneri comerciale, nu autorizări.
+## Vizionări și moderare implementate
 
-Nu există panou de administrator. Acesta va necesita roluri server-side, audit și politici de acces. Un URL ascuns nu este autorizare.
+`POST /api/conversations/:id/viewings` este rezervat solicitantului într-o conversație acceptată și disponibilă, fără blocare, cu conturi eligibile. Momentul propus trebuie să fie între o oră și 30 de zile în viitor; se aplică limita de solicitări. `POST /api/viewings/:id` permite numai proprietarului să accepte/refuze o solicitare în așteptare. Propunerea nu este programare confirmată.
 
-## Proveniență
+Un moderator nu poate aproba propriul anunț, examina probele sau soluționa o raportare în care este implicat ori decide o contestație proprie. Contestația legată de o raportare soluționată de acel moderator cere un alt decident. Configurarea actuală a unui singur moderator nu asigură personalul necesar cazurilor independente: un al doilea moderator trebuie desemnat înainte de operarea lor.
 
-La 15 octombrie 2026 GitHub a raportat `Git Repository is empty`. Serviciile accesibile de găzduire nu aveau Nespus. Arhiva `Nespus-Emotie-v2-surse.zip` a furnizat designul, componenta și rapoarte istorice: era un draft parțial Shopify, fără backend. MVP-ul continuă acel design. Magazinul Luma Lift și tema publicată nu au fost modificate. Rapoartele istorice nu sunt teste ale noului MVP.
+Probele unei raportări sunt limitate la cazul respectiv și la ultimele 30 de mesaje, returnate cronologic. Accesul este auditat. Acesta nu este un instrument de explorare a tuturor conversațiilor unui utilizator.
 
-Această rundă a fost implementată de ChatGPT. Nu a fost identificată o integrare directă de verificare cu Claude/Gemini; nu se pretinde participarea lor.
+Configurație: `MODERATOR_EMAILS` folosește e-mailul din gateway-ul de încredere; SMS cere `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_VERIFY_SERVICE_SID`. Serviciul SMS nu este conectat în prezent; publicarea și contactele noi rămân închise pentru telefoane neconfirmate. Localizarea publică este cartierul, fără hartă sau precizie numerică fictivă.
+
+## Retenție și operare
+
+Nu există documente KYC în MVP. Numărul de telefon și probele de moderare sunt private. Înainte de lansare, stabiliți și implementați retenția pentru conturi, mesaje, solicitări SMS, audit și rapoarte, inclusiv accesul moderatorilor și ștergerea contului. Nu păstrați date nelimitat doar pentru posibilă detecție viitoare.
+
+Secretele SMS și configurația moderatorilor rămân pe server. Logurile nu includ OTP-uri, tokenuri, telefoane complete ori mesaje integrale. Back-up-ul, restaurarea și răspunsul la incidente necesită verificare operațională înainte de pilot public.
+
+## Reguli operaționale suplimentare după revizuire
+
+Crearea/editarea este limitată înainte de procesarea imaginilor la 20 operațiuni/oră per cont. Cotele expirate sunt curățate în lot limitat după mai mult de o zi; ștergerea unei resurse nu resetează cotele. Declarațiile și auditul unui contact sunt persistate numai dacă inserarea condiționată a contactului reușește.
+
+Numele public al profilului este sanitizat pentru a limita scurgerile de date de contact prin acest câmp. Moderatorul nu poate restricționa contrapărți din propriile conversații sau alți moderatori. Contestația restricționării contului cere un alt decident; admiterea restabilește starea activă. Admiterea contestației unei raportări redeschide raportarea.
+
+Un anunț retras poate fi editat și retrimis spre moderare. Vândut/închiriat sunt stări terminale. Contul suspendat nu poate citi conversații, însă își poate consulta propriile anunțuri și contestații. Aceste excepții sunt deliberate și nu permit publicare sau contacte noi.

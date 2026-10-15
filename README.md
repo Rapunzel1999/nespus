@@ -1,55 +1,54 @@
-# Nespus
+# Între Noi — pilot imobiliar Cluj-Napoca
 
-Experiențe digitale personalizate de iubire, scuze, mulțumiri și felicitări, prin link sau cod QR. MVP 0.1, 15 octombrie 2026.
+Platformă în dezvoltare pentru vânzare și închiriere directă între proprietari și destinatarii finali. **Pilotul acceptă numai proprietăți din municipiul Cluj-Napoca.** Florești, Baciu, Apahida și celelalte localități nu intră în această etapă.
 
-## Funcționalități
+Codul acestei direcții este organizat pe branch-ul `imobiliare-cluj` din [Rapunzel1999/nespus](https://github.com/Rapunzel1999/nespus). Proiectul Nespus de pe `main` este păstrat. „Între Noi” este un nume de lucru; disponibilitatea sa comercială și a domeniului nu este verificată.
 
-- Interfață mobilă premium continuată din **Emoție v2**, cu atmosferele Scrisoare, Grădină și Miez de noapte.
-- Nume, scrisoare, amintire, fotografie, P.S. ascuns și trei plicuri „Deschide când…”.
-- Previzualizare locală, sunet ambiental opțional, mișcare redusă și ciornă salvată explicit pe dispozitiv, fără fotografie.
-- Salvare reală în D1, link aleator individual și QR SVG generat pe server, fără servicii QR externe.
-- Durată beta 1/3/7 zile, verificată pe server; listare și ștergere din browserul creatorului.
+## Stadiu și limite
 
-**Fără checkout, tranzacții simulate, încasări, conturi active sau trimiteri automate.** Prețurile 19/49/99 lei și duratele comerciale sunt propuneri. În beta toate opțiunile creative sunt gratuite, maximum 7 zile. Schema pregătește conturi și comenzi, dar numai tabelul `gifts` este utilizat acum.
+MVP-ul este un pilot tehnic, fără plăți. Conturile folosesc Sign in with ChatGPT (SIWC), nu un sistem de identitate propriu. Identitatea de cont nu dovedește identitatea civilă, relația cu proprietatea sau absența intermedierii.
+
+Integrarea telefonului este proiectată pentru Twilio Verify. **Până la configurarea și verificarea reală a furnizorului, telefonul rămâne neconfirmat, iar publicarea și inițierea contactelor trebuie refuzate de server.** Ciornele pot fi create. Declararea relației cu proprietatea nu produce insigna „proprietar verificat”. Publicarea necesită și moderare umană.
+
+Accesul inițial al proiectului Sites este privat proprietarului. Publicarea codului în GitHub nu face aplicația publică și nu configurează GitHub Pages. Deschiderea pilotului necesită verificări și configurare operațională suplimentare.
 
 ## Pornire locală
 
-Node.js **24** (testele folosesc `node:sqlite`), pnpm **11.25.0**, acces la registrul de pachete. Dacă lipsește pnpm: `npm install -g pnpm@11.25.0`.
+Node.js 24 necesar și pnpm conform câmpului `packageManager` din `package.json`, când acesta este definit. Instalarea necesită acces la registrul de pachete.
 
 ```sh
-git clone https://github.com/Rapunzel1999/nespus.git
+git clone --branch imobiliare-cluj https://github.com/Rapunzel1999/nespus.git
 cd nespus
 pnpm install --frozen-lockfile
 pnpm test
 pnpm run typecheck
 pnpm build
-```
-
-După primul build, aplică migrarea inițială bazei locale **o singură dată**:
-
-```sh
-node --import ./scripts/sites-env.mjs ./node_modules/wrangler/bin/wrangler.js d1 execute DB --local --config dist/server/wrangler.json --persist-to .wrangler/state --file drizzle/0000_glamorous_giant_man.sql
+pnpm db:migrate
 pnpm start
 ```
 
-Deschide adresa afișată de Wrangler. `/` redirecționează către `/atelier`. Păstrează aceeași origine pentru editor și API. `pnpm dev` oferă modul de dezvoltare. Datele locale din `.wrangler/state` sunt separate de datele găzduite și nu intră în Git. Pentru schimbări de schemă: `pnpm db:generate`, inspectează SQL-ul și aplică numai migrările noi, în ordine. Nu rescrie migrările aplicate.
+`pnpm db:migrate` aplică migrările locale; datele din `.wrangler/state` sunt separate de baza găzduită. Nu adăuga această stare sau secretele în Git. Pentru dezvoltare folosește `pnpm dev`. Găzduirea prin Sites urmează fluxul de build și publicare al integrării, separat de pornirea locală.
 
-## Cod
+Verificări raportate de coordonator: 35 teste SQLite de securitate trecute după corecții, cu regresii suplimentare în lucru și număr final de confirmat, TypeScript și sintaxă JavaScript fără erori, un build de producție reușit și migrarea locală inițială aplicată. A doua rulare a migrării nu a găsit migrări în așteptare. Build-ul sursei finale urmează să fie confirmat. Detalii și limite în [VERIFICATION.md](docs/VERIFICATION.md). Nu este confirmat aici niciun rezultat GitHub CI sau publicare finală.
 
-| Cale | Rol |
-| --- | --- |
-| `lib/document.html`, `public/emotion.js`, `public/atelier.css` | Design și componentă recuperate și adaptate |
-| `public/app.js`, `public/app.css` | Persistență, ciorne, linkuri, QR, destinatar |
-| `lib/api.mjs`, `lib/model.mjs` | API, validare, proprietate și expirare |
-| `app/atelier`, `app/g`, `app/api` | Adaptoare Vinext / Cloudflare Workers |
-| `db/schema.ts`, `drizzle` | Schema și migrările D1 |
-| `tests`, `docs` | Verificări și documentație |
-| `.openai/hosting.json`, `build`, `scripts` | Găzduire și build |
+## Configurare
 
-## Găzduire
+- Worker Vinext și bază Cloudflare D1 cu binding `DB`.
+- SIWC gestionat de infrastructura Sites; identitatea se citește numai pe server din contextul de încredere al găzduirii.
+- Twilio Verify: configurează `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN` și `TWILIO_VERIFY_SERVICE_SID`, numai în mediul de rulare. Nu introduce tokenuri în cod sau în browser.
+- Acces moderator: `MODERATOR_EMAILS`, allowlist de e-mailuri furnizate de gateway-ul de încredere, verificată pe server; niciun utilizator nu poate alege acest rol din formular sau dintr-un parametru client.
+- Fotografiile pilotului sunt JPEG stocate în D1, maximum 5 imagini, fiecare de cel mult 400.000 de caractere pentru întregul data URL base64 (aproximativ 300 KB de date binare). Corpul cererii este limitat la 2.100.000 de octeți. Serverul decodează și recodifică pixelii, eliminând metadatele, cu limite de 2 MP, 32 MB pentru decodare și 1.200 px pe fiecare dimensiune. Aceasta este o limită temporară; migrarea la object storage este necesară înainte de creșterea volumului.
+- Nu se colectează acte de identitate sau titluri de proprietate în acest MVP.
 
-Build-ul produce un Cloudflare Worker și asseturile client. Binding-ul D1 este `DB`. Publicarea prin Sites păstrează sursa și aplică migrările. Configurația conține deja identitatea proiectului: reutilizeaz-o pentru actualizări. Pentru găzduire separată, creează propria configurație Cloudflare și propria bază, aplică migrările și păstrează binding-ul `DB`.
+## Documentație
 
-Instanța creată acum începe cu **acces privat proprietarului**. Linkurile nu ocolesc această restricție. Destinatarii externi necesită trecerea explicită la acces public sau găzduire publică separată. Publicarea codului în GitHub nu activează GitHub Pages; Pages nu poate executa acest backend.
+- [Definiție, acces și fluxuri](docs/PRODUCT.md)
+- [Referința Bezrealitky și adaptarea locală](docs/REFERENCE.md)
+- [Scenarii de infiltrare și moderare](docs/THREAT_MODEL.md)
+- [Arhitectură și date](docs/ARCHITECTURE.md)
+- [Criterii și evidențe de verificare](docs/VERIFICATION.md)
+- [Plan de lansare și ipoteze de cost](docs/LAUNCH.md)
+- [Master prompt](docs/MASTER_PROMPT.md)
+- [Colaborare și verificare independentă](docs/COLLABORATION.md)
 
-Nu sunt necesare chei de plată, e-mail sau AI. Nu adăuga secrete în Git. Consultă [arhitectura](docs/ARCHITECTURE.md), [verificările](docs/VERIFICATION.md) și [pregătirea lansării](docs/LAUNCH.md).
+Regulile de acces, declarațiile, retenția și procedurile de moderare sunt propuneri de produs care necesită validare juridică înainte de lansare. Nu sunt o certificare de conformitate.
