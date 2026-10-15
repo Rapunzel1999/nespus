@@ -6,11 +6,11 @@
 | --- | --- | --- |
 | ChatGPT, coordonator și agenți | Produs, implementare și documentație împărțite pe componente | Rezultatele testelor se raportează separat, în VERIFICATION.md |
 | Claude, prin Claude Code CLI | Revizuire de produs/securitate și, separat, analiză read-only a implementării | Nu a executat aplicația sau testele |
-| Gemini CLI | Încercare de conectare | Autentificarea a eșuat; nicio contribuție primită |
+| Gemini CLI | Încercare de conectare nesuportată | Clientul CLI a eșuat; separat, consultarea reală Argon în aplicația web este documentată mai jos |
 
 Revizuirea Claude a rulat pe MSI prin CLI, cu `--safe-mode --tools= --permission-mode plan`. CLI a raportat `claude-opus-5`, o cerere internă mică Haiku, un tur și aproximativ 73,4 secunde. Nu a folosit instrumente și nu au fost raportate refuzuri de permisiune. Această evidență descrie consultarea reală; nu reprezintă un audit independent al codului sau o garanție de securitate.
 
-Gemini CLI a returnat `IneligibleTierError UNSUPPORTED_CLIENT`, indicând un client nesuportat. Încercarea eșuată nu se prezintă drept colaborare efectivă. Nu susținem că trei modele au implementat împreună platforma.
+Gemini CLI a returnat `IneligibleTierError UNSUPPORTED_CLIENT`, indicând un client nesuportat. Încercarea eșuată nu se prezintă drept colaborare efectivă. Implementarea și testele sunt realizate de ChatGPT; consultările ulterioare ale altor modele sunt consemnate distinct.
 
 ## Recomandări acceptate în proiectare
 
@@ -61,4 +61,14 @@ Acestea sunt corecții aplicate de ChatGPT, nu de Claude. Coordonatorul a execut
 
 ## Acces Gemini Argon
 
-Utilizatorul a confirmat Google AI Pro. Acesta oferă acces la Gemini 4 Argon în aplicația Gemini, conform anunțului Google din 13 octombrie 2026. Nu reprezintă o conexiune API din ChatGPT. Antigravity cu Argon necesită accesul aferent Ultra; API este o opțiune cu plată separată. Nicio contribuție Argon nu a fost încă primită. Sarcina pregătită pentru review se află în GEMINI_REVIEW.md.
+Utilizatorul a confirmat Google AI Pro. Acesta oferă acces la Gemini 4 Argon în aplicația Gemini, conform anunțului Google din 13 octombrie 2026. Nu reprezintă o conexiune API din ChatGPT. Antigravity cu Argon necesită accesul aferent Ultra; API este o opțiune cu plată separată. La pregătirea brief-ului nu fusese primită o contribuție; consultarea ulterioară este consemnată mai jos. Sarcina pregătită pentru review se află în GEMINI_REVIEW.md.
+
+## Sprint de profesionalizare — contribuții efective
+
+- **ChatGPT:** coordonare, implementare frontend/backend, teste și QA intern în browser. Testarea interactivă a descoperit o eroare SQL în filtrarea după tranzacție; coloanele allowlist sunt acum citate corect, cu regresie automată.
+- **Claude Code:** analiză statică a interfeței furnizate, aproximativ 183,969 secunde, fără instrumente sau execuție. A semnalat mesajele SMS prea târzii, fallback incorect al numelui proprietarului, curse de navigare, favorite/accesibilitate, galerie inertă, pierderea textului la ștergerea fotografiei și date reziduale ale garanției. Corecțiile confirmate au fost implementate de ChatGPT. Istoricul complet de navigare în browser rămâne o limită, nu o funcționalitate pretinsă.
+- **Gemini, selector Argon în aplicația web:** consultare reală după conectarea Google autorizată. A analizat brief-ul produsului și limitele declarate; nu i s-a furnizat codul în acest review și nu a executat teste. Conversație: https://gemini.google.com/app/e9e06b766cef8166 (accesul depinde de cont; nu este un link public de partajare).
+
+Din revizuirea Argon am acceptat avertizarea timpurie privind SMS, ciornele disponibile acum, comunicarea lipsei alertelor externe, reamintirea expirării în cont, explicația limitei de fotografii și resetarea clară a filtrelor. Nu am acceptat înlocuirea verificării SMS printr-o confirmare manuală improvizată și nici slăbirea independenței contestațiilor. Contestațiile rămân deschise, cu informare sinceră că soluționarea poate aștepta un alt moderator. Extinderea la 8–10 fotografii și recomandările automate în afara filtrelor sunt amânate; nu justifică lărgirea limitelor de upload sau rezultate care par să respecte filtrele când nu le respectă.
+
+Participarea celor trei nu reprezintă un audit extern, certificarea proprietății, conformitate juridică sau lansare comercială finalizată.

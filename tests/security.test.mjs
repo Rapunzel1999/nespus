@@ -235,6 +235,7 @@ test('report evidence is bounded, chronological, case scoped, private and access
   for(const as of ['owner','buyer'])assert.equal((await f.request(path,{as,moderatorEmails:[as+'@test.invalid']})).status,403);
   assert.equal(f.sql.prepare("SELECT count(*) AS n FROM audit_events WHERE action='report_evidence_viewed'").get().n,0);
   const e=await f.request(path,{as:'mod'});assert.equal(e.status,200);assert.equal(e.data.messages.length,30);assert.equal(e.data.messages[0].body,'Mesaj 10');assert.equal(e.data.messages[29].body,'Mesaj 39');
+  assert.deepEqual(e.data.involvedAccounts,[{id:'buyer',role:'reporter'},{id:'owner',role:'owner'},{id:'buyer',role:'requester'}]);for(const account of e.data.involvedAccounts)assert.deepEqual(Object.keys(account).sort(),['id','role']);
   assert.equal(e.data.reason,'agency');assert.ok(e.data.purpose.includes('familia'));assert.equal(e.data.listingTitle,'Apartament luminos');
   const serialized=JSON.stringify(e.data);assert.ok(!serialized.includes('+407'));assert.ok(!serialized.includes('SECRETĂ'));assert.ok(!serialized.includes('exactAddress'));
   const audit=f.sql.prepare("SELECT * FROM audit_events WHERE action='report_evidence_viewed'").all();assert.equal(audit.length,1);assert.equal(audit[0].actor_id,'mod');assert.equal(audit[0].target_id,r.data.id);
@@ -349,4 +350,44 @@ test('suspended account cannot read conversations but retains own summary and ap
   assert.equal((await f.request('/conversations/'+c,{as:'owner'})).status,403);
   assert.equal((await f.request('/mine',{as:'owner'})).status,200);
   assert.equal((await f.request('/appeals',{as:'owner',method:'POST',data:{reason:'Solicit revizuirea suspendării și restabilirea accesului.'}})).status,201);
+});
+
+test('own case history discloses only authored cases and real decision outcomes, never another account history',async()=>{
+  const f=fixture();f.listing();
+  assert.equal((await f.request('/my-cases')).status,401);
+  const r=await f.request('/reports',{as:'buyer',method:'POST',data:{listingId:lid(1),reason:'misleading',details:'Datele anunțului necesită o verificare independentă.'}});
+  await f.request('/moderation/reports/'+r.data.id,{as:'mod',method:'POST',data:{decision:'dismissed',reason:'Contextul nu confirmă informațiile raportate.'}});
+  const a=await f.request('/appeals',{as:'buyer',method:'POST',data:{reportId:r.data.id,reason:'Solicit reanalizarea deciziei pentru acest anunț.'}});
+  await f.request('/moderation/appeals/'+a.data.id,{as:'mod2',method:'POST',data:{decision:'dismissed',reason:'Reanalizarea independentă confirmă decizia inițială.'}});
+  const own=await f.request('/my-cases',{as:'buyer'});assert.equal(own.status,200);assert.equal(own.data.reports.length,1);assert.equal(own.data.appeals.length,1);assert.equal(own.data.reports[0].status,'dismissed');assert.equal(own.data.appeals[0].status,'dismissed');assert.ok(own.data.reports[0].decisionReason.includes('Contextul'));assert.ok(own.data.appeals[0].decisionReason.includes('independentă'));
+  assert.deepEqual(own.data.account,{status:'active',restrictionReason:null});
+  for(const as of ['other','owner','mod']){const foreign=await f.request('/my-cases?userId=buyer',{as});assert.deepEqual(foreign.data.reports,[]);assert.deepEqual(foreign.data.appeals,[]);}
+  const serialized=JSON.stringify(own.data);assert.ok(!serialized.includes('+407'));assert.ok(!serialized.includes('SECRETĂ'));assert.ok(!serialized.includes('@test.invalid'));
+});
+
+test('restricted and suspended users can read own existing sanction reason without inventing a reason',async()=>{
+  const f=fixture();
+  const sanction=await f.request('/moderation/users/buyer',{as:'mod',method:'POST',data:{status:'suspended',reason:'Cont suspendat temporar după analiza contactării repetate.'}});assert.equal(sanction.status,200);
+  const own=await f.request('/my-cases',{as:'buyer'});assert.equal(own.status,200);assert.equal(own.data.account.status,'suspended');assert.ok(own.data.account.restrictionReason.includes('contactării'));
+  const foreign=await f.request('/my-cases',{as:'other'});assert.deepEqual(foreign.data.account,{status:'active',restrictionReason:null});
+  f.sql.prepare("UPDATE users SET status='restricted' WHERE id='other'").run();assert.deepEqual((await f.request('/my-cases',{as:'other'})).data.account,{status:'restricted',restrictionReason:null});
+  await f.request('/moderation/users/buyer',{as:'mod2',method:'POST',data:{status:'active',reason:'Acces restabilit după verificare independentă.'}});
+  assert.deepEqual((await f.request('/my-cases',{as:'buyer'})).data.account,{status:'active',restrictionReason:null});
+});
+
+test('own case history limits each collection to thirty newest records',async()=>{
+  const f=fixture();f.listing();
+  for(let i=0;i<35;i++){
+    f.sql.prepare('INSERT INTO reports(id,reporter_id,listing_id,reason,details,created_at) VALUES (?,?,?,?,?,?)').run(lid(300+i),'buyer',lid(1),'other','Context personal '+i,NOW+i);
+    f.sql.prepare('INSERT INTO appeals(id,user_id,reason,created_at) VALUES (?,?,?,?)').run(lid(400+i),'buyer','Contestație personală '+i,NOW+i);
+  }
+  const own=await f.request('/my-cases',{as:'buyer'});assert.equal(own.data.reports.length,30);assert.equal(own.data.appeals.length,30);assert.equal(own.data.reports[0].id,lid(334));assert.equal(own.data.reports[29].id,lid(305));assert.equal(own.data.appeals[0].id,lid(434));assert.equal(own.data.appeals[29].id,lid(405));
+});
+
+test('filtered listing search executes transaction, district, currency and numeric SQL correctly',async()=>{
+  const f=fixture();f.listing();f.listing(lid(2));f.sql.prepare('UPDATE listings SET district=? WHERE id=?').run('Gheorgheni',lid(2));
+  for(const query of ['transaction=sale','district=Gheorgheni&transaction=sale&currency=EUR','transaction=sale&type=apartment&district=Gheorgheni&currency=EUR&minPrice=100000&maxPrice=130000&minArea=40&rooms=2&q=luminos']){
+    const r=await f.request('/listings?'+query);assert.equal(r.status,200,JSON.stringify(r));assert.equal(r.data.listings.length,query==='transaction=sale'?2:1);
+  }
+  const empty=await f.request('/listings?transaction=rent&district=Gheorgheni&currency=EUR');assert.equal(empty.status,200);assert.deepEqual(empty.data.listings,[]);
 });

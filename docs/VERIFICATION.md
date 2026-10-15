@@ -66,4 +66,14 @@ Build-ul și GitHub Actions pentru redesign sunt verificate separat la publicare
 
 ## Redesign: simplu, profesional, cozy și onest
 
-Căutare prioritară, taburi cumpărare/închiriere, filtre avansate compacte, patru intenții cu valori corecte pentru ciorne. Fără anunțuri sau statistici fictive. 11 scenarii DOM raportate de agentul frontend au trecut; suita serverului 35/35 a fost reluată cu succes de coordonator. Verificarea DOM nu este QA vizual în browser. Browser-control nu este disponibil în această sesiune; aspectul pe dispozitive și navigarea asistivă rămân de verificat.
+Căutare prioritară, taburi cumpărare/închiriere, filtre avansate compacte, patru intenții cu valori corecte pentru ciorne. Fără anunțuri sau statistici fictive. 11 scenarii DOM raportate de agentul frontend au trecut; suita serverului 35/35 a fost reluată cu succes de coordonator. Verificarea DOM nu este QA vizual în browser. Această verificare inițială nu includea browser; sprintul ulterior adaugă QA intern, descris mai jos.
+
+## Sprint de profesionalizare: verificări suplimentare
+
+- 39 teste server trecute, inclusiv istoricul privat al sesizărilor/contestațiilor, izolarea între conturi și căutarea cu filtre combinate.
+- Fixture-ul frontend portabil `tests/frontend.test.mjs`: 9 scenarii de ecran plus interacțiuni pentru galerie, favorite, filtre, răspunsuri întârziate, păstrarea textului la eliminarea fotografiei, garanția eliminată, previzualizare și disponibilitatea SMS. Este un DOM simplificat, nu browser real.
+- QA intern în browser: pagina principală, etichetele românești, mesajul beta/SMS, căutare vânzare + Gheorgheni + EUR cu rezultat gol legitim, resetarea filtrelor și autentificarea cerută la publicare. Eroarea observată inițial în căutare a fost remediată și retestată.
+- Nu există anunțuri reale în preview. Galeria și conturile/moderarea sunt verificate prin fixture și SQLite, nu prin falsificarea identităților în browser.
+- Nu au fost executate SMS reale, teste pe iPhone fizic ori un test găzduit cu două conturi SIWC. Browserul desktop nu dovedește aspectul sau ergonomia pe toate telefoanele.
+
+Suita finală a sprintului: `npm test` **40/40** (39 teste server și un fișier de regresii frontend cu scenariile de mai sus). QA vizual a fost efectuat intern pe desktop. Captura din browser nu s-a sincronizat către checkout și nu este inclusă ca artefact; nu reprezintă testare pe telefon.
