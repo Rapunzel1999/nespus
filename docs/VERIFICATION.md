@@ -1,5 +1,18 @@
 # Criterii de acceptare și evidențe
 
+## Verificare curentă — 27 octombrie 2026
+
+- Baseline reluat: 40/40 teste. După întărirea integrării Twilio: **58/58**, inclusiv 18 regresii suplimentare (16 server, 2 preflight).
+- `npm run typecheck`, `node --check public/app.js`, `git diff --check` și build-ul Sites/Vinext: trecute. Fără migrare DB nouă.
+- Teste: identificatori Twilio concordanți, cod expirat/consumat/greșit, lipsa configurației sau activării, maximum cinci încercări pe SID, retrimitere fără prelungirea termenului, cote concurente/cumulative, eșec furnizor, stare schimbată în timpul apelului, refuz publicare/contact fără telefon.
+- `npm run sms:preflight`: exit code 2, exact cele trei credențiale Twilio lipsă, zero apeluri externe. Testul pozitiv al preflight folosește un răspuns simulat.
+- Configurația Sites citită: fără credențiale Twilio. Configurate `TWILIO_VERIFY_ENABLED=false` și `TWILIO_VERIFY_TOTAL_SEND_LIMIT=0`, ca secrete runtime.
+- Audiența găsită **publică** a fost schimbată la **custom, numai proprietarul** (revizie acces 3). Nicio invitație trimisă.
+- **Neexecutate:** SMS real, autentificare cu două conturi găzduite, test iPhone fizic și QA vizual nou. Nu există review nou Claude/Gemini în această etapă.
+- Testele folosesc SQLite în memorie cu migrarea proiectului și adaptor D1 simulat; nu certifică concurența infrastructurii Cloudflare sau livrarea furnizorului.
+
+Configurația exactă, limitele, costurile și planul de verificare reală sunt în [TWILIO_VERIFY.md](TWILIO_VERIFY.md). Secțiunile de mai jos păstrează istoricul verificărilor anterioare.
+
 ## Starea verificării la redactare
 
 Verificări raportate de coordonator la 15 octombrie 2026:
