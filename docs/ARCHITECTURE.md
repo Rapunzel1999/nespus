@@ -78,3 +78,30 @@ Crearea/editarea este limitată înainte de procesarea imaginilor la 20 operați
 Numele public al profilului este sanitizat pentru a limita scurgerile de date de contact prin acest câmp. Moderatorul nu poate restricționa contrapărți din propriile conversații sau alți moderatori. Contestația restricționării contului cere un alt decident; admiterea restabilește starea activă. Admiterea contestației unei raportări redeschide raportarea.
 
 Un anunț retras poate fi editat și retrimis spre moderare. Vândut/închiriat sunt stări terminale. Contul suspendat nu poate citi conversații, însă își poate consulta propriile anunțuri și contestații. Aceste excepții sunt deliberate și nu permit publicare sau contacte noi.
+
+
+## Contracte actualizate — 27 octombrie 2026
+
+### Fotografii la cerere
+
+Listele de anunțuri, favoritele și detaliul public returnează URL-uri în `photos`. `/api/listings/:id/photos/:index` acceptă indecși 0–4 și citește o singură fotografie, numai dacă anunțul trece filtrul public `LIVE`. `/api/mine/:id/photos/:index` cere contul proprietarului; citirea propriului istoric rămâne permisă și după restricționare, conform politicii existente. Nu permite citirea de către alte conturi sau anonim.
+
+Răspunsul este JPEG binar cu `Cache-Control: private, no-store`, `X-Content-Type-Options: nosniff` și `Cross-Origin-Resource-Policy: same-origin`. Fiecare cerere nouă verifică accesul; imaginile deja descărcate sau văzute nu pot fi retrase de pe dispozitive. SQL-ul de listare returnează doar existența copertei, iar detaliul public doar pozițiile fotografiilor. `/api/mine/:id` și fluxurile de editare/moderare păstrează datele complete, autorizate. Stocarea rămâne în D1, fără migrare; miniaturile și object storage rămân o etapă ulterioară.
+
+### Conversații paginate
+
+`GET /api/conversations` returnează cel mult 25 de înregistrări, `limit` și `nextCursor`. Cursorul `before` are forma `timestamp:id`, validată strict. Ordinea este `updated_at DESC, id DESC`. Apartenența, disponibilitatea și blocarea sunt evaluate în interogarea comună; lista nu mai execută interogări separate pentru fiecare conversație. Filtrele interfeței se aplică explicit conversațiilor încărcate. Activitatea nouă poate muta un rând înaintea cursorului; reîmprospătarea restabilește ordinea curentă, iar clientul elimină duplicatele între pagini.
+
+`GET /api/conversations/:id` deschide cele mai recente 50 de mesaje, returnate cronologic. `nextMessageCursor` permite cererea mesajelor mai vechi, cu departajare prin ID pentru timestamp-uri egale. Fiecare pagină reautorizează participantul și dezvăluirea telefonului. Ultimele 100 de vizionări după data propusă sunt returnate cu `viewingsHasMore`; interfața explică limita când este atinsă. Un moment deja trecut nu poate fi acceptat/refuzat prin ruta de decizie a vizionării.
+
+Citirea numărului dezvăluit revalidează în aceeași interogare permisiunea individuală, apartenența, eligibilitatea conturilor/anunțului și absența blocării. Astfel, o blocare intervenită între citirea conversației și citirea telefonului nu mai permite expunerea numărului.
+
+### Trimiteri și stare în browser
+
+Clientul trimite un `requestId` aleator de 32 de caractere hexazecimale la fiecare mesaj nou. Repetarea aceluiași ID, de același autor, în aceeași conversație, cu același text normalizat, întoarce mesajul deja salvat fără dublare. Refolosirea cu alt text/autor/conversație este respinsă. Cheia unică existentă a mesajelor acoperă și inserările concurente; reîncercarea verifică în continuare accesul. Cota poate fi consumată de două cereri simultane care ajung înaintea primei inserări. Nu este o garanție globală de trimitere exact o dată pentru orice operațiune: numai mesajele cu același `requestId` au această protecție.
+
+Textul netrimis și cheia de retry se păstrează în memoria filei. Editarea textului generează o trimitere nouă; reîncărcarea/închiderea poate pierde starea. Nu se folosește localStorage pentru conținut privat. Cererile simultane din aceeași conversație/formular sunt oprite în client, iar răspunsurile întârziate nu schimbă ecranul sau dialogul deschis între timp. API-ul rămâne autoritatea pentru toate permisiunile.
+
+Pornirea verificării SMS returnează termenul real `expiresAt` păstrat pe server. Clientul folosește acest termen, o pauză de minimum 60 de secunde și cereri explicite; nu retrimite automat coduri. Codurile expirate și limitele de încercări sunt explicate fără a modifica starea în „confirmat”. Configurația pilotului rămâne oprită.
+
+Solicitarea unui SMS pentru același număr deja confirmat pe cont este refuzată înaintea cotelor și a furnizorului (`PHONE_ALREADY_VERIFIED`). Nu se verifică preventiv dacă numărul aparține altui cont; asocierea unică rămâne verificată după dovada accesului la număr.
