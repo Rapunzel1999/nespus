@@ -216,3 +216,59 @@ assert.equal(roots.get('#modal').open,true);assert.equal(preferenceForm.elements
 assert.match(roots.get('#toast').textContent,/Nu am putut salva preferințele/);const failedPreference=JSON.parse(requests.at(-1)[1].body);assert.equal(failedPreference.acceptsContacts,false);assert.equal(failedPreference.contactHours,'Sâmbătă, 10:00–12:00');
 roots.get('#modal').close();run("S.boot.user.phoneVerified=false;S.boot.capabilities.phoneVerification=false;S.ownerFilter='all';S.ownerQuery='';clearEditor()");
 console.log('PASS: real loaded owner counts, expiration, diacritic-insensitive filtering/reset and 50-record limit; full-photo editor fetch; partial/late read failures; restricted account controls; phone-first submit and required photos; duplicate/late mutations; newer modal preservation and failed-preference retry. Fixture requests only.');
+
+// Favorites compare only real loaded records, with separate sale/rental selection.
+const favoriteListings=[
+ {...sample,title:'Apartament în Mărăști',district:'Mărăști',rentDeposit:null,rentCosts:'',rooms:1,exactAddress:'PRIVATE STREET 99',phone:'+40700111222'},
+ {...sample,id:'b'.repeat(32),title:'Locuință în Zorilor',district:'Zorilor',currency:'RON',price:3000,rentDeposit:0,rentCosts:'Utilități separat'},
+ {...sample,id:'c'.repeat(32),title:'Locuință în Gheorgheni',price:750},
+ {...sample,id:'d'.repeat(32),title:'Locuință în Grigorescu',price:700},
+ {...sample,id:'e'.repeat(32),title:'Proprietate de vânzare',transaction:'sale',price:180000}
+];
+fixtures['/api/favorites']={listings:favoriteListings,limit:50};fixtures['/api/listings/'+sample.id]={listing:favoriteListings[0]};
+run("S.favoriteFilter='all';S.favoriteQuery='';S.comparisonIds=[]");await run('favorites()');
+assert.equal(doc.querySelectorAll('.property-card').length,5);assert.equal(doc.querySelector('.card-photo-count'),null);
+const favoriteFilters=doc.querySelectorAll('.favorite-filter');favoriteFilters.find(n=>n.getAttribute('data-favorite-filter')==='sale').listeners.click();assert.equal(doc.querySelectorAll('.property-card').length,1);favoriteFilters.find(n=>n.getAttribute('data-favorite-filter')==='rent').listeners.click();assert.equal(doc.querySelectorAll('.property-card').length,4);favoriteFilters.find(n=>n.getAttribute('data-favorite-filter')==='all').listeners.click();assert.equal(doc.querySelectorAll('.property-card').length,5);
+const noMatchSearch=doc.querySelectorAll('input').find(n=>n.name==='favoriteSearch');noMatchSearch.value='Inexistent';noMatchSearch.listeners.input();assert.equal(doc.querySelectorAll('.property-card').length,0);all(doc.querySelector('.favorites-no-match')).find(n=>n.tag==='button').listeners.click();assert.equal(doc.querySelectorAll('.property-card').length,5);assert.equal(noMatchSearch.value,'');
+
+const comparisonButton=id=>doc.querySelectorAll('button').find(n=>n.getAttribute('data-compare')===id);
+const beforeComparisonMutations=requests.filter(([,o])=>['POST','PATCH','PUT','DELETE'].includes(o.method)).length;
+comparisonButton(sample.id).listeners.click();assert.equal(doc.querySelector('.comparison-open').disabled,true);assert.equal(comparisonButton(sample.id).getAttribute('aria-pressed'),'true');
+comparisonButton(favoriteListings[1].id).listeners.click();assert.equal(doc.querySelector('.comparison-open').disabled,false);
+let favoriteSearch=doc.querySelectorAll('input').find(n=>n.name==='favoriteSearch');favoriteSearch.value='MARASTI';favoriteSearch.listeners.input();assert.equal(doc.querySelectorAll('.property-card').length,1);assert.equal(run('S.comparisonIds.length'),2);
+doc.querySelector('.comparison-open').listeners.click();assert.equal(roots.get('#modal').className,'comparison-dialog');
+let comparison=roots.get('#modal-content').querySelector('.comparison-table');assert.match(comparison.textContent,/Chirie lunară/);assert.match(comparison.textContent,/EUR/);assert.match(comparison.textContent,/RON/);assert.match(comparison.textContent,/Nespecificată/);assert.match(comparison.textContent,/Nespecificate/);assert.match(comparison.textContent,/0 lei/);assert.match(comparison.textContent,/1 cameră/);assert.doesNotMatch(comparison.textContent,/PRIVATE STREET|40700111222|Preț aproximativ/);
+assert.match(roots.get('#modal-content').textContent,/Monede diferite/);assert.ok(all(comparison).some(n=>n.tag==='th'&&n.getAttribute('scope')==='row'));
+roots.get('#modal').close();favoriteSearch.value='';favoriteSearch.listeners.input();comparisonButton(favoriteListings[4].id).listeners.click();assert.equal(run('S.comparisonIds.length'),2);assert.match(doc.querySelector('.comparison-feedback').textContent,/Compară separat/);
+comparisonButton(favoriteListings[2].id).listeners.click();comparisonButton(favoriteListings[3].id).listeners.click();assert.equal(run('S.comparisonIds.length'),3);assert.match(doc.querySelector('.comparison-feedback').textContent,/maximum trei/);
+const removeComparison=all(doc.querySelector('.comparison-selection')).find(n=>n.tag==='button');removeComparison.listeners.click();assert.equal(run('S.comparisonIds.includes('+JSON.stringify(sample.id)+')'),false);assert.equal(comparisonButton(sample.id).getAttribute('aria-pressed'),'false');assert.equal(comparisonButton(sample.id).focused,true);assert.equal(run('S.favorites.has('+JSON.stringify(sample.id)+')'),true);
+doc.querySelector('.comparison-clear').listeners.click();assert.equal(run('S.comparisonIds.length'),0);assert.equal(doc.querySelector('.comparison-open').disabled,true);
+
+// The selected properties survive filters and return from a full listing.
+comparisonButton(sample.id).listeners.click();comparisonButton(favoriteListings[1].id).listeners.click();doc.querySelector('.comparison-open').listeners.click();
+comparison=roots.get('#modal-content').querySelector('.comparison-table');const comparisonLink=all(comparison).find(n=>n.tag==='a');let comparisonPrevented=false;
+comparisonLink.listeners.click({ctrlKey:true,preventDefault(){comparisonPrevented=true}});assert.equal(comparisonPrevented,false);assert.equal(roots.get('#modal').open,true);
+comparisonLink.listeners.click({preventDefault(){comparisonPrevented=true}});await tick();assert.equal(run('S.page'),'detail');assert.equal(roots.get('#modal').open,false);
+all(roots.get('#app')).find(n=>n.tag==='button'&&n.textContent==='← Înapoi la favorite').listeners.click();await tick();assert.equal(run('S.page'),'favorites');assert.equal(run('S.comparisonIds.length'),2);
+assert.equal(requests.filter(([,o])=>['POST','PATCH','PUT','DELETE'].includes(o.method)).length,beforeComparisonMutations);
+
+// Reload removes unavailable IDs, enforces the limit, and does not invent an empty total.
+fixtures['/api/favorites']={listings:[favoriteListings[1]],limit:50};await run('favorites()');assert.equal(run('S.comparisonIds.length'),1);assert.equal(run('S.comparisonIds[0]'),favoriteListings[1].id);assert.equal(doc.querySelector('.comparison-open').disabled,true);
+const limitedFavorites=run('favoriteCollection('+JSON.stringify(Array.from({length:50},(_,i)=>({...sample,id:(i+1).toString(16).padStart(32,'0')})))+',50)');assert.match(limitedFavorites.textContent,/cel mult 50 de favorite disponibile/);
+run('S.comparisonIds=[]');run('comparisonDialog('+JSON.stringify([favoriteListings[0]])+')');assert.equal(roots.get('#modal').open,false);
+const saleComparison=[favoriteListings[4],{...favoriteListings[4],id:'f'.repeat(32),price:200000}];run('comparisonDialog('+JSON.stringify(saleComparison)+')');assert.match(roots.get('#modal-content').textContent,/Preț aproximativ \/ m²/);assert.doesNotMatch(roots.get('#modal-content').textContent,/Chirie lunară|Garanție|Monede diferite/);roots.get('#modal').close();
+
+// Failed removal preserves selection; repeated clicks send only one DELETE.
+fixtures['/api/favorites']={listings:[favoriteListings[1]],limit:50};run('S.comparisonIds=['+JSON.stringify(favoriteListings[1].id)+']');await run('favorites()');
+const originalFavoriteFetch=ctx.fetch;let removalResponse=null,removalCalls=0;
+ctx.fetch=async(url,options={})=>{if(url==='/api/favorites/'+favoriteListings[1].id&&options.method==='DELETE'){removalCalls++;requests.push([url,options]);return removalResponse;}return originalFavoriteFetch(url,options);};
+removalResponse=Promise.resolve({ok:false,json:async()=>({error:'Eliminarea nu a fost salvată.'})});
+let removeFavorite=doc.querySelectorAll('[data-favorite]').find(n=>n.getAttribute('data-favorite')===favoriteListings[1].id);removeFavorite.listeners.click();await tick();assert.equal(run('S.favorites.has('+JSON.stringify(favoriteListings[1].id)+')'),true);assert.equal(run('S.comparisonIds.length'),1);assert.equal(removeFavorite.disabled,false);assert.match(roots.get('#toast').textContent,/Eliminarea nu a fost salvată/);
+let finishRemoval;removalResponse=new Promise(resolve=>{finishRemoval=resolve});const removalCallsBefore=removalCalls;removeFavorite.listeners.click();removeFavorite.listeners.click();assert.equal(removalCalls,removalCallsBefore+1);assert.equal(removeFavorite.disabled,true);
+doc.querySelector('.comparison-open').listeners.click();assert.equal(roots.get('#modal').open,false);assert.match(doc.querySelector('.comparison-feedback').textContent,/Așteaptă salvarea/);
+fixtures['/api/favorites']={listings:[],limit:50};finishRemoval({ok:true,json:async()=>({saved:false})});await tick();await tick();assert.equal(run('S.comparisonIds.length'),0);assert.equal(run('S.favorites.has('+JSON.stringify(favoriteListings[1].id)+')'),false);assert.match(doc.querySelector('.favorites-empty').textContent,/Nicio favorită disponibilă acum/);assert.match(doc.querySelector('.favorites-empty').textContent,/retrase, expirate/);ctx.fetch=originalFavoriteFetch;
+
+// Failures keep the page useful, and anonymous visitors never request private favorites.
+delayedFavorites=Promise.resolve({ok:false,json:async()=>({error:'Favorite indisponibile.'})});await run('favorites()');assert.match(doc.querySelector('.favorites-load-error').textContent,/Favorite indisponibile/);assert.equal(doc.querySelector('.favorites-empty'),null);delayedFavorites=null;
+const favoritesUser=run('S.boot.user');run('S.boot.user=null');const anonymousFavoriteRequests=requests.length;await run('favorites()');assert.equal(requests.length,anonymousFavoriteRequests);assert.match(roots.get('#modal-content').textContent,/Continuă cu ChatGPT/);ctx.restoreFavoritesUser=favoritesUser;run("S.boot.user=restoreFavoritesUser;S.favoriteFilter='all';S.favoriteQuery='';S.comparisonIds=[]");roots.get('#modal').close();
+console.log('PASS: favorites filters/diacritics; 2–3 same-transaction comparisons; EUR/RON without conversion; unknown vs zero costs; private-data omission; selection persistence and unavailable pruning; real-photo count omission; full listing return; modifier links; failed/duplicate removal and anonymous/error states. No SMS/contact/publication requests.');
