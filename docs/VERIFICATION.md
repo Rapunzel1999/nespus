@@ -1,5 +1,16 @@
 # Criterii de acceptare și evidențe
 
+## Căutare și navigare — 27 octombrie 2026
+
+- **61/61 teste trecute**: suita existentă, trei regresii server noi și scenarii frontend extinse în același fișier de test.
+- Căutarea oferă 24 de rezultate pe pagină, număr total, sortare pe server după preț/suprafață/recență și departajare stabilă prin ID. Sortarea după preț cere o monedă explicită; numărarea exclude aceleași anunțuri indisponibile, private sau neeligibile ca lista.
+- SQLite: 30 de anunțuri sunt accesibile în două pagini fără dubluri pe un set stabil; paginile/sortările invalide și intervalele de preț inversate sunt respinse. Modificările live ale inventarului pot muta un rezultat între pagini.
+- DOM simulat: filtre/pagină/sortare restaurate din URL; revenire din detaliu; evenimentul de navigare înapoi; resetarea paginii la sortare; resetarea bugetului la schimbarea vânzare/închiriere; validarea bugetului; stări goale și linkuri de paginare. Linkurile păstrează accesul privat existent.
+- Interfață: bară de rezultate cu sortare, copierea căutării, stare de încărcare, mesaj de eroare cu reîncercare, formular adaptat pentru mobil și legătură de acces direct la conținut. Textele despre SMS reflectă capabilitatea reală.
+- Sintaxă JavaScript, TypeScript, `git diff --check` și build Sites/Vinext: trecute. Fără dependențe sau migrări noi.
+- **QA vizual nou neconfirmat:** daemonul de preview raportează pornirea, dar browserul întoarce `ERR_CONNECTION_REFUSED`. Nu s-a modificat rețeaua și nu s-au introdus date demonstrative în producție. Testele DOM nu certifică aspectul pe mobil sau pe iPhone fizic.
+- Pilotul rămâne numai pentru proprietar; SMS-ul rămâne oprit. Livrarea SMS și testul cu două conturi găzduite sunt în continuare neexecutate.
+
 ## Verificare curentă — 27 octombrie 2026
 
 - Baseline reluat: 40/40 teste. După întărirea integrării Twilio: **58/58**, inclusiv 18 regresii suplimentare (16 server, 2 preflight).
