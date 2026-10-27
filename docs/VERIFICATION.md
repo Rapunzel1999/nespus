@@ -1,5 +1,14 @@
 # Criterii de acceptare și evidențe
 
+## Experiența de brand — 27 octombrie 2026
+
+- Pagină principală refăcută: imagine de atmosferă cu etichetă AI, căutare funcțională, anunțuri reale din API, principii de contact direct, parcursuri solicitant/proprietar, explorare pe cartiere și invitație pentru proprietari. Identitate vizuală comună pentru navigare și subsol.
+- **61/61 teste trecute**. Scenarii noi în testul frontend existent: comutarea parcursului, căutarea pe cartier fără filtre vechi, păstrarea tipului de tranzacție, navigarea către explicații din alte ecrane, focus la căutare cu mișcare redusă, CTA-uri cu autentificare și fără operațiuni de publicare/SMS, stare goală sinceră și etichete AI.
+- TypeScript, sintaxa JavaScript, `git diff --check` și build-ul de producție Sites/Vinext: trecute. Fără dependențe, migrări sau schimbări ale serverului.
+- Cele trei fișiere WebP însumează 382.504 octeți. Browserul alege o variantă a imaginii principale prin `srcset`; imaginea secundară este lazy. Prompturile și proveniența sunt în [BRAND_ASSETS.md](BRAND_ASSETS.md).
+- **Limită de verificare:** preview-ul gestionat a întors anterior `ERR_CONNECTION_REFUSED`; nu există dovadă de remediere a infrastructurii. Nu s-a repetat testarea în browser și nu se certifică aspectul pe mobil, accesibilitatea completă sau funcționarea pe iPhone fizic prin testele DOM.
+- Pilotul rămâne privat, cu SMS oprit și fără trimiteri cu cost. SMS real și testul cu două conturi găzduite rămân neexecutate. Condițiile issue-ului de lansare rămân deschise.
+
 ## Editorul proprietarului — 27 octombrie 2026
 
 - Formular în doi pași, cu rezumat și repere de completare. Cartierul trebuie ales explicit; camerele sunt obligatorii la apartamente/case, iar limitele numerice reflectă validarea existentă a serverului. Declarația nu este bifată automat la editare.

@@ -91,3 +91,37 @@ assert.equal(run('S.editorDirty'),true);assert.equal(run('S.editorSaving'),false
 await run('go("account")');run('resumeEditor()');assert.match(roots.get('#app').textContent,/Conexiune indisponibilă/);assert.equal(roots.get('#app').querySelector('form').elements.title.value,'Un titlu nou care trebuie păstrat');
 run('clearEditor()');
 console.log('PASS: explicit district/rooms, in-tab draft recovery, beforeunload warning, replacement confirmation, private summary, photo copy/reorder/cover/removal, atomic upload failure/capacity, preview preservation, duplicate-save prevention, late responses, and failed-save recovery. No real uploads, hosted account writes or SMS.');
+
+// Brand entry points connect to the real search and protected owner flow.
+fixtures['/api/listings']={listings:[],total:0,totalPages:0,page:1,limit:24};
+await run('go("home")');
+assert.equal(doc.querySelector('.brand-feed').getAttribute('aria-busy'),'false');
+assert.match(doc.querySelector('.brand-feed').textContent,/Nu avem încă anunțuri publicate/);
+assert.equal(doc.querySelectorAll('.card').length,0);
+assert.match(doc.querySelector('.brand-hero-image').alt,/generată cu AI, nu o proprietate disponibilă/);
+const journey=doc.querySelector('#how');
+const audienceButtons=all(journey).filter(n=>n.getAttribute('data-audience'));
+assert.equal(audienceButtons[0].getAttribute('aria-pressed'),'true');
+audienceButtons[1].listeners.click();
+assert.equal(audienceButtons[1].getAttribute('aria-pressed'),'true');
+assert.equal(audienceButtons[0].getAttribute('aria-pressed'),'false');
+assert.match(doc.querySelector('#experience-steps').textContent,/Ciorna nu se publică automat/);
+audienceButtons[0].listeners.click();
+assert.match(doc.querySelector('#experience-steps').textContent,/confirmi telefonul când serviciul este disponibil/);
+const searchTarget=doc.querySelector('#home-search');let scrollOptions;
+searchTarget.scrollIntoView=options=>{scrollOptions=options};ctx.window.matchMedia=()=>({matches:true});
+await doc.querySelector('.hero-primary').listeners.click();assert.equal(scrollOptions.behavior,'auto');assert.equal(searchTarget.focused,true);delete ctx.window.matchMedia;
+run("S.filters={district:'Centru',maxPrice:'800',rooms:'4',q:'balcon'};S.transaction='rent';S.browsePage=4");
+all(doc.querySelector('.neighborhood-list')).find(n=>n.getAttribute('aria-label')==='Caută proprietăți în Zorilor').listeners.click();await tick();
+assert.equal(run('S.page'),'browse');assert.equal(run('S.transaction'),'rent');assert.equal(run('S.browsePage'),1);assert.equal(run('S.filters.district'),'Zorilor');assert.equal(run('S.filters.maxPrice'),undefined);assert.equal(run('S.filters.q'),undefined);assert.equal(run('S.filters.rooms'),undefined);
+assert.match(requests.at(-1)[0],/transaction=rent/);assert.match(requests.at(-1)[0],/district=Zorilor/);
+await run('scrollHomeSection("how")');assert.equal(run('S.page'),'home');assert.equal(doc.querySelector('#how').focused,true);
+const savedUser=run('S.boot.user');run('S.boot.user=null');
+const requestsBeforeOwnerCTA=requests.length;
+doc.querySelector('.hero-secondary').listeners.click();
+assert.match(roots.get('#modal-content').textContent,/Continuă cu ChatGPT/);assert.equal(run('S.page'),'home');assert.equal(requests.length,requestsBeforeOwnerCTA);
+ctx.restoreUser=savedUser;run('S.boot.user=restoreUser');roots.get('#modal').close();
+doc.querySelector('.owner-cta').listeners.click();
+assert.match(roots.get('#modal-content').textContent,/Vreau să vând/);assert.equal(requests.length,requestsBeforeOwnerCTA);
+assert.equal(run('S.boot.capabilities.phoneVerification'),false);
+console.log('PASS: honest empty feed and AI labels; buyer/owner audience states; reduced-motion search focus; district links reset stale filters and preserve transaction; cross-page how navigation; owner CTAs enforce sign-in and never send SMS or publish.');
