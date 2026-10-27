@@ -29,13 +29,13 @@ pnpm start
 
 `pnpm db:migrate` aplică migrările locale; datele din `.wrangler/state` sunt separate de baza găzduită. Nu adăuga această stare sau secretele în Git. Pentru dezvoltare folosește `pnpm dev`. Găzduirea prin Sites urmează fluxul de build și publicare al integrării, separat de pornirea locală.
 
-Verificări raportate de coordonator: 35 teste SQLite de securitate trecute după corecții, cu regresii suplimentare în lucru și număr final de confirmat, TypeScript și sintaxă JavaScript fără erori, un build de producție reușit și migrarea locală inițială aplicată. A doua rulare a migrării nu a găsit migrări în așteptare. Build-ul sursei finale urmează să fie confirmat. Detalii și limite în [VERIFICATION.md](docs/VERIFICATION.md). Nu este confirmat aici niciun rezultat GitHub CI sau publicare finală.
+Verificare la **27 octombrie 2026**: **58/58 teste locale**, TypeScript, sintaxă JavaScript și build de producție trecute. Testele SMS folosesc răspunsuri simulate. În găzduire lipsesc cele trei credențiale Twilio; trimiterea este oprită explicit și plafonul total este zero. Accesul găsit public a fost corectat la **numai proprietarul**. Nu sunt confirmate livrare SMS reală, două conturi SIWC găzduite sau testarea pe iPhone fizic. Detalii în [VERIFICATION.md](docs/VERIFICATION.md) și [configurarea Twilio](docs/TWILIO_VERIFY.md).
 
 ## Configurare
 
 - Worker Vinext și bază Cloudflare D1 cu binding `DB`.
 - SIWC gestionat de infrastructura Sites; identitatea se citește numai pe server din contextul de încredere al găzduirii.
-- Twilio Verify: configurează `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN` și `TWILIO_VERIFY_SERVICE_SID`, numai în mediul de rulare. Nu introduce tokenuri în cod sau în browser.
+- Twilio Verify: configurează `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN` și `TWILIO_VERIFY_SERVICE_SID`, numai în mediul de rulare. Activarea mai cere `TWILIO_VERIFY_ENABLED=true` și `TWILIO_VERIFY_TOTAL_SEND_LIMIT` autorizat (1–100 cereri cumulative). Implicit `false`/`0`; credențialele singure nu permit trimiterea. Nu introduce tokenuri în cod sau în browser. Vezi [runbook-ul SMS](docs/TWILIO_VERIFY.md).
 - Acces moderator: `MODERATOR_EMAILS`, allowlist de e-mailuri furnizate de gateway-ul de încredere, verificată pe server; niciun utilizator nu poate alege acest rol din formular sau dintr-un parametru client.
 - Fotografiile pilotului sunt JPEG stocate în D1, maximum 5 imagini, fiecare de cel mult 400.000 de caractere pentru întregul data URL base64 (aproximativ 300 KB de date binare). Corpul cererii este limitat la 2.100.000 de octeți. Serverul decodează și recodifică pixelii, eliminând metadatele, cu limite de 2 MP, 32 MB pentru decodare și 1.200 px pe fiecare dimensiune. Aceasta este o limită temporară; migrarea la object storage este necesară înainte de creșterea volumului.
 - Nu se colectează acte de identitate sau titluri de proprietate în acest MVP.

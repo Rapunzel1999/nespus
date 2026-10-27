@@ -14,7 +14,8 @@
     "db:generate": "drizzle-kit generate",
     "test": "node --test tests/*.test.mjs",
     "typecheck": "tsc --noEmit",
-    "db:migrate": "node scripts/migrate-local.mjs"
+    "db:migrate": "node scripts/migrate-local.mjs",
+    "sms:preflight": "node scripts/twilio-preflight.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",

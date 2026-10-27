@@ -6,7 +6,7 @@ import jpeg from 'jpeg-js';
 import {handleApi} from '../lib/api.mjs';
 import {VERSION, DAY,validateListing} from '../lib/model.mjs';
 
-const smsFixture={accountSid:'AC'+'a'.repeat(32),authToken:'fixture-only-not-a-credential',serviceSid:'VA'+'b'.repeat(32)};
+const smsFixture={accountSid:'AC'+'a'.repeat(32),authToken:'fixture-only-not-a-credential',serviceSid:'VA'+'b'.repeat(32),enabled:'true',totalLimit:'100'};
 
 const NOW = Date.UTC(2026,9,15,18);
 const lid = n => n.toString(16).padStart(32,'0');
@@ -264,7 +264,7 @@ test('gallery summaries return one photo while full detail remains owner authori
 test('phone adapter trusts only provider approval and resets prior disclosure on number change',async()=>{
   const f=fixture();const conversationId=await f.accepted();await f.request('/conversations/'+conversationId+'/share-phone',{as:'owner',method:'POST',data:{}});
   const phone='+40712345678',sid='VE'+'d'.repeat(32);const calls=[];
-  const fetcher=async(url,init)=>{calls.push(url);return Response.json(url.endsWith('/Verifications')?{status:'pending',sid}:{status:'approved',to:phone,sid});};
+  const fetcher=async(url,init)=>{calls.push(url);return Response.json(smsResponse(url.endsWith('/Verifications')?'pending':'approved',{to:phone,sid}));};
   const start=await f.request('/phone/start',{as:'owner',method:'POST',data:{phone},sms:smsFixture,fetcher});assert.equal(start.status,200,JSON.stringify(start));
   const checked=await f.request('/phone/check',{as:'owner',method:'POST',data:{code:'123456'},sms:smsFixture,fetcher});assert.equal(checked.status,200,JSON.stringify(checked));
   assert.equal(f.sql.prepare('SELECT phone FROM users WHERE id=?').get('owner').phone,phone);
@@ -276,8 +276,8 @@ test('phone adapter trusts only provider approval and resets prior disclosure on
 test('pending provider result cannot confirm a phone, and replaced challenges cannot be approved stale',async()=>{
   const f=fixture(),phone='+40712345678',oldSid='VE'+'d'.repeat(32),newSid='VE'+'e'.repeat(32);
   f.sql.prepare('INSERT INTO phone_challenges (user_id,phone,provider_sid,expires_at) VALUES (?,?,?,?)').run('unverified',phone,oldSid,NOW+600000);
-  const pending=await f.request('/phone/check',{as:'unverified',method:'POST',data:{code:'123456'},sms:smsFixture,fetcher:async()=>Response.json({status:'pending',to:phone})});assert.equal(pending.status,400);assert.equal(f.sql.prepare('SELECT phone_verified_at FROM users WHERE id=?').get('unverified').phone_verified_at,null);
-  const stale=await f.request('/phone/check',{as:'unverified',method:'POST',data:{code:'123456'},sms:smsFixture,fetcher:async()=>{f.sql.prepare('UPDATE phone_challenges SET provider_sid=? WHERE user_id=?').run(newSid,'unverified');return Response.json({status:'approved',to:phone,sid:oldSid});}});
+  const pending=await f.request('/phone/check',{as:'unverified',method:'POST',data:{code:'123456'},sms:smsFixture,fetcher:async()=>Response.json(smsResponse('pending',{to:phone,sid:oldSid}))});assert.equal(pending.status,400);assert.equal(f.sql.prepare('SELECT phone_verified_at FROM users WHERE id=?').get('unverified').phone_verified_at,null);
+  const stale=await f.request('/phone/check',{as:'unverified',method:'POST',data:{code:'123456'},sms:smsFixture,fetcher:async()=>{f.sql.prepare('UPDATE phone_challenges SET provider_sid=? WHERE user_id=?').run(newSid,'unverified');return Response.json(smsResponse('approved',{to:phone,sid:oldSid}));}});
   assert.equal(stale.status,409);assert.equal(f.sql.prepare('SELECT phone_verified_at FROM users WHERE id=?').get('unverified').phone_verified_at,null);assert.equal(f.sql.prepare("SELECT count(*) n FROM audit_events WHERE action='phone_verified'").get().n,0);
 });
 
@@ -390,4 +390,158 @@ test('filtered listing search executes transaction, district, currency and numer
     const r=await f.request('/listings?'+query);assert.equal(r.status,200,JSON.stringify(r));assert.equal(r.data.listings.length,query==='transaction=sale'?2:1);
   }
   const empty=await f.request('/listings?transaction=rent&district=Gheorgheni&currency=EUR');assert.equal(empty.status,200);assert.deepEqual(empty.data.listings,[]);
+});
+
+
+// All Verify calls below are simulated. No test sends an SMS or contacts Twilio.
+function smsResponse(status='pending',overrides={}){
+  return {status,sid:'VE'+'d'.repeat(32),account_sid:smsFixture.accountSid,service_sid:smsFixture.serviceSid,
+    to:'+40712345678',channel:'sms',date_created:new Date(NOW).toISOString(),...overrides};
+}
+const startPhone=(f,extra={})=>f.request('/phone/start',{as:'unverified',method:'POST',data:{phone:'+40712345678'},sms:smsFixture,fetcher:async()=>Response.json(smsResponse()),...extra});
+const checkPhone=(f,extra={})=>f.request('/phone/check',{as:'unverified',method:'POST',data:{code:'123456'},sms:smsFixture,fetcher:async()=>Response.json(smsResponse('approved')),...extra});
+const isVerified=f=>!!f.sql.prepare("SELECT phone_verified_at FROM users WHERE id='unverified'").get().phone_verified_at;
+
+test('SMS requires explicit activation, valid credentials and a bounded approved budget',async()=>{
+  for(const sms of [{...smsFixture,enabled:undefined},{...smsFixture,enabled:'false'},{...smsFixture,totalLimit:'0'},{...smsFixture,totalLimit:'101'},{...smsFixture,totalLimit:'NaN'},{...smsFixture,accountSid:'ACbad'},{...smsFixture,serviceSid:'VA../'},{...smsFixture,authToken:''}]){
+    const f=fixture();let calls=0;const r=await startPhone(f,{sms,fetcher:async()=>{calls++;throw Error();}});
+    assert.equal(r.status,503);assert.equal(calls,0);assert.equal(isVerified(f),false);
+    assert.equal((await f.request('/bootstrap',{as:'unverified',sms})).data.capabilities.phoneVerification,false);
+  }
+});
+
+test('SMS endpoint rejects anonymous, suspended, foreign-origin and non-RO requests before provider',async()=>{
+  for(const extra of [{as:null},{as:'suspended'},{headers:{origin:'https://evil.invalid'}},{data:{phone:'+15017122661'}},{data:{phone:40712345678}}]){
+    const f=fixture();f.user('suspended',false,'suspended');let calls=0;
+    const r=await startPhone(f,{...extra,fetcher:async()=>{calls++;throw Error();}});
+    assert.ok([400,401,403].includes(r.status));assert.equal(calls,0);
+  }
+});
+
+test('Verify wire request uses fixed origin, strict POST form, risk protection and no redirect/retry',async()=>{
+  const f=fixture(),calls=[];
+  const fetcher=async(url,init)=>{calls.push({url,init});return Response.json(smsResponse(url.endsWith('VerificationCheck')?'approved':'pending'));};
+  assert.equal((await startPhone(f,{fetcher})).status,200);
+  assert.equal((await checkPhone(f,{fetcher})).status,200);
+  assert.equal(calls.length,2);
+  assert.equal(calls[0].url,'https://verify.twilio.com/v2/Services/'+smsFixture.serviceSid+'/Verifications');
+  assert.equal(calls[0].init.redirect,'error');assert.equal(calls[0].init.method,'POST');
+  assert.deepEqual(Object.fromEntries(calls[0].init.body),{To:'+40712345678',Channel:'sms',Locale:'ro',RiskCheck:'enable'});
+  assert.deepEqual(Object.fromEntries(calls[1].init.body),{VerificationSid:'VE'+'d'.repeat(32),Code:'123456'});
+  assert.ok(calls[0].init.signal instanceof AbortSignal);
+  assert.equal((await checkPhone(f,{fetcher})).status,400);assert.equal(calls.length,2);
+});
+
+test('SMS provider start cannot inject another phone, service, account, channel, SID or validity',async()=>{
+  for(const changes of [{to:'+40711111111'},{service_sid:'VA'+'f'.repeat(32)},{account_sid:'AC'+'f'.repeat(32)},{channel:'call'},{sid:'bad'},{date_created:'bad'},{date_created:new Date(NOW-600001).toISOString()},{status:'approved'}]){
+    const f=fixture();const r=await startPhone(f,{fetcher:async()=>Response.json(smsResponse('pending',changes))});
+    assert.equal(r.status,503);assert.equal(f.sql.prepare('SELECT count(*) n FROM phone_challenges').get().n,0);assert.equal(isVerified(f),false);
+  }
+});
+
+test('approval must match the exact stored SID, phone, service, account and SMS channel',async()=>{
+  for(const changes of [{to:'+40711111111'},{sid:'VE'+'e'.repeat(32)},{service_sid:'VA'+'f'.repeat(32)},{account_sid:'AC'+'f'.repeat(32)},{channel:'call'}]){
+    const f=fixture();await startPhone(f);assert.equal((await checkPhone(f,{fetcher:async()=>Response.json(smsResponse('approved',changes))})).status,503);assert.equal(isVerified(f),false);
+  }
+});
+
+test('local expiry rejects without provider and cleans the challenge',async()=>{
+  const f=fixture();await startPhone(f);let calls=0;
+  const r=await checkPhone(f,{now:NOW+600000,fetcher:async()=>{calls++;throw Error();}});
+  assert.equal(r.status,400);assert.equal(r.data.code,'SMS_EXPIRED');assert.equal(calls,0);assert.equal(isVerified(f),false);
+  assert.equal(f.sql.prepare('SELECT count(*) n FROM phone_challenges').get().n,0);
+});
+
+test('expiry or suspension during provider round-trip cannot approve',async()=>{
+  for(const mode of ['expired','suspended','lock-lost']){
+    const f=fixture();await startPhone(f);let current=NOW;
+    const r=await checkPhone(f,{clock:()=>current,fetcher:async()=>{
+      if(mode==='expired')current=NOW+600000;
+      if(mode==='suspended')f.sql.prepare("UPDATE users SET status='suspended' WHERE id='unverified'").run();
+      if(mode==='lock-lost')f.sql.prepare("DELETE FROM rate_limits WHERE key='sms-operation:unverified'").run();
+      return Response.json(smsResponse('approved'));
+    }});
+    assert.equal(r.status,409);assert.equal(isVerified(f),false);
+    assert.equal(f.sql.prepare("SELECT count(*) n FROM audit_events WHERE action='phone_verified'").get().n,0);
+  }
+});
+
+test('provider errors are sanitized, fail closed and never retried',async()=>{
+  for(const [status,code,expected] of [[404,20404,400],[400,60202,400],[429,60203,429],[401,20003,503],[403,20003,503],[500,0,503],[400,60200,400]]){
+    const f=fixture();await startPhone(f);let calls=0;
+    const r=await checkPhone(f,{fetcher:async()=>{calls++;return Response.json({code,message:'PRIVATE_PHONE_SECRET_TOKEN'},{status});}});
+    assert.equal(r.status,expected);assert.equal(calls,1);assert.equal(isVerified(f),false);assert.ok(!JSON.stringify(r.data).includes('PRIVATE'));
+    if(status===404||code===60202)assert.equal(f.sql.prepare('SELECT count(*) n FROM phone_challenges').get().n,0);
+  }
+  for(const fetcher of [async()=>{throw new Error('PRIVATE_TOKEN');},async()=>new Response('not JSON'),async()=>Response.json(null)]){
+    const f=fixture();await startPhone(f);assert.equal((await checkPhone(f,{fetcher})).status,503);assert.equal(isVerified(f),false);
+  }
+});
+
+test('five code attempts persist across clock boundary and a resend of the same challenge',async()=>{
+  const f=fixture();await startPhone(f);let calls=0;
+  const fetcher=async()=>{calls++;return Response.json(smsResponse('pending'));};
+  for(let n=0;n<5;n++)assert.equal((await checkPhone(f,{now:NOW+n*1000,fetcher})).status,400);
+  assert.equal((await startPhone(f,{now:NOW+60000})).status,200);
+  assert.equal((await checkPhone(f,{now:NOW+61000,fetcher})).status,429);assert.equal(calls,5);assert.equal(isVerified(f),false);
+  assert.equal(f.sql.prepare('SELECT expires_at FROM phone_challenges').get().expires_at,NOW+600000);
+});
+
+test('concurrent starts and checks share an account lock before calling Twilio',async()=>{
+  const f=fixture();let release,entered;const began=new Promise(r=>entered=r);const gate=new Promise(r=>release=r);let calls=0;
+  const first=startPhone(f,{fetcher:async()=>{calls++;entered();await gate;return Response.json(smsResponse());}});
+  await began;
+  assert.equal((await startPhone(f)).data.code,'SMS_BUSY');assert.equal((await checkPhone(f)).data.code,'SMS_BUSY');
+  release();assert.equal((await first).status,200);assert.equal(calls,1);
+});
+
+test('cooldown applies across hour boundary and across accounts targeting same number',async()=>{
+  const f=fixture();await startPhone(f,{now:NOW+3599000,fetcher:async()=>Response.json(smsResponse('pending',{date_created:new Date(NOW+3599000).toISOString()}))});
+  assert.equal((await startPhone(f,{now:NOW+3600000})).status,429);
+  assert.equal((await startPhone(f,{as:'buyer',now:NOW+3600000})).status,429);
+});
+
+test('hourly account and destination limits persist over the wall-clock boundary',async()=>{
+  const f=fixture();let calls=0;
+  for(let n=0;n<4;n++){
+    const now=NOW+3540000+n*60000;
+    const r=await startPhone(f,{now,fetcher:async()=>{calls++;return Response.json(smsResponse('pending',{date_created:new Date(now).toISOString()}));}});
+    assert.equal(r.status,n<3?200:429);
+  }
+  assert.equal(calls,3);
+});
+
+test('cumulative budget is atomic across accounts and never resets next day or after provider timeout',async()=>{
+  const f=fixture(),sms={...smsFixture,totalLimit:'1'};let calls=0;
+  const fetcher=async()=>{calls++;throw Error('timeout');};
+  const results=await Promise.all([startPhone(f,{sms,fetcher}),startPhone(f,{as:'buyer',data:{phone:'+40722222222'},sms,fetcher})]);
+  assert.deepEqual(results.map(x=>x.status).sort(),[429,503]);assert.equal(calls,1);
+  assert.equal((await startPhone(f,{sms,now:NOW+DAY,fetcher})).data.code,'SMS_BUDGET');assert.equal(calls,1);
+});
+
+test('global daily ceiling bounds distinct accounts and numbers',async()=>{
+  const f=fixture();let calls=0;
+  for(let n=0;n<11;n++){
+    const user='sms-user-'+n,phone='+40700'+String(100000+n);f.user(user,false);
+    const r=await startPhone(f,{as:user,data:{phone},fetcher:async()=>{calls++;return Response.json(smsResponse('pending',{to:phone}));}});
+    assert.equal(r.status,n<10?200:429,JSON.stringify(r));
+  }
+  assert.equal(calls,10);
+});
+
+test('unverified users remain unable to submit, publish or contact after a failed code',async()=>{
+  const f=fixture();await startPhone(f);await checkPhone(f,{fetcher:async()=>Response.json(smsResponse('pending'))});
+  const own=f.listing(lid(9),'draft','unverified');f.listing();
+  assert.equal((await f.request('/listings/'+own+'/submit',{as:'unverified',method:'POST',data:{}})).status,403);
+  assert.equal((await f.contact(lid(1),'unverified')).status,403);
+  f.sql.prepare("UPDATE listings SET status='pending' WHERE id=?").run(own);
+  assert.equal((await f.request('/moderation/listings/'+own,{as:'mod',method:'POST',data:{decision:'published',reason:'Revizuire umană documentată.'}})).status,409);
+});
+
+test('verified phone remains unique across accounts and private in bootstrap',async()=>{
+  const f=fixture();await startPhone(f);assert.equal((await checkPhone(f)).status,200);
+  await startPhone(f,{as:'buyer',now:NOW+60000});
+  assert.equal((await checkPhone(f,{as:'buyer',now:NOW+60000})).status,409);
+  const bootstrap=await f.request('/bootstrap',{as:'unverified',sms:smsFixture});
+  assert.equal(bootstrap.data.user.phoneLast4,'5678');assert.ok(!JSON.stringify(bootstrap.data).includes('+40712345678'));
 });
