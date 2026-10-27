@@ -1,5 +1,16 @@
 # Criterii de acceptare și evidențe
 
+## Spațiul proprietarului — 27 octombrie 2026
+
+- Contul are o structură vizuală dedicată, card de stare a telefonului, acces la favorite/conversații, filtre pe stări și căutare după titlu/cartier fără sensibilitate la diacritice. Rezumatele folosesc exclusiv înregistrările primite; limita API de 50 de anunțuri este explicată când este atinsă.
+- Anunțurile expirate sau fără termen valid sunt separate pentru reconfirmare. Ciornele, retragerile, modificările cerute, moderarea și închiderea au explicații distincte. Adresa exactă nu este afișată în acest rezumat. Editarea cere înregistrarea completă pentru păstrarea tuturor fotografiilor, nu doar fotografia principală din lista sumarizată.
+- Trimiterea la moderare cere în interfață telefon confirmat și cel puțin o fotografie; când serviciul este activ dar telefonul neconfirmat, butonul deschide verificarea, fără a trimite prematur cererea de publicare. Regulile serverului rămân autoritatea finală.
+- Acțiunile proprietarului au protecție împotriva cererilor simultane pentru același anunț. Răspunsurile întârziate nu schimbă ecranul după navigare și nu închid un dialog mai nou. Preferințele introduse sunt păstrate după eșec. Conturile restricționate au acțiunile dezactivate, cu istoricul și contestațiile accesibile.
+- **61/61 teste trecute**, cu scenarii frontend noi: numărători, filtrare/resetare, diacritice, expirare, limita de 50, fotografii complete la editare, eșec parțial al încărcării, răspuns întârziat, restricții, condiții de publicare, cereri duplicate, păstrarea dialogului nou și reluarea preferințelor după eroare. Toate cererile din aceste teste sunt simulate; nu s-au operat anunțuri reale.
+- TypeScript, sintaxă JavaScript, parsare CSS, `git diff --check` și build Sites/Vinext: trecute. JavaScript și CSS rezultate în build corespund sursei. Fără dependențe, migrări sau modificări ale API-ului.
+- **Limită:** QA vizual nou, focus nativ în browser și test iPhone fizic rămân neconfirmate. Preview-ul a eșuat anterior cu `ERR_CONNECTION_REFUSED` și nu există dovadă de remediere; nu s-a reluat. Testele DOM nu țin loc de verificare vizuală.
+- Pilot numai pentru proprietar; SMS oprit, fără trimiteri contra cost. Verificarea SMS reală și proba cu două conturi găzduite rămân de executat înainte de lansare.
+
 ## Pagina proprietății și galeria — 27 octombrie 2026
 
 - Fișa proprietății continuă identitatea editorială: galerie înaintea contactului pe mobil, informații grupate, panou de preț/proprietar, condiții de închiriere și context de localizare fără adresa exactă.

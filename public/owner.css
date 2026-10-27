@@ -1,0 +1,94 @@
+/* Owner workspace: clear states, private drafts, deliberate actions. */
+.owner-hub{padding:45px 0 75px}
+.owner-hub-header{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(280px,1fr);gap:90px;align-items:center;padding-bottom:36px}
+.owner-hub-header .eyebrow{font-size:9px;letter-spacing:1.5px;color:#637757;margin-bottom:23px}
+.owner-greeting{font-size:13px;color:#627358;margin-bottom:15px}
+.owner-hub h1{font:400 clamp(45px,5.2vw,68px)/1.07 Georgia,serif;letter-spacing:-2.5px}
+.owner-hub h1 em{font-weight:400;color:#78866a}
+.owner-hub-intro{font-size:14px;line-height:1.9;color:#5d6e55;max-width:490px;margin-top:23px}
+.owner-new-listing{margin-top:27px;min-height:48px;padding:13px 20px;font-size:12px}
+.owner-phone-card{background:#eeeadd;border:1px solid #e3decd;border-radius:13px;padding:31px}
+.owner-phone-state{display:inline-block;font-size:10px;color:#76603f;background:#f7f2e6;border:1px solid #e2d9c2;padding:6px 10px;border-radius:5px}
+.owner-phone-state.is-verified{color:#486840;background:#e8efdf;border-color:#cfdcc2}
+.owner-phone-card h2{font:400 30px/1.18 Georgia,serif;letter-spacing:-.8px;margin:20px 0 16px}
+.owner-phone-card p{font-size:12px;line-height:1.9;color:#626b55}
+.owner-phone-card .text-button{min-height:44px;font-size:11px;margin-top:16px;text-underline-offset:4px}
+.owner-quick-nav{display:flex;gap:10px;flex-wrap:wrap;padding:24px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line);margin-bottom:43px}
+.owner-quick-nav .button{font-size:12px;min-height:44px;padding:10px 17px;background:#fffdf8}
+.owner-hub>.notice{margin:0 0 30px}
+.owner-section-heading{display:flex;align-items:flex-end;justify-content:space-between;gap:30px;margin-bottom:28px}
+.owner-section-heading .eyebrow{font-size:9px;letter-spacing:1.4px;margin-bottom:14px;color:#647859}
+.owner-section-heading h2{font:400 36px/1.15 Georgia,serif;letter-spacing:-1px}
+.owner-section-heading>p{font-size:12px;line-height:1.8;color:#62735b;max-width:230px}
+.owner-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin-bottom:28px}
+.owner-summary>div{display:flex;align-items:center;gap:20px;border:1px solid #dce3d2;background:#f0f3e9;border-radius:10px;padding:23px}
+.owner-summary-number{font:400 43px/1 Georgia,serif;letter-spacing:-1.5px;color:#44633a;min-width:28px}
+.owner-summary strong{font-size:12px;font-weight:600;display:block;margin-bottom:6px}
+.owner-summary p{font-size:10px;line-height:1.7;color:#64745b;max-width:210px}
+.owner-attention{display:flex;justify-content:space-between;align-items:center;gap:25px;background:#f2ebdf;border:1px solid #e3d8c6;border-radius:10px;padding:22px 25px;margin:0 0 25px}
+.owner-attention strong{font-size:13px;color:#725c3c;font-weight:500}.owner-attention p{font-size:11px;line-height:1.8;color:#77684d;margin-top:5px}
+.owner-attention .button{min-height:44px;flex-shrink:0;font-size:11px}
+.owner-inventory-tools{display:flex;flex-direction:column;gap:20px;margin-bottom:15px}
+.owner-filters{display:flex;gap:7px;overflow-x:auto;padding:4px 2px 10px}
+.owner-filter{border:1px solid #dce3d3;background:transparent;color:#5b6d52;border-radius:7px;padding:11px 17px;font-size:11px;white-space:nowrap;min-height:44px}
+.owner-filter[aria-pressed=true]{background:#1c4436;color:#fffdf5;border-color:#1c4436}
+.owner-filter:hover:not([aria-pressed=true]){background:#edf1e5}
+.owner-inventory-tools input{width:100%;max-width:440px;min-height:48px;font-size:13px;padding:13px 16px;border:1px solid #d8e0cd;background:#fffdf9;border-radius:7px;color:var(--ink)}
+.owner-result-count{font-size:11px;color:#617359;margin:0 0 20px;line-height:1.8}
+.owner-results{display:flex;flex-direction:column;gap:19px;scroll-margin-top:20px}
+.owner-listing{display:grid;grid-template-columns:190px minmax(0,1fr);background:#fffdf9;border:1px solid #dce3d4;border-radius:12px;overflow:hidden}
+.owner-listing-cover{width:100%;height:100%;min-height:245px;object-fit:cover;background:#e9eee2}
+.owner-cover-empty{display:grid;place-items:center;color:#92a582}.owner-cover-empty svg{width:56px;height:56px}
+.owner-listing-content{padding:26px 30px}
+.owner-listing-top{display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:16px}
+.owner-status{display:inline-flex;font-size:10px;line-height:1.6;border:1px solid #d9dfd3;background:#edf0e8;color:#58694f;padding:5px 10px;border-radius:5px}
+.owner-status.live{background:#e9f1df;color:#4c673b;border-color:#d0dfbf}.owner-status.attention{background:#f6edde;color:#7d5a2e;border-color:#e7d6bb}.owner-status.review{background:#eaf0f2;color:#506b76;border-color:#d3e0e5}.owner-status.closed{background:#efeee8;color:#696a5d;border-color:#ddded3}
+.owner-updated{font-size:10px;color:#68775f;line-height:1.8}
+.owner-listing h3{font:400 27px/1.25 Georgia,serif;letter-spacing:-.7px;margin-bottom:8px;overflow-wrap:anywhere}
+.owner-location{font-size:11px;color:#66775d;margin-bottom:14px;line-height:1.8}
+.owner-price{font-size:23px;font-weight:600;letter-spacing:-.6px;line-height:1.4}.owner-price small{font-size:11px;font-weight:400;letter-spacing:0}
+.owner-next-step{font-size:12px;line-height:1.9;color:#5e7055;margin:15px 0 0;max-width:700px}
+.owner-actions,.owner-preference-fields{border:0;padding:0;min-width:0;margin:0}
+.owner-actions{display:flex;gap:10px;flex-wrap:wrap;align-items:start;margin-top:21px}
+.owner-actions .button{min-height:44px;font-size:11px;padding:11px 14px;line-height:1.6}
+.owner-actions>.text-button{font-size:11px;min-height:44px;text-underline-offset:4px;padding:10px 5px}
+.owner-actions .submission-control{max-width:320px}.owner-actions .submission-control>small{display:block;font-size:10px;line-height:1.8;color:#69785f;max-width:280px;margin:8px 0 0}
+.owner-actions:disabled{opacity:.65}.owner-actions:disabled button{cursor:wait}.owner-actions button:disabled{opacity:.55;cursor:not-allowed}
+.owner-availability{font-size:10px;color:#617458;line-height:1.8;margin-top:12px}
+.owner-listing .notice{font-size:11px;line-height:1.8;margin:15px 0 0;padding:13px 15px}
+.owner-moderation-note{padding:14px 16px;margin:17px 0 0;background:#f7efe3;border-left:2px solid #c5a878;border-radius:0 5px 5px 0}
+.owner-moderation-note strong{font-size:11px;font-weight:600;color:#755c37}.owner-moderation-note p{font-size:12px;line-height:1.85;color:#746347;margin-top:6px;white-space:pre-wrap;overflow-wrap:anywhere}
+.owner-empty{background:#eef2e7;border:1px solid #dce5d1;border-radius:12px;padding:40px;max-width:none;text-align:left}
+.owner-empty-mark{font-size:41px;line-height:1;color:#8c9f78;display:block;margin-bottom:20px}
+.owner-empty h3{font:400 30px/1.2 Georgia,serif;letter-spacing:-.8px;margin-bottom:17px}
+.owner-empty p{font-size:13px;color:#627358;line-height:1.9;max-width:650px}
+.owner-empty .button{font-size:12px;min-height:46px;margin-top:23px}
+.owner-limit-note{font-size:11px;line-height:1.9;color:#6c775f;margin:18px 0 0}
+.owner-hub .account-readiness{margin:42px 0 0;padding:30px;background:transparent;border-radius:12px}
+.owner-hub .account-readiness>.eyebrow,.owner-hub .account-readiness .eyebrow{font-size:9px;letter-spacing:1.2px}
+.owner-hub .account-readiness h3{font:400 28px/1.25 Georgia,serif;letter-spacing:-.5px;margin-top:12px}
+.owner-hub .account-readiness ol{gap:28px;margin-top:27px}
+.owner-hub .account-readiness strong{font-size:12px}.owner-hub .account-readiness span{font-size:11px;line-height:1.9}
+.owner-case-details{margin-top:30px;border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:0 4px 8px}
+.owner-case-details>summary{cursor:pointer;font:400 24px/1.4 Georgia,serif;letter-spacing:-.5px;padding:23px 0;min-height:60px}
+.owner-case-intro{font-size:12px;line-height:1.9;color:#63745a;margin:0 0 22px}
+.owner-case-details>.button{margin:18px 0 25px;font-size:11px}
+.owner-case-details .case-history h3{font-size:17px;line-height:1.4}.owner-case-details .list-item{background:#fffdf9;border-radius:8px;padding:20px}.owner-case-details .list-item p{font-size:12px;line-height:1.85}
+.owner-load-error{padding:30px;border:1px solid #e2d6c4;background:#f7efe5;border-radius:10px}.owner-load-error h2{font:400 28px/1.3 Georgia,serif;letter-spacing:-.5px}.owner-load-error p{font-size:13px;line-height:1.8;margin:15px 0 20px}
+.owner-preference-fields .button{min-height:46px;margin-top:17px}
+@media(max-width:1080px){.owner-hub-header{gap:45px}.owner-phone-card{padding:27px}.owner-summary>div{padding:20px;gap:15px}.owner-summary-number{font-size:38px}.owner-listing{grid-template-columns:160px minmax(0,1fr)}.owner-listing-content{padding:25px}.owner-section-heading h2{font-size:33px}}
+@media(max-width:800px){.owner-hub-header{grid-template-columns:1.15fr 1fr;gap:30px}.owner-hub h1{font-size:48px}.owner-phone-card{padding:24px}.owner-phone-card h2{font-size:27px}.owner-hub-intro{font-size:13px}.owner-summary{gap:11px}.owner-summary>div{flex-direction:column;align-items:start;gap:13px;padding:19px}.owner-summary-number{font-size:37px}.owner-summary p{font-size:10px}.owner-section-heading{align-items:start;flex-direction:column;gap:15px}.owner-section-heading>p{max-width:none}.owner-listing{grid-template-columns:145px minmax(0,1fr)}.owner-listing-content{padding:23px}.owner-listing h3{font-size:25px}.owner-updated{font-size:9px}}
+@media(max-width:620px){
+ .owner-hub{padding:24px 0 45px}.owner-hub-header{grid-template-columns:1fr;gap:30px;padding-bottom:27px}.owner-hub-header .eyebrow{font-size:8px;letter-spacing:1.2px;margin-bottom:22px}.owner-greeting{font-size:12px;margin-bottom:13px}.owner-hub h1{font-size:45px;letter-spacing:-1.8px}.owner-hub-intro{font-size:13px;margin-top:19px;max-width:340px}.owner-new-listing{font-size:12px;min-height:48px;margin-top:23px}
+ .owner-phone-card{padding:25px 23px}.owner-phone-card h2{font-size:29px;margin:17px 0 13px}.owner-phone-card p{font-size:12px}.owner-phone-card .text-button{font-size:12px}
+ .owner-quick-nav{margin-bottom:33px;gap:8px;padding:20px 0}.owner-quick-nav .button{flex:1;font-size:11px;padding:11px 12px}
+ .owner-section-heading h2{font-size:32px;line-height:1.15}.owner-section-heading .eyebrow{font-size:8px;letter-spacing:1.1px}.owner-section-heading>p{font-size:12px}
+ .owner-summary{grid-template-columns:1fr;gap:10px;margin-bottom:22px}.owner-summary>div{flex-direction:row;align-items:center;padding:18px 20px;gap:22px}.owner-summary-number{font-size:35px;min-width:32px}.owner-summary p{max-width:none;font-size:11px}.owner-summary strong{font-size:12px;margin-bottom:4px}
+ .owner-attention{align-items:start;flex-direction:column;gap:15px;padding:22px 20px}.owner-attention strong{font-size:13px;line-height:1.7}.owner-attention p{font-size:12px}.owner-attention .button{font-size:11px}
+ .owner-inventory-tools{gap:14px}.owner-filters{gap:6px;padding-bottom:11px}.owner-filter{font-size:11px;padding:11px 14px;min-height:44px}.owner-inventory-tools input{font-size:16px;max-width:none}.owner-result-count{font-size:11px;margin-bottom:18px}
+ .owner-listing{grid-template-columns:1fr;border-radius:11px}.owner-listing-cover{height:190px;min-height:190px}.owner-cover-empty{height:100px;min-height:100px}.owner-cover-empty svg{width:40px;height:40px}.owner-listing-content{padding:23px 20px}.owner-listing h3{font-size:26px}.owner-listing-top{gap:10px;margin-bottom:15px}.owner-updated{font-size:10px}.owner-location{font-size:11px}.owner-price{font-size:24px}.owner-next-step{font-size:12px}
+ .owner-actions{gap:10px}.owner-actions .button{font-size:11px;min-height:45px}.owner-actions .submission-control{max-width:none;flex-basis:100%}.owner-actions .submission-control>small{font-size:11px;max-width:none}.owner-actions>.text-button{padding-left:0;font-size:11px}
+ .owner-empty{padding:29px 23px}.owner-empty h3{font-size:29px}.owner-empty p{font-size:12px;line-height:1.9}.owner-empty .button{font-size:11px}
+ .owner-hub .account-readiness{padding:25px 22px;margin-top:33px}.owner-hub .account-readiness h3{font-size:27px}.owner-hub .account-readiness ol{grid-template-columns:1fr;gap:22px}.owner-hub .account-readiness span{font-size:12px}
+ .owner-case-details{margin-top:24px}.owner-case-details>summary{font-size:23px;line-height:1.4;padding:22px 0}.owner-case-intro{font-size:12px}.owner-load-error{padding:25px 22px}.owner-load-error h2{font-size:26px}
+}

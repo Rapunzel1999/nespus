@@ -169,3 +169,50 @@ run('renderDetail('+JSON.stringify(sample)+',true)');assert.equal(doc.querySelec
 assert.equal(requests.filter(([,o])=>['POST','PUT','PATCH','DELETE'].includes(o.method)).length,beforeContactChecks);
 roots.get('#modal').close();run('clearEditor()');
 console.log('PASS: expanded photo selection, wrap/Home/End keys and inline sync; single/missing photo states; modal styling reset; sale price/area and invalid denominators; private-address omission; unknown rental costs; modified card links; anonymous, verified, SMS-off, paused and preview contact states. No SMS, contact or publication requests.');
+
+// Owner inventory is based only on loaded records and separates expired availability.
+const ownerStatuses=['draft','rejected','withdrawn','pending','published','published','sold','rented','published'];
+const ownerListings=ownerStatuses.map((status,index)=>({...sample,id:(index+1).toString(16).padStart(32,'0'),status,title:index===1?'Casă în Mărăști':'Proprietatea '+(index+1),district:index===1?'Mărăști':'Centru',photos:[sample.photos[0]],photosIncomplete:true,exactAddress:'PRIVATE ADDRESS 99',updatedAt:Date.now(),availableUntil:index===5?Date.now()-1000:index===8?null:Date.now()+30*86400000,moderationReason:index===1?'Clarifică descrierea.':''}));
+fixtures['/api/mine']={listings:ownerListings,limit:50};
+run("S.boot.user.status='active';S.boot.user.phoneVerified=false;S.boot.capabilities.phoneVerification=false;S.ownerFilter='all';S.ownerQuery=''");
+await run('account()');assert.equal(doc.querySelectorAll('.owner-listing').length,9,doc.querySelector('.owner-load-error')?.textContent);assert.doesNotMatch(roots.get('#app').textContent,/PRIVATE ADDRESS/);
+assert.match(doc.querySelector('.owner-attention').textContent,/2 anunțuri au disponibilitatea de reconfirmat/);
+assert.equal(run('ownerListingState('+JSON.stringify(ownerListings[5])+').group'),'attention');assert.equal(run('ownerListingState('+JSON.stringify(ownerListings[8])+').group'),'attention');assert.equal(run('ownerListingState('+JSON.stringify(ownerListings[4])+').group'),'published');
+let ownerFilters=doc.querySelectorAll('.owner-filter');ownerFilters.find(n=>n.getAttribute('data-owner-filter')==='draft').listeners.click();assert.equal(doc.querySelectorAll('.owner-listing').length,3);assert.equal(ownerFilters.find(n=>n.getAttribute('data-owner-filter')==='draft').getAttribute('aria-pressed'),'true');
+let ownerSearch=doc.querySelectorAll('input').find(n=>n.name==='ownerSearch');ownerSearch.value='MARASTI';ownerSearch.listeners.input();assert.equal(doc.querySelectorAll('.owner-listing').length,1);assert.match(doc.querySelector('.owner-results').textContent,/Clarifică descrierea/);
+ownerSearch.value='nu există';ownerSearch.listeners.input();assert.equal(doc.querySelectorAll('.owner-listing').length,0);all(doc.querySelector('.owner-results')).find(n=>n.tag==='button'&&n.textContent==='Arată toate anunțurile').listeners.click();assert.equal(doc.querySelectorAll('.owner-listing').length,9);assert.equal(ownerSearch.value,'');
+const limitedInventory=run('ownerInventory('+JSON.stringify(Array.from({length:50},()=>ownerListings[0]))+',50)');assert.match(limitedInventory.textContent,/cel mult ultimele 50 de anunțuri/);
+
+// Editing always fetches the complete owner record, not the summary's cover only.
+fixtures['/api/mine/'+ownerListings[0].id]={listing:{...ownerListings[0],photos:[...sample.photos],photosIncomplete:false}};
+const draftCard=doc.querySelectorAll('.owner-listing').find(n=>n.getAttribute('data-owner-listing')===ownerListings[0].id);
+await all(draftCard).find(n=>n.tag==='button'&&n.textContent==='Continuă editarea').listeners.click();assert.equal(run('S.page'),'create');assert.equal(run('S.photos.length'),2);assert.equal(requests.at(-1)[0],'/api/mine/'+ownerListings[0].id);run('clearEditor()');
+
+// Read failures preserve account navigation/case history; late responses cannot replace another page.
+const originalOwnerFetch=ctx.fetch;let mineResponse=null;
+ctx.fetch=async(url,options={})=>url==='/api/mine'&&mineResponse?mineResponse:originalOwnerFetch(url,options);
+mineResponse=Promise.resolve({ok:false,json:async()=>({error:'Lista nu este disponibilă.'})});await run('account()');assert.match(doc.querySelector('.owner-load-error').textContent,/Lista nu este disponibilă/);assert.match(roots.get('#app').textContent,/Sesizările și contestațiile tale/);assert.equal(doc.querySelector('.owner-summary'),null);
+let releaseMine;mineResponse=new Promise(resolve=>{releaseMine=resolve});const staleOwner=run('account()');await run('go("home")');releaseMine({ok:true,json:async()=>({listings:ownerListings,limit:50})});await staleOwner;assert.equal(run('S.page'),'home');assert.equal(doc.querySelector('.owner-inventory'),null);mineResponse=null;ctx.fetch=originalOwnerFetch;
+
+// Restricted accounts keep their history without offering listing mutations.
+run("S.boot.user.status='restricted'");await run('account()');assert.equal(doc.querySelector('.owner-new-listing'),null);assert.equal(doc.querySelector('.owner-case-details').getAttribute('open'),'');assert.ok(doc.querySelectorAll('fieldset').filter(n=>n.getAttribute('data-owner-actions')).every(n=>n.disabled));
+const restrictedRequests=requests.length;assert.equal(await run('ownerMutation('+JSON.stringify(ownerListings[0])+',"submit",{},"Test")'),false);assert.equal(requests.length,restrictedRequests);
+run("S.boot.user.status='active';S.boot.capabilities.phoneVerification=true;S.boot.user.phoneVerified=false");let verifySubmit=run('listingSubmitControl('+JSON.stringify(ownerListings[0])+')');const beforeVerify=requests.length;await all(verifySubmit).find(n=>n.tag==='button').listeners.click();assert.match(roots.get('#modal-content').textContent,/Trimite codul SMS/);assert.equal(requests.length,beforeVerify);
+run('S.boot.user.phoneVerified=true');const noPhotosSubmit=run('listingSubmitControl('+JSON.stringify({...ownerListings[0],photos:[]})+')');assert.equal(all(noPhotosSubmit).find(n=>n.tag==='button').disabled,true);assert.match(noPhotosSubmit.textContent,/cel puțin o fotografie/);
+
+// One mutation per listing; a late success cannot hijack navigation or close a newer modal.
+await run('account()');let releaseOwnerMutation;delayedSave=new Promise(resolve=>{releaseOwnerMutation=resolve});
+const mutationCount=requests.filter(([,o])=>o.method==='POST').length;
+const pendingOwner=run('ownerMutation('+JSON.stringify(ownerListings[0])+',"submit",{},"Trimis")');assert.equal(run('S.ownerPending.size'),1);
+assert.equal(await run('ownerMutation('+JSON.stringify(ownerListings[0])+',"submit",{},"Trimis")'),false);assert.equal(requests.filter(([,o])=>o.method==='POST').length,mutationCount+1);
+await run('go("home")');releaseOwnerMutation({ok:true,json:async()=>({submitted:true})});await pendingOwner;delayedSave=null;assert.equal(run('S.page'),'home');assert.equal(run('S.ownerPending.size'),0);
+await run('account()');run('closeListing('+JSON.stringify(ownerListings[4])+')');delayedSave=new Promise(resolve=>{releaseOwnerMutation=resolve});
+const pendingClose=all(roots.get('#modal-content')).find(n=>n.tag==='button'&&n.textContent==='Retrag anunțul').listeners.click();run('signin()');releaseOwnerMutation({ok:true,json:async()=>({closed:true})});await pendingClose;delayedSave=null;assert.equal(roots.get('#modal').open,true);assert.match(roots.get('#modal-content').textContent,/Continuă cu ChatGPT/);
+
+// Failed preferences preserve the entered values and release controls for a retry.
+run('contactPreferences('+JSON.stringify(ownerListings[4])+')');let preferenceForm=roots.get('#modal-content').querySelector('form');preferenceForm.elements.contactHours.value='Sâmbătă, 10:00–12:00';preferenceForm.elements.acceptsContacts.checked=false;
+delayedSave=Promise.resolve({ok:false,json:async()=>({error:'Nu am putut salva preferințele.'})});await preferenceForm.listeners.submit({preventDefault(){}});delayedSave=null;
+assert.equal(roots.get('#modal').open,true);assert.equal(preferenceForm.elements.contactHours.value,'Sâmbătă, 10:00–12:00');assert.equal(preferenceForm.elements.acceptsContacts.checked,false);assert.equal(preferenceForm.querySelector('fieldset').disabled,false);assert.equal(run('S.ownerPending.size'),0);
+assert.match(roots.get('#toast').textContent,/Nu am putut salva preferințele/);const failedPreference=JSON.parse(requests.at(-1)[1].body);assert.equal(failedPreference.acceptsContacts,false);assert.equal(failedPreference.contactHours,'Sâmbătă, 10:00–12:00');
+roots.get('#modal').close();run("S.boot.user.phoneVerified=false;S.boot.capabilities.phoneVerification=false;S.ownerFilter='all';S.ownerQuery='';clearEditor()");
+console.log('PASS: real loaded owner counts, expiration, diacritic-insensitive filtering/reset and 50-record limit; full-photo editor fetch; partial/late read failures; restricted account controls; phone-first submit and required photos; duplicate/late mutations; newer modal preservation and failed-preference retry. Fixture requests only.');
