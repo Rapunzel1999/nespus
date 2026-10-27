@@ -1,5 +1,15 @@
 # Criterii de acceptare și evidențe
 
+## Editorul proprietarului — 27 octombrie 2026
+
+- Formular în doi pași, cu rezumat și repere de completare. Cartierul trebuie ales explicit; camerele sunt obligatorii la apartamente/case, iar limitele numerice reflectă validarea existentă a serverului. Declarația nu este bifată automat la editare.
+- Fotografia principală poate fi aleasă, iar imaginile pot fi reordonate. Loturile sunt procesate înainte de a fi adăugate: un fișier respins nu lasă selecția parțial adăugată. Limitele existente de cinci fotografii și procesarea JPEG pe server rămân neschimbate.
+- Modificările nesalvate se păstrează în memoria filei la navigarea în aplicație, cu buton de reluare. Înlocuirea cu alt anunț cere confirmare în interfață; se solicită avertizarea nativă la închiderea/reîncărcarea filei. **Nu este autosalvare**: închiderea forțată, reîncărcarea acceptată sau pierderea procesului pot pierde modificările. Confirmarea salvării în cont depinde de răspunsul serverului.
+- Salvarea și procesarea fotografiilor dezactivează câmpurile formularului. O a doua apăsare nu trimite o cerere simultană; un răspuns întârziat nu înlocuiește ecranul pe care utilizatorul a navigat între timp. La eroare, textul și fotografiile rămân în editor. Nu există retry automat sau garanție de idempotență la pierderea răspunsului din rețea.
+- **61/61 teste trecute**, cu scenarii noi în fișierul frontend existent: recuperare în aceeași filă, avertizare la plecare, confirmarea înlocuirii, câmpuri obligatorii, copie independentă a fotografiilor, reordonare, copertă, încărcare eșuată/capacitate, previzualizare, salvări simultane și recuperare după eroare. Testele folosesc DOM/furnizori simulați; nu au creat anunțuri în producție și nu au trimis SMS.
+- Sintaxă JavaScript, TypeScript și `git diff --check`: trecute. QA vizual nou și testul pe iPhone fizic rămân neconfirmate; previzualizarea gestionată a fost inaccesibilă în verificarea precedentă. Nu a fost ocolită izolarea rețelei.
+- Nu au fost modificate API-ul, schema bazei de date, accesul pilotului sau configurația SMS. Nu este revendicată o revizuire nouă Claude/Gemini.
+
 ## Căutare și navigare — 27 octombrie 2026
 
 - **61/61 teste trecute**: suita existentă, trei regresii server noi și scenarii frontend extinse în același fișier de test.
