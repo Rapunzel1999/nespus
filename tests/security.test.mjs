@@ -545,3 +545,40 @@ test('verified phone remains unique across accounts and private in bootstrap',as
   const bootstrap=await f.request('/bootstrap',{as:'unverified',sms:smsFixture});
   assert.equal(bootstrap.data.user.phoneLast4,'5678');assert.ok(!JSON.stringify(bootstrap.data).includes('+40712345678'));
 });
+
+
+test('search pagination covers all matching listings once with deterministic tie ordering',async()=>{
+  const f=fixture();for(let n=1;n<=30;n++)f.listing(lid(n));
+  const first=await f.request('/listings?currency=EUR&page=1');const second=await f.request('/listings?currency=EUR&page=2');
+  assert.equal(first.status,200);assert.equal(first.data.total,30);assert.equal(first.data.totalPages,2);assert.equal(first.data.limit,24);assert.equal(first.data.page,1);
+  assert.equal(first.data.listings.length,24);assert.equal(second.data.listings.length,6);
+  assert.equal(new Set([...first.data.listings,...second.data.listings].map(l=>l.id)).size,30);
+  assert.equal(first.data.listings[0].id,lid(30));assert.equal(second.data.listings.at(-1).id,lid(1));
+  assert.deepEqual((await f.request('/listings?currency=EUR&page=1')).data.listings.map(l=>l.id),first.data.listings.map(l=>l.id));
+  const past=await f.request('/listings?currency=EUR&page=3');assert.equal(past.data.total,30);assert.deepEqual(past.data.listings,[]);
+});
+
+test('search counts and sorting use the same visibility and currency constraints as results',async()=>{
+  const f=fixture();for(let n=1;n<=6;n++)f.listing(lid(n));
+  f.sql.prepare('UPDATE listings SET price=200000,area=90 WHERE id=?').run(lid(1));
+  f.sql.prepare('UPDATE listings SET price=80000,area=30 WHERE id=?').run(lid(2));
+  f.sql.prepare("UPDATE listings SET status='draft' WHERE id=?").run(lid(3));
+  f.sql.prepare('UPDATE listings SET available_until=? WHERE id=?').run(NOW,lid(4));
+  f.sql.prepare("UPDATE listings SET owner_id='unverified' WHERE id=?").run(lid(5));
+  f.sql.prepare("UPDATE listings SET currency='RON',price=1 WHERE id=?").run(lid(6));
+  for(const [sort,expected]of [['price_asc',[lid(2),lid(1)]],['price_desc',[lid(1),lid(2)]],['area_desc',[lid(1),lid(2)]]]){
+    const r=await f.request('/listings?currency=EUR&sort='+sort);assert.equal(r.status,200);assert.equal(r.data.total,2);assert.deepEqual(r.data.listings.map(l=>l.id),expected);assert.ok(!JSON.stringify(r.data).includes('SECRETĂ'));
+  }
+  const budget=await f.request('/listings?currency=EUR&maxPrice=100000');assert.equal(budget.data.total,1);assert.equal(budget.data.listings[0].id,lid(2));
+  const empty=await f.request('/listings?district=Zorilor');assert.equal(empty.data.total,0);assert.equal(empty.data.totalPages,0);
+});
+
+test('search rejects unsafe pagination and sort input, mixed-currency price sort, and reversed budgets',async()=>{
+  const f=fixture();f.listing();
+  for(const page of ['0','-1','1.5','NaN','Infinity','1e2','1001','999999999999999999'])assert.equal((await f.request('/listings?page='+page)).status,400,page);
+  for(const sort of ['price','__proto__','toString','price;DROP TABLE listings'])assert.equal((await f.request('/listings?sort='+encodeURIComponent(sort))).status,400,sort);
+  assert.equal((await f.request('/listings?sort=price_asc')).status,400);
+  assert.equal((await f.request('/listings?minPrice=200&maxPrice=100')).status,400);
+  assert.equal((await f.request('/listings?minPrice=120000&maxPrice=120000')).data.total,1);
+  assert.equal((await f.request('/listings')).data.total,1);
+});
