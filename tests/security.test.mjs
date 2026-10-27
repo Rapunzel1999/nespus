@@ -4,7 +4,7 @@ import {DatabaseSync} from 'node:sqlite';
 import {readFileSync} from 'node:fs';
 import jpeg from 'jpeg-js';
 import {handleApi} from '../lib/api.mjs';
-import {VERSION, DAY,validateListing} from '../lib/model.mjs';
+import {VERSION, DAY,validateListing,hash} from '../lib/model.mjs';
 
 const smsFixture={accountSid:'AC'+'a'.repeat(32),authToken:'fixture-only-not-a-credential',serviceSid:'VA'+'b'.repeat(32),enabled:'true',totalLimit:'100'};
 
@@ -13,12 +13,12 @@ const lid = n => n.toString(16).padStart(32,'0');
 const identity = id => ({userId:id,email:id+'@test.invalid',displayName:id});
 function fixture() {
   const sql = new DatabaseSync(':memory:');
-  const hooks={beforeRun:null};
+  const hooks={beforeRun:null,beforeFirst:null};
   sql.exec('PRAGMA foreign_keys=ON;');
   sql.exec(readFileSync(new URL('../drizzle/0000_nervous_leader.sql',import.meta.url),'utf8'));
   function prepared(query,args=[]) { return {
     bind(...values){return prepared(query,values);},
-    async first(){return sql.prepare(query).get(...args)??null;},
+    async first(){if(hooks.beforeFirst)await hooks.beforeFirst(query,args);return sql.prepare(query).get(...args)??null;},
     async all(){return {results:sql.prepare(query).all(...args)};},
     async run(){if(hooks.beforeRun)await hooks.beforeRun(query,args);const result=sql.prepare(query).run(...args);return {success:true,meta:{changes:Number(result.changes)}};},
   }; }
@@ -32,7 +32,7 @@ function fixture() {
   };
   const request=async(path,{as=null,method='GET',data,headers={},now=NOW,...extra}={})=>{
     const response=await handleApi(new Request('https://test.invalid/api'+path,{method,headers:{...(method==='GET'?{}:{origin:'https://test.invalid','content-type':'application/json'}),...headers},...(data===undefined?{}:{body:JSON.stringify(data)})}),db,{principal:as?identity(as):null,moderatorEmails:['mod@test.invalid','mod2@test.invalid'],now,...extra});
-    return {status:response.status,data:await response.json(),headers:response.headers};
+    return {status:response.status,data:response.headers.get('content-type')?.startsWith('image/')?new Uint8Array(await response.arrayBuffer()):await response.json(),headers:response.headers};
   };
   const contact=(listingId=lid(1),as='buyer',extra={})=>request('/contact-requests',{as,method:'POST',data:{listingId,purpose:'Doresc să cumpăr această locuință pentru familia mea.',contactDeclaration:true,declarationVersion:VERSION,...extra}});
   const accepted=async()=>{listing();const c=await contact();assert.equal(c.status,201,JSON.stringify(c));assert.equal((await request('/conversations/'+c.data.id+'/decision',{as:'owner',method:'POST',data:{decision:'accepted'}})).status,200);return c.data.id;};
@@ -248,16 +248,16 @@ test('moderator who reported a listing cannot retrieve its case evidence',async(
   const other=await f.request('/moderation/reports/'+r.data.id+'/evidence',{as:'mod2'});assert.equal(other.status,200);assert.deepEqual(other.data.messages,[]);
 });
 
-test('gallery summaries return one photo while full detail remains owner authorized and lossless',async()=>{
+test('gallery summaries return protected image URLs while owner editing remains authorized and lossless',async()=>{
   const f=fixture();f.listing();f.listing(lid(2),'draft');
   const photos=['data:image/jpeg;base64,one','data:image/jpeg;base64,two','data:image/jpeg;base64,three'];
   f.sql.prepare('UPDATE listings SET photos=?').run(JSON.stringify(photos));
-  const mine=await f.request('/mine',{as:'owner'});assert.equal(mine.data.listings.length,2);for(const item of mine.data.listings){assert.deepEqual(item.photos,[photos[0]]);assert.equal(item.photosIncomplete,true);}
-  assert.deepEqual((await f.request('/listings')).data.listings[0].photos,[photos[0]]);
-  await f.request('/favorites/'+lid(1),{as:'buyer',method:'PUT'});assert.deepEqual((await f.request('/favorites',{as:'buyer'})).data.listings[0].photos,[photos[0]]);
+  const mine=await f.request('/mine',{as:'owner'});assert.equal(mine.data.listings.length,2);for(const item of mine.data.listings){assert.deepEqual(item.photos,['/api/mine/'+item.id+'/photos/0']);assert.equal(item.photosIncomplete,true);}
+  assert.deepEqual((await f.request('/listings')).data.listings[0].photos,['/api/listings/'+lid(1)+'/photos/0']);
+  await f.request('/favorites/'+lid(1),{as:'buyer',method:'PUT'});assert.deepEqual((await f.request('/favorites',{as:'buyer'})).data.listings[0].photos,['/api/listings/'+lid(1)+'/photos/0']);
   const own=await f.request('/mine/'+lid(2),{as:'owner'});assert.equal(own.status,200);assert.deepEqual(own.data.listing.photos,photos);assert.equal(own.data.listing.exactAddress,'Strada SECRETĂ 99, apartament 7');
   assert.equal((await f.request('/mine/'+lid(2),{as:'buyer'})).status,404);assert.equal((await f.request('/mine/'+lid(2))).status,401);
-  assert.deepEqual((await f.request('/listings/'+lid(1))).data.listing.photos,photos);
+  assert.deepEqual((await f.request('/listings/'+lid(1))).data.listing.photos,photos.map((_,i)=>'/api/listings/'+lid(1)+'/photos/'+i));
   assert.deepEqual(JSON.parse(f.sql.prepare('SELECT photos FROM listings WHERE id=?').get(lid(2)).photos),photos);
 });
 
@@ -581,4 +581,124 @@ test('search rejects unsafe pagination and sort input, mixed-currency price sort
   assert.equal((await f.request('/listings?minPrice=200&maxPrice=100')).status,400);
   assert.equal((await f.request('/listings?minPrice=120000&maxPrice=120000')).data.total,1);
   assert.equal((await f.request('/listings')).data.total,1);
+});
+
+test('inbox cursor reaches all own conversations with stable ties and no third-party data',async()=>{
+  const f=fixture();
+  for(let i=1;i<=57;i++){
+    f.listing(lid(i));
+    f.sql.prepare('INSERT INTO contact_requests(id,listing_id,owner_id,requester_id,purpose,created_at,updated_at) VALUES (?,?,?,?,?,?,?)').run(lid(1000+i),lid(i),'owner','buyer','O solicitare reală în fixture.',NOW,NOW);
+  }
+  f.listing(lid(99),'published','other');
+  f.sql.prepare('INSERT INTO contact_requests(id,listing_id,owner_id,requester_id,purpose,created_at,updated_at) VALUES (?,?,?,?,?,?,?)').run(lid(1999),lid(99),'other','mod','Context privat străin',NOW,NOW);
+  const seen=[];let cursor=null;
+  do{const r=await f.request('/conversations'+(cursor?'?before='+encodeURIComponent(cursor):''),{as:'buyer'});assert.equal(r.status,200);assert.equal(r.data.limit,25);assert.ok(r.data.conversations.length<=25);seen.push(...r.data.conversations.map(c=>c.id));assert.ok(!JSON.stringify(r.data).includes('Context privat străin'));assert.ok(!JSON.stringify(r.data).includes('+407'));cursor=r.data.nextCursor;}while(cursor);
+  assert.equal(seen.length,57);assert.equal(new Set(seen).size,57);assert.equal(seen[0],lid(1057));assert.equal(seen.at(-1),lid(1001));
+  assert.equal((await f.request('/conversations')).status,401);
+  assert.equal((await f.request('/conversations?before=bad',{as:'buyer'})).status,400);
+  assert.equal((await f.request('/conversations?before=9999999999999999:'+lid(1),{as:'buyer'})).status,400);
+});
+
+test('message history opens at the latest messages and paginates every older tie once',async()=>{
+  const f=fixture(),c=await f.accepted();
+  for(let i=1;i<=123;i++)f.sql.prepare('INSERT INTO messages(id,conversation_id,sender_id,body,created_at) VALUES (?,?,?,?,?)').run(lid(3000+i),c,i%2?'buyer':'owner','Mesaj '+i,NOW);
+  let r=await f.request('/conversations/'+c,{as:'buyer'});
+  assert.equal(r.data.messages.length,50);assert.equal(r.data.messages.at(-1).body,'Mesaj 123');assert.equal(r.data.messages[0].body,'Mesaj 74');
+  const seen=r.data.messages.map(m=>m.id);
+  while(r.data.nextMessageCursor){r=await f.request('/conversations/'+c+'?before='+encodeURIComponent(r.data.nextMessageCursor),{as:'buyer'});seen.push(...r.data.messages.map(m=>m.id));}
+  assert.equal(seen.length,123);assert.equal(new Set(seen).size,123);assert.equal(r.data.messages[0].body,'Mesaj 1');
+  assert.equal((await f.request('/conversations/'+c+'?before=bad',{as:'buyer'})).status,400);
+  assert.equal((await f.request('/conversations/'+c+'?before='+NOW+':'+lid(3123),{as:'other'})).status,404);
+});
+
+test('history pagination never restores phone disclosure or actions after blocking',async()=>{
+  const f=fixture(),c=await f.accepted();
+  await f.request('/conversations/'+c+'/share-phone',{as:'owner',method:'POST'});
+  await f.request('/conversations/'+c+'/block',{as:'buyer',method:'POST'});
+  const r=await f.request('/conversations/'+c+'?before='+NOW+':'+lid(9999),{as:'buyer'});
+  assert.equal(r.status,200);assert.equal(r.data.phone,null);assert.equal(r.data.conversation.blocked,true);assert.equal(r.data.conversation.phoneShared,false);
+  const list=await f.request('/conversations',{as:'buyer'});assert.equal(list.data.conversations[0].blocked,true);
+});
+
+test('message retry with the same request ID stores once and does not consume another quota',async()=>{
+  const f=fixture(),c=await f.accepted(),requestId=lid(5000),body='Aș dori să discutăm despre disponibilitate.';
+  const send=data=>f.request('/conversations/'+c+'/messages',{as:'buyer',method:'POST',data});
+  assert.equal((await send({body,requestId})).status,201);
+  const retry=await send({body,requestId});assert.equal(retry.status,200);assert.equal(retry.data.replayed,true);
+  assert.equal(f.sql.prepare('SELECT count(*) AS n FROM messages').get().n,1);
+  assert.equal(f.sql.prepare("SELECT hits FROM rate_limits WHERE key LIKE 'messages:buyer:%'").get().hits,1);
+  assert.equal((await send({body:'Un mesaj diferit',requestId})).status,409);
+  assert.equal((await send({body,requestId:'not-an-id'})).status,400);
+  assert.equal((await f.request('/conversations/'+c+'/messages',{as:'owner',method:'POST',data:{body,requestId}})).status,409);
+  await f.request('/conversations/'+c+'/block',{as:'owner',method:'POST'});
+  assert.equal((await send({body,requestId})).status,403);
+});
+
+test('a simultaneous duplicate message is safe and a reused ID cannot cross conversations',async()=>{
+  const f=fixture(),c=await f.accepted(),requestId=lid(5001),message='Acesta este un singur mesaj.';
+  f.hooks.beforeRun=async(query,args)=>{
+    if(query.startsWith('INSERT INTO messages ')){
+      f.hooks.beforeRun=null;
+      f.sql.prepare('INSERT INTO messages(id,conversation_id,sender_id,body,created_at) VALUES (?,?,?,?,?)').run(...args.slice(0,5));
+    }
+  };
+  const r=await f.request('/conversations/'+c+'/messages',{as:'buyer',method:'POST',data:{body:message,requestId}});
+  assert.equal(r.status,200);assert.equal(r.data.replayed,true);assert.equal(f.sql.prepare('SELECT count(*) AS n FROM messages').get().n,1);
+  f.listing(lid(2));const second=await f.contact(lid(2));await f.request('/conversations/'+second.data.id+'/decision',{as:'owner',method:'POST',data:{decision:'accepted'}});
+  assert.equal((await f.request('/conversations/'+second.data.id+'/messages',{as:'buyer',method:'POST',data:{body:message,requestId}})).status,409);
+});
+
+test('past viewing proposals cannot be accepted and the response is bounded to recent viewings',async()=>{
+  const f=fixture(),c=await f.accepted();
+  f.sql.prepare('INSERT INTO viewings(id,conversation_id,proposed_by,starts_at,created_at) VALUES (?,?,?,?,?)').run(lid(6000),c,'buyer',NOW-1,NOW-3600000);
+  const result=await f.request('/viewings/'+lid(6000),{as:'owner',method:'POST',data:{decision:'accepted'}});
+  assert.equal(result.status,409);assert.equal(f.sql.prepare('SELECT status FROM viewings WHERE id=?').get(lid(6000)).status,'requested');
+  for(let i=1;i<=105;i++)f.sql.prepare('INSERT INTO viewings(id,conversation_id,proposed_by,starts_at,created_at) VALUES (?,?,?,?,?)').run(lid(6000+i),c,'buyer',NOW+i*3600000,NOW);
+  const r=await f.request('/conversations/'+c,{as:'buyer'});assert.equal(r.data.viewings.length,100);assert.equal(r.data.viewingsHasMore,true);assert.equal(r.data.viewings.at(-1).id,lid(6105));
+});
+
+test('public images are JPEG bytes with same-origin no-store headers and obey live eligibility',async()=>{
+  const f=fixture();f.listing();f.sql.prepare('UPDATE listings SET photos=?').run(JSON.stringify(draftInput.photos));
+  const path='/listings/'+lid(1)+'/photos/0';
+  const image=await f.request(path);assert.equal(image.status,200);assert.equal(image.headers.get('content-type'),'image/jpeg');assert.equal(image.headers.get('cache-control'),'private, no-store');assert.equal(image.headers.get('cross-origin-resource-policy'),'same-origin');assert.equal(image.headers.get('x-content-type-options'),'nosniff');assert.deepEqual(Buffer.from(image.data),Buffer.from(draftInput.photos[0].split(',')[1],'base64'));
+  for(const state of ['draft','pending','withdrawn','sold','rented','rejected']){f.sql.prepare('UPDATE listings SET status=?').run(state);assert.equal((await f.request(path)).status,404);}
+  f.sql.prepare("UPDATE listings SET status='published',available_until=?").run(NOW);assert.equal((await f.request(path)).status,404);
+  f.sql.prepare('UPDATE listings SET available_until=?').run(NOW+DAY);
+  f.sql.prepare("UPDATE users SET status='suspended' WHERE id='owner'").run();assert.equal((await f.request(path)).status,404);
+  f.sql.prepare("UPDATE users SET status='active',phone_verified_at=NULL WHERE id='owner'").run();assert.equal((await f.request(path)).status,404);
+});
+
+test('private images require their owner, remain readable with own history, and reject invalid indices/data',async()=>{
+  const f=fixture();f.listing(lid(1),'draft');f.sql.prepare('UPDATE listings SET photos=?').run(JSON.stringify(draftInput.photos));const path='/mine/'+lid(1)+'/photos/0';
+  assert.equal((await f.request(path)).status,401);assert.equal((await f.request(path,{as:'buyer'})).status,404);assert.equal((await f.request(path,{as:'owner'})).status,200);
+  f.sql.prepare("UPDATE users SET status='suspended' WHERE id='owner'").run();assert.equal((await f.request(path,{as:'owner'})).status,200);
+  for(const index of ['1','5','-1','0.0','%24'])assert.equal((await f.request('/mine/'+lid(1)+'/photos/'+index,{as:'owner'})).status,404);
+  for(const photo of ['data:text/html;base64,PHNjcmlwdD4=','data:image/jpeg;base64,bm90LWpwZWc=','data:image/jpeg;base64,!!!!']){f.sql.prepare('UPDATE listings SET photos=?').run(JSON.stringify([photo]));assert.equal((await f.request(path,{as:'owner'})).status,404);}
+});
+
+test('search and owner summaries exclude base64 bytes at the maximum image size',async t=>{
+  const f=fixture(),photo='data:image/jpeg;base64,'+'A'.repeat(390000);
+  for(let i=1;i<=24;i++){f.listing(lid(i));f.sql.prepare('UPDATE listings SET photos=? WHERE id=?').run(JSON.stringify([photo,photo]),lid(i));}
+  const feed=await f.request('/listings'),mine=await f.request('/mine',{as:'owner'});
+  assert.equal(feed.data.listings.length,24);assert.equal(mine.data.listings.length,24);
+  for(const result of [feed,mine]){const serialized=JSON.stringify(result.data);assert.ok(!serialized.includes('data:image'));assert.ok(Buffer.byteLength(serialized)<30000);assert.ok(result.data.listings.every(l=>l.photos.length===1));}
+  const detail=await f.request('/listings/'+lid(1));assert.equal(detail.data.listing.photos.length,2);assert.ok(!JSON.stringify(detail.data).includes('data:image'));
+  const resourceBytes=Buffer.byteLength(JSON.stringify(feed.data)),inlineBytes=Buffer.byteLength(JSON.stringify({...feed.data,listings:feed.data.listings.map(l=>({...l,photos:[photo]}))}));
+  assert.ok(resourceBytes<inlineBytes*.01);t.diagnostic(JSON.stringify({fixture:'24 listings, 390000-character synthetic cover payload',inlineBytes,resourceBytes,reductionPercent:Number(((1-resourceBytes/inlineBytes)*100).toFixed(2))}));
+});
+
+test('phone read rechecks a block or unavailable listing arriving after conversation lookup',async()=>{
+  for(const mutation of ["INSERT INTO blocks(blocker_id,blocked_id,created_at) VALUES ('owner','buyer',1)","UPDATE listings SET status='withdrawn'","UPDATE users SET status='suspended' WHERE id='buyer'","UPDATE contact_requests SET phone_shared=0"]){
+    const f=fixture(),c=await f.accepted();await f.request('/conversations/'+c+'/share-phone',{as:'owner',method:'POST'});
+    f.hooks.beforeFirst=async query=>{if(query.startsWith('SELECT u.phone FROM users')){f.hooks.beforeFirst=null;f.sql.exec(mutation);}};
+    const r=await f.request('/conversations/'+c,{as:'buyer'});assert.equal(r.status,200);assert.equal(r.data.phone,null);
+  }
+});
+
+test('re-verifying the same confirmed own phone does not call the provider or consume SMS budget',async()=>{
+  const f=fixture(),phone=f.sql.prepare("SELECT phone FROM users WHERE id='buyer'").get().phone;
+  f.sql.prepare("UPDATE users SET phone_hash=? WHERE id='buyer'").run(await hash(phone));let calls=0;
+  const r=await f.request('/phone/start',{as:'buyer',method:'POST',data:{phone},sms:smsFixture,fetcher:async()=>{calls++;throw Error('No provider call is allowed.');}});
+  assert.equal(r.status,409);assert.equal(r.data.code,'PHONE_ALREADY_VERIFIED');assert.equal(calls,0);
+  assert.equal(f.sql.prepare('SELECT count(*) AS n FROM rate_limits').get().n,0);
 });

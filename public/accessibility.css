@@ -1,0 +1,33 @@
+/* Shared interaction layer. Visual device QA is documented separately. */
+:focus-visible{outline:3px solid #315e45;outline-offset:4px;box-shadow:0 0 0 2px #fffdf7}
+.brand-hero :focus-visible,.owner-invitation :focus-visible{outline-color:#f4edda;box-shadow:0 0 0 2px #173d30}
+[tabindex="-1"]:focus:not(:focus-visible){outline:0}
+button,a,input,select,textarea,summary{-webkit-tap-highlight-color:#b3c5a466}
+input,select,textarea{accent-color:#24513c}
+input:disabled,select:disabled,textarea:disabled{cursor:not-allowed}
+::placeholder{color:#64745e;opacity:1}
+main,section,article,aside{min-width:0}
+.notice,.detail-description,.case-date,.conversation-title{overflow-wrap:anywhere}
+.message-transcript,.conversation-list{overflow-wrap:anywhere}
+.form-feedback[role="alert"]{scroll-margin-top:24px}
+.nav button[aria-current="page"],.mobile-navigation button[aria-current="page"]{text-decoration:underline;text-underline-offset:6px;text-decoration-thickness:2px}
+.no-script{max-width:650px;margin:50px auto;padding:28px;font:16px/1.8 Arial,sans-serif;border:1px solid #cad6c0;border-radius:12px;background:#fffdf7;color:#214733}
+.no-script h1{font:36px/1.2 Georgia,serif}
+@media(max-width:720px){
+  .button{min-height:44px}
+  dialog{max-height:calc(100dvh - 24px);scroll-padding:20px;padding-bottom:max(24px,env(safe-area-inset-bottom))}
+  dialog .modal-close{min-width:44px;min-height:44px}
+  dialog input,dialog select,dialog textarea,.search-box input,.search-box select,.sort-control select{font-size:16px}
+  .text-button{min-height:44px;display:inline-flex;align-items:center;justify-content:flex-start}
+  .gallery-arrow,.icon-button{min-width:44px;min-height:44px}
+  #toast{bottom:max(18px,env(safe-area-inset-bottom));line-height:1.7;max-height:40dvh;overflow:auto}
+}
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}
+  .property-card:hover{transform:none}.card-photo-link:hover img{transform:none}
+}
+@media(forced-colors:active){
+  .inbox-row.is-selected,.owner-filter[aria-pressed="true"],.favorite-filter[aria-pressed="true"]{outline:2px solid Highlight;outline-offset:-3px}
+  .conversation-badge,.message-bubble,.button,.notice{border:1px solid ButtonText}
+  .brand-hero-shade{background:Canvas}.brand-hero-copy,.brand-hero h1,.brand-hero h1 em{color:CanvasText}
+}

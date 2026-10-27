@@ -2,7 +2,9 @@
 
 Platformă în dezvoltare pentru vânzare și închiriere directă între proprietari și destinatarii finali. **Pilotul acceptă numai proprietăți din municipiul Cluj-Napoca.** Florești, Baciu, Apahida și celelalte localități nu intră în această etapă.
 
-Codul acestei direcții este organizat pe branch-ul `imobiliare-cluj` din [Rapunzel1999/nespus](https://github.com/Rapunzel1999/nespus). Proiectul Nespus de pe `main` este păstrat. „Între Noi” este un nume de lucru; disponibilitatea sa comercială și a domeniului nu este verificată.
+Baza acestei direcții este organizată pe branch-ul `imobiliare-cluj` din [Rapunzel1999/nespus](https://github.com/Rapunzel1999/nespus). Proiectul Nespus de pe `main` este păstrat. „Între Noi” este un nume de lucru; disponibilitatea sa comercială și a domeniului nu este verificată.
+
+Etapa curentă este pe branch-ul `imobiliare-conversations-quality`, peste `imobiliare-favorites-comparison`. Modificările rămân în pull request-uri draft, iar versiunea Sites este publicată cu acces numai pentru proprietar.
 
 ## Stadiu și limite
 
@@ -17,7 +19,7 @@ Accesul inițial al proiectului Sites este privat proprietarului. Publicarea cod
 Node.js 24 necesar și pnpm conform câmpului `packageManager` din `package.json`, când acesta este definit. Instalarea necesită acces la registrul de pachete.
 
 ```sh
-git clone --branch imobiliare-cluj https://github.com/Rapunzel1999/nespus.git
+git clone --branch imobiliare-conversations-quality https://github.com/Rapunzel1999/nespus.git
 cd nespus
 pnpm install --frozen-lockfile
 pnpm test
@@ -29,7 +31,16 @@ pnpm start
 
 `pnpm db:migrate` aplică migrările locale; datele din `.wrangler/state` sunt separate de baza găzduită. Nu adăuga această stare sau secretele în Git. Pentru dezvoltare folosește `pnpm dev`. Găzduirea prin Sites urmează fluxul de build și publicare al integrării, separat de pornirea locală.
 
-Verificare la **27 octombrie 2026**: **58/58 teste locale**, TypeScript, sintaxă JavaScript și build de producție trecute. Testele SMS folosesc răspunsuri simulate. În găzduire lipsesc cele trei credențiale Twilio; trimiterea este oprită explicit și plafonul total este zero. Accesul găsit public a fost corectat la **numai proprietarul**. Nu sunt confirmate livrare SMS reală, două conturi SIWC găzduite sau testarea pe iPhone fizic. Detalii în [VERIFICATION.md](docs/VERIFICATION.md) și [configurarea Twilio](docs/TWILIO_VERIFY.md).
+Verificare la **27 octombrie 2026**: **93/93 teste locale**, TypeScript, sintaxă JavaScript și build de producție trecute. Testele SMS folosesc răspunsuri simulate. În găzduire lipsesc cele trei credențiale Twilio; trimiterea este oprită explicit și plafonul total este zero. Accesul găsit public a fost corectat la **numai proprietarul**. Nu sunt confirmate livrare SMS reală, două conturi SIWC găzduite sau testarea pe iPhone fizic. Detalii în [VERIFICATION.md](docs/VERIFICATION.md) și [configurarea Twilio](docs/TWILIO_VERIFY.md).
+
+## Experiența implementată
+
+- Căutare pe cartier, tranzacție, monedă și buget, cu paginare și linkuri care păstrează filtrele.
+- Prezentare detaliată a proprietății, galerie, costuri declarate și comparație pentru 2–3 favorite din aceeași categorie de tranzacție.
+- Editor cu ciorne, ordonarea fotografiilor și recuperarea modificărilor în aceeași filă; spațiu separat pentru proprietar.
+- Conversații cu stări explicite, căutare în lista încărcată, paginare, texte netrimise păstrate în filă și vizionări afișate în ora Clujului. Reîmprospătare manuală; nu există notificări automate sau indicatori de citire.
+- Fotografii încărcate individual prin rute care verifică accesul. Răspunsurile de căutare nu mai transportă imaginile base64. Editorul autorizat primește în continuare imaginile complete.
+- Formulare protejate împotriva trimiterilor simultane, feedback de eroare, focus pentru navigarea cu tastatura și adaptări pentru mișcare redusă. Aceste schimbări nu certifică accesibilitatea completă sau ergonomia pe dispozitive reale.
 
 ## Configurare
 

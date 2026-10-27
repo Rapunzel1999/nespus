@@ -1,6 +1,6 @@
 'use strict';
 const app=document.querySelector('#app'),dialog=document.querySelector('#modal'),modalContent=document.querySelector('#modal-content');
-const S={boot:null,page:'home',transaction:'sale',filters:{},sort:'newest',browsePage:1,photos:[],draft:{},step:0,favorites:new Set(),busy:false,screenRevision:0,favoritePending:new Set(),editorSession:0,editorDirty:false,editorSaving:false,editorProcessing:false,editorError:'',ownerFilter:'all',ownerQuery:'',ownerPending:new Set(),favoriteFilter:'all',favoriteQuery:'',comparisonIds:[],detailReturnPage:'browse'};
+const S={boot:null,page:'home',transaction:'sale',filters:{},sort:'newest',browsePage:1,photos:[],draft:{},step:0,favorites:new Set(),busy:false,screenRevision:0,favoritePending:new Set(),editorSession:0,editorDirty:false,editorSaving:false,editorProcessing:false,editorError:'',ownerFilter:'all',ownerQuery:'',ownerPending:new Set(),favoriteFilter:'all',favoriteQuery:'',comparisonIds:[],detailReturnPage:'browse',conversationId:null,inboxFilter:'all',inboxQuery:'',messageDrafts:{},conversationPending:new Set(),modalRevision:0,formPending:new Set(),phoneChallenge:null,phoneRetryAt:0};
 const districts=['Becaș','Borhanci','Bulgaria','Făget','Andrei Mureșanu','Bună Ziua','Centru','Dâmbul Rotund','Europa','Gheorgheni','Grigorescu','Gruia','Iris','Între Lacuri','Mănăștur','Mărăști','Someșeni','Sopor','Zorilor'];
 const typeNames={apartment:'Apartament',house:'Casă',land:'Teren',commercial:'Spațiu comercial'};
 const statuses={draft:'Ciornă',pending:'În moderare',published:'Publicat',rejected:'Respins',sold:'Vândut',rented:'Închiriat',withdrawn:'Retras',requested:'Solicitare nouă',accepted:'Acceptată',declined:'Refuzată'};
@@ -8,15 +8,28 @@ function el(tag,attrs={},...children){const n=document.createElement(tag);for(co
 const b=(text,fn,cls='button')=>el('button',{type:'button',class:cls,onclick:fn},text);
 const money=(v,c='EUR')=>new Intl.NumberFormat('ro-RO',{maximumFractionDigits:0}).format(Number(v)||0)+' '+(c==='EUR'?'€':'lei');
 const eye=t=>el('div',{class:'eyebrow'},el('span',{class:'dot'}),t);
-const note=(t,error=false)=>el('div',{class:'notice'+(error?' error':'')},t);
+const note=(t,error=false)=>el('div',{class:'notice'+(error?' error':''),...(error?{role:'alert'}:{})},t);
 function toast(t){const n=document.querySelector('#toast');n.textContent=t;n.classList.add('show');clearTimeout(toast.timer);toast.timer=setTimeout(()=>n.classList.remove('show'),4500);}
-async function api(path,method='GET',body){const r=await fetch(path,{method,credentials:'same-origin',headers:body?{'Content-Type':'application/json'}:{},body:body?JSON.stringify(body):undefined});let d;try{d=await r.json();}catch{throw Error('Serviciul nu a răspuns corect. Încearcă din nou.');}if(!r.ok)throw Error(d.error||'Acțiunea nu a putut fi efectuată.');return d;}
+async function api(path,method='GET',body){
+  let response;
+  try{response=await fetch(path,{method,credentials:'same-origin',headers:body?{'Content-Type':'application/json'}:{},body:body?JSON.stringify(body):undefined});}
+  catch{throw Error(method==='GET'?'Conexiunea s-a întrerupt. Verifică rețeaua și reîncearcă.':'Nu am primit confirmarea. Verifică starea înainte de a repeta acțiunea.');}
+  let data;try{data=await response.json();}catch{throw Error('Serviciul nu a răspuns corect. Reîmprospătează înainte de a continua.');}
+  if(!response.ok){const error=Error(data.error||'Acțiunea nu a putut fi efectuată.');error.code=data.code;error.status=response.status;throw error;}
+  return data;
+}
 async function attempt(fn){try{await fn();}catch(e){toast(e.message);}}
-function openModal(content,options={}){S.modalKeyHandler=options.onKeydown||null;dialog.className=options.className||'';dialog.setAttribute('aria-label',options.label||content.querySelector('h2')?.textContent||'Fereastră de dialog');modalContent.replaceChildren(content);if(!dialog.open)dialog.showModal();}
+function openModal(content,options={}){
+  if(!dialog.open)S.modalOpener=document.activeElement;
+  S.modalRevision++;S.modalKeyHandler=options.onKeydown||null;dialog.className=options.className||'';
+  const heading=content.querySelector('h2');dialog.setAttribute('aria-label',options.label||heading?.textContent||'Fereastră de dialog');modalContent.replaceChildren(content);
+  if(!dialog.open)dialog.showModal();
+  if(heading){heading.tabIndex=-1;heading.focus({preventScroll:true});}
+}
 dialog.addEventListener('keydown',event=>S.modalKeyHandler?.(event));
-dialog.addEventListener('close',()=>{S.modalKeyHandler=null;});
+dialog.addEventListener('close',()=>{if(dialog.open)return;S.modalKeyHandler=null;const target=S.modalOpener?.isConnected?S.modalOpener:document.querySelector('#main-content');target?.focus?.({preventScroll:true});S.modalOpener=null;});
 document.querySelector('.modal-close').addEventListener('click',()=>dialog.close());dialog.addEventListener('click',e=>{if(e.target===dialog)dialog.close();});
-function signin(){openModal(el('div',{},eye('Contul tău'),el('h2',{class:'modal-title'},'Bine ai venit.'),el('p',{class:'muted'},'Autentifică-te pentru a salva locuințe, a publica anunțuri și a discuta direct cu proprietarii.'),note('Telefonul confirmat este necesar înainte de publicare și contactare. Nu echivalează cu verificarea identității.'),el('a',{class:'button',href:'/signin-with-chatgpt?return_to=/atelier',target:'_top'},'Continuă cu ChatGPT ↗')));}
+function signin(){openModal(el('div',{},eye('Contul tău'),el('h2',{class:'modal-title'},'Bine ai venit.'),el('p',{class:'muted'},'Autentifică-te pentru a salva locuințe, a publica anunțuri și a discuta direct cu proprietarii.'),note('Telefonul confirmat este necesar înainte de publicare și contactare. Nu echivalează cu verificarea identității.'),el('a',{class:'button',href:'/signin-with-chatgpt?return_to='+encodeURIComponent(window.location.pathname==='/atelier'?'/atelier'+window.location.search:'/atelier'),target:'_top'},'Continuă cu ChatGPT ↗')));}
 function requireUser(fn){if(!S.boot?.user){signin();return;}fn();}
 function icon(){const n=el('span');n.innerHTML='<svg viewBox="0 0 40 40" fill="none" aria-hidden="true"><path d="M5 26V15L20 5l15 10v11M12 34V20l8-5 8 5v14" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';return n.firstChild;}
 function shell(content,active=''){
@@ -25,7 +38,12 @@ function shell(content,active=''){
     el('nav',{class:'nav','aria-label':'Navigare principală'},b('Cumpără',()=>navBrowse('sale'),'nav-desktop '+(active==='browse'&&S.transaction==='sale'?'active':'')),b('Închiriază',()=>navBrowse('rent'),'nav-desktop '+(active==='browse'&&S.transaction==='rent'?'active':'')),b('Cum funcționează',()=>scrollHomeSection('how'),'nav-desktop nav-how'),b(S.boot?.user?'Contul meu':'Intră în cont',()=>S.boot?.user?go('account'):signin(),'account-nav'),b('Publică anunț +',()=>requireUser(publishingChoice),'button small')));
   const footer=el('footer',{class:'footer brand-footer'},el('div',{class:'footer-top'},el('div',{class:'footer-statement'},el('span',{class:'footer-brand'},'între noi'),el('p',{},'Mai aproape de',el('br'),el('em',{},'următorul acasă.'))),el('div',{class:'footer-link-group'},el('strong',{},'Găsește-ți locul'),b('Proprietăți de vânzare',()=>navBrowse('sale'),'text-button'),b('Proprietăți de închiriat',()=>navBrowse('rent'),'text-button'),b('Favoritele tale',()=>requireUser(()=>go('favorites')),'text-button'),b('Conversații',()=>requireUser(()=>go('messages')),'text-button')),el('div',{class:'footer-link-group'},el('strong',{},'Înainte să începi'),b('Cum funcționează',()=>scrollHomeSection('how'),'text-button'),b('Regulile comunității',rules,'text-button'),b('Confidențialitate',privacy,'text-button'),b('Pregătește un anunț',()=>requireUser(publishingChoice),'text-button'))),el('div',{class:'footer-bottom'},el('span',{},'© 2026 Între noi · Nume de lucru'),el('span',{},'Cluj-Napoca · Pilot privat · Acces restrâns')));
   const mobileNav=el('nav',{class:'mobile-navigation','aria-label':'Navigare rapidă'},b('Cumpără',()=>navBrowse('sale'),S.page==='browse'&&S.transaction==='sale'?'active':''),b('Închiriază',()=>navBrowse('rent'),S.page==='browse'&&S.transaction==='rent'?'active':''),b('Favorite',()=>requireUser(()=>go('favorites')),S.page==='favorites'?'active':''),b('Mesaje',()=>requireUser(()=>go('messages')),S.page==='messages'?'active':''));
+  const previousFocus=document.activeElement,previousName=previousFocus?.name;
   content.id='main-content';content.tabIndex=-1;app.replaceChildren(el('a',{class:'skip-link',href:'#main-content'},'Sari la conținut'),el('div',{class:'container'},header,mobileNav,el('div',{id:'draft-resume'},draftResumeContent()),content,footer));
+  for(const navigation of [header,mobileNav])for(const button of navigation.querySelectorAll?.('button')||[])if((button.className||'').split(' ').includes('active'))button.setAttribute('aria-current','page');
+  const title=content.querySelector('h1')||content.querySelector('h2');
+  if(!dialog.open&&S.boot&&S.focusedScreenRevision!==S.screenRevision&&title){title.tabIndex=-1;title.focus({preventScroll:true});S.focusedScreenRevision=S.screenRevision;}
+  else if(!dialog.open&&previousName){const replacement=[...(content.querySelectorAll?.('input')||[]),...(content.querySelectorAll?.('select')||[]),...(content.querySelectorAll?.('textarea')||[])].find(node=>node.name===previousName);replacement?.focus({preventScroll:true});}
 }
 async function go(page,options={}){
   const expectedRevision=S.screenRevision+1;
@@ -36,7 +54,7 @@ async function go(page,options={}){
     if(page==='browse')await browse(options);
     if(page==='account')await account(options);
     if(page==='favorites')await favorites(options);
-    if(page==='messages')await messages(undefined,options);
+    if(page==='messages')await messages(options.conversationId,options);
     if(page==='moderation')await moderation(options);
   }catch(e){
     if(S.page!==page||S.screenRevision!==expectedRevision)return;
@@ -157,7 +175,7 @@ function cards(listings){
 }
 
 function toggleFavorite(id){requireUser(()=>attempt(async()=>{if(S.favoritePending.has(id))return;S.favoritePending.add(id);updateFavoriteButtons(id);try{const on=S.favorites.has(id);await api('/api/favorites/'+id,on?'DELETE':'PUT');on?S.favorites.delete(id):S.favorites.add(id);if(on)S.comparisonIds=S.comparisonIds.filter(value=>value!==id);toast(on?'Locuința a fost eliminată din favorite.':'Locuința a fost salvată.');if(S.page==='favorites')await favorites();}finally{S.favoritePending.delete(id);updateFavoriteButtons(id);}}));}
-async function detail(id,options={}){S.detailReturnPage=S.page==='favorites'?'favorites':'browse';const revision=beginScreen('detail',{...options,listingId:id});shell(el('main',{class:'page'},el('p',{class:'loading',role:'status'},'Încărcăm proprietatea…')));try{const{listing}=await api('/api/listings/'+id);if(revision!==S.screenRevision)return;renderDetail(listing);}catch(e){if(revision!==S.screenRevision)return;shell(el('main',{class:'page'},el('h2',{class:'page-title'},'Anunțul nu este disponibil.'),note(e.message,true),b('Înapoi la anunțuri',()=>go('browse'))));}}
+async function detail(id,options={}){if(S.page!=='detail'){S.detailReturnPage=['favorites','messages'].includes(S.page)?S.page:'browse';S.detailConversationId=S.conversationId;}const revision=beginScreen('detail',{...options,listingId:id});shell(el('main',{class:'page'},el('p',{class:'loading',role:'status'},'Încărcăm proprietatea…')));try{const{listing}=await api('/api/listings/'+id);if(revision!==S.screenRevision)return;renderDetail(listing);}catch(e){if(revision!==S.screenRevision)return;shell(el('main',{class:'page'},el('h1',{class:'page-title'},'Anunțul nu este disponibil.'),note(e.message,true),b('Înapoi la anunțuri',()=>go('browse'))));}}
 function propertyFacts(l){
   const facts=[['Tip proprietate',typeNames[l.type]||l.type],[l.type==='land'?'Suprafață teren':'Suprafață utilă',l.area+' m²']];
   if(l.rooms)facts.push(['Compartimentare',roomLabel(l.rooms)]);
@@ -178,7 +196,7 @@ function propertyContactControl(l){
 function renderDetail(l,preview=false){
   if(preview)beginScreen('preview');else if(l.transaction!==S.transaction){changeTransaction(l.transaction);S.browsePage=1;}
   if(!preview)document.title=l.title+' · Între noi';
-  const actions=el('div',{class:'property-top-actions'},b(preview?'← Înapoi la editare':S.detailReturnPage==='favorites'?'← Înapoi la favorite':'← Înapoi la anunțuri',()=>preview?resumeDraft():S.detailReturnPage==='favorites'?go('favorites'):go('browse',{pageNumber:S.browsePage}),'text-button back'));
+  const actions=el('div',{class:'property-top-actions'},b(preview?'← Înapoi la editare':S.detailReturnPage==='favorites'?'← Înapoi la favorite':S.detailReturnPage==='messages'?'← Înapoi la conversație':'← Înapoi la anunțuri',()=>preview?resumeDraft():S.detailReturnPage==='favorites'?go('favorites'):S.detailReturnPage==='messages'?go('messages',{conversationId:S.detailConversationId}):go('browse',{pageNumber:S.browsePage}),'text-button back'));
   if(!preview)actions.append(el('div',{class:'property-save-share'},favoriteButton(l.id),b('Copiază linkul',()=>copyListingLink(l.id),'button secondary share-listing')));
   const main=el('main',{class:'page listing-detail property-detail'},actions,eye(preview?'Previzualizare · nepublicat':l.district+' · Cluj-Napoca'),el('div',{class:'detail-heading'},el('h1',{class:'detail-title',tabindex:'-1'},l.title),el('span',{class:'pill'},l.transaction==='rent'?'DE ÎNCHIRIAT':'DE VÂNZARE')));
   const visual=el('div',{class:'property-visual'},photoGallery(l),propertyFacts(l));
@@ -219,7 +237,7 @@ function draftResumeContent(){
   return el('aside',{class:'draft-resume','aria-label':'Anunț nesalvat'},el('div',{},el('strong',{},'Anunțul început este încă aici.'),el('p',{},'Modificările sunt păstrate în această filă. Salvează ciorna pentru a le regăsi în cont.')),el('div',{class:'item-actions'},resume,discard));
 }
 function refreshDraftResume(){const host=document.querySelector('#draft-resume');if(host){const content=draftResumeContent();host.replaceChildren(...(content?[content]:[]));}}
-window.addEventListener('beforeunload',event=>{if(S.editorDirty||editorBusy()){event.preventDefault();event.returnValue='';}});
+window.addEventListener('beforeunload',event=>{if(S.editorDirty||editorBusy()||Object.values(S.messageDrafts).some(draft=>draft.body?.trim())||S.conversationPending.size||S.formPending.size){event.preventDefault();event.returnValue='';}});
 function draftReadiness(d,photos=S.photos){
   const number=(value,min,max)=>value!==''&&Number.isFinite(Number(value))&&Number(value)>=min&&Number(value)<=max;
   const roomsOk=number(d.rooms??0,['apartment','house'].includes(d.type)?1:0,30)&&Number.isInteger(Number(d.rooms??0));
@@ -404,7 +422,7 @@ function ownerInventory(listings,limit=50){
 }
 async function account(options={}){
   if(!S.boot.user)return signin();const revision=beginScreen('account',options),u=S.boot.user;
-  const quick=el('nav',{class:'owner-quick-nav','aria-label':'Spațiul personal'},b('Favoritele mele',()=>go('favorites'),'button secondary'),b('Conversații',()=>go('messages'),'button secondary'),['moderator','admin'].includes(u.role)?b('Moderare',()=>go('moderation'),'button secondary'):null);
+  const quick=el('nav',{class:'owner-quick-nav','aria-label':'Spațiul personal'},b('Favoritele mele',()=>go('favorites'),'button secondary'),b('Conversații',()=>go('messages'),'button secondary'),['moderator','admin'].includes(u.role)?b('Moderare',()=>go('moderation'),'button secondary'):null,el('a',{class:'text-button account-signout',href:'/signout-with-chatgpt?return_to=%2Fatelier',target:'_top'},'Ieși din cont'));
   const phoneCard=el('aside',{class:'owner-phone-card'},el('span',{class:'owner-phone-state '+(u.phoneVerified?'is-verified':'')},u.phoneVerified?'Telefon confirmat':'Telefon neconfirmat'),el('h2',{},u.phoneVerified?'Un pas făcut.':'Pregătim următorul pas.'),el('p',{},u.phoneVerified?'Confirmarea telefonului este separată de verificarea identității și a proprietății.':S.boot.capabilities.phoneVerification?'Confirmă telefonul înainte de trimiterea anunțului la moderare și de contactare.':'Poți salva ciorne acum. Publicarea și contactarea așteaptă confirmarea telefonului, după activarea SMS.'),b('Gestionează telefonul →',phoneSetup,'text-button'));
   const main=el('main',{class:'page owner-hub'},el('div',{class:'owner-hub-header'},el('div',{},eye('Spațiul tău · acces privat'),el('p',{class:'owner-greeting'},'Bun venit, '+u.name+'.'),el('h1',{},'Proprietatea ta.',el('br'),el('em',{},'În ritmul tău.')),el('p',{class:'owner-hub-intro'},'Pregătește anunțurile, urmărește revizuirea și păstrează controlul asupra contactelor.'),ownerAccountActive()?b('Pregătește un anunț +',publishingChoice,'button owner-new-listing'):null),phoneCard),quick);
   if(!ownerAccountActive())main.append(el('div',{class:'notice error',role:'alert'},'Contul are restricții. Acțiunile asupra anunțurilor sunt indisponibile. Poți consulta istoricul și cere revizuirea deciziei.'));
@@ -424,7 +442,53 @@ function closeListing(listing){
   openModal(el('div',{},el('h2',{class:'modal-title'},'Închide anunțul'),el('p',{class:'muted'},'Anunțul va dispărea din căutări. Dacă îl retragi, îl poți edita și retrimite ulterior la moderare.'),controls));
 }
 
-function phoneSetup(){const capable=S.boot.capabilities.phoneVerification;const f=el('form',{},el('h2',{class:'modal-title'},'Telefonul tău'),note(capable?'Telefonul nu apare în profilul public. Confirmarea lui nu reprezintă verificarea identității.':'Confirmarea prin SMS nu este activată: serviciul nu este disponibil. Nu poți publica sau contacta până la activarea serviciului.'),field('Număr de telefon',el('input',{type:'tel',name:'phone',placeholder:'+407xxxxxxxx',required:true,autocomplete:'tel'})),el('button',{type:'submit',class:'button',disabled:!capable},'Trimite codul SMS'));f.addEventListener('submit',e=>{e.preventDefault();attempt(async()=>{await api('/api/phone/start','POST',{phone:f.elements.phone.value});const cf=el('form',{},el('h2',{class:'modal-title'},'Verifică telefonul'),note('Codul are 6 cifre și este valabil cel mult 10 minute. Nu îl comunica altor persoane.'),field('Codul primit prin SMS',el('input',{name:'code',inputmode:'numeric',autocomplete:'one-time-code',pattern:'[0-9]{6}',maxlength:6,minlength:6,required:true})),el('button',{class:'button',type:'submit'},'Confirmă'));cf.addEventListener('submit',e=>{e.preventDefault();attempt(async()=>{await api('/api/phone/check','POST',{code:cf.elements.code.value});S.boot=await api('/api/bootstrap');dialog.close();account();});});openModal(cf);});});openModal(f);}
+function operationFields(key,...children){return el('fieldset',{class:'operation-fields','data-form-operation':key,disabled:S.formPending.has(key)},...children);}
+function operationBusy(key,busy){for(const fields of document.querySelectorAll('[data-form-operation]'))if(fields.getAttribute('data-form-operation')===key)fields.disabled=busy;}
+async function modalSubmission(form,key,request,{errorHost,onSaved,onVisible,success='Modificarea a fost salvată.'}={}){
+  if(S.formPending.has(key)||!form.reportValidity())return;
+  const modalRevision=S.modalRevision,screenRevision=S.screenRevision;S.formPending.add(key);operationBusy(key,true);form.setAttribute('aria-busy','true');errorHost?.replaceChildren();
+  let saved=false;
+  try{const result=await request();saved=true;await onSaved?.(result);if(success)toast(success);if(dialog.open&&S.modalRevision===modalRevision&&S.screenRevision===screenRevision)await onVisible?.(result);}
+  catch(error){const message=saved?'Acțiunea a fost salvată, dar ecranul nu s-a actualizat. Reîmprospătează înainte să continui.':error.message;if(errorHost)errorHost.replaceChildren(note(message,true));toast(message);}
+  finally{S.formPending.delete(key);operationBusy(key,false);form.setAttribute('aria-busy','false');}
+}
+function phoneSetup(options={}){
+  if(!S.boot?.user){signin();return;}
+  if(S.phoneChallenge&&S.phoneChallenge.expiresAt>Date.now()&&!options.change){phoneCode();return;}
+  const capable=S.boot.capabilities.phoneVerification&&ownerAccountActive(),key='phone-verification';
+  const input=el('input',{type:'tel',name:'phone',placeholder:'+40 7xx xxx xxx',required:true,autocomplete:'tel',inputmode:'tel',maxlength:24,value:S.phoneChallenge?.phone||''});
+  const errorHost=el('div',{class:'form-feedback',role:'alert'});
+  const fields=operationFields(key,field('Număr mobil românesc',input,'Poți scrie 07… sau +407… . Spațiile se elimină automat.'),el('button',{type:'submit',class:'button',disabled:!capable},'Trimite codul SMS'));
+  const form=el('form',{},eye('Confidențial, până alegi altfel'),el('h2',{class:'modal-title'},'Telefonul tău.'),
+    S.boot.user.phoneVerified?note('Număr confirmat, terminat în '+(S.boot.user.phoneLast4||'••••')+'. Schimbarea reușită retrage accesul la numărul oferit în conversații.'):null,
+    note(!ownerAccountActive()?'Contul are restricții. Confirmarea telefonului nu este disponibilă.':capable?'Confirmăm că ai acces la număr. Telefonul nu apare în profilul public; confirmarea nu dovedește identitatea sau proprietatea.':'Confirmarea prin SMS nu este activată. Poți salva ciorne, dar publicarea și contactarea așteaptă activarea serviciului.'),fields,errorHost);
+  form.addEventListener('submit',event=>{
+    event.preventDefault();if(!capable||S.formPending.has(key))return;
+    let phone=input.value.replace(/[\s().-]/g,'');if(/^0[67]\d{8}$/.test(phone))phone='+40'+phone.slice(1);
+    input.setCustomValidity(/^\+40[67]\d{8}$/.test(phone)?'':'Introdu un număr mobil românesc valid, în format +407… .');if(!form.reportValidity()||!input.reportValidity())return;
+    if((S.phoneRetryAt||0)>Date.now()){errorHost.replaceChildren(note('Așteaptă '+Math.ceil((S.phoneRetryAt-Date.now())/1000)+' secunde înainte de o nouă trimitere.',true));return;}
+    S.phoneRetryAt=Date.now()+60000;
+    return modalSubmission(form,key,()=>api('/api/phone/start','POST',{phone}),{errorHost,success:'Codul a fost solicitat.',onSaved:result=>{S.phoneChallenge={phone,expiresAt:Number.isFinite(result.expiresAt)?result.expiresAt:Date.now(),locked:false};S.phoneRetryAt=Date.now()+Math.max(60,result.retryAfterSeconds||60)*1000;},onVisible:()=>phoneCode()});
+  });input.addEventListener('input',()=>input.setCustomValidity(''));openModal(form);
+}
+function phoneCode(){
+  if(!S.phoneChallenge){phoneSetup({change:true});return;}
+  const challenge=S.phoneChallenge,key='phone-verification',errorHost=el('div',{class:'form-feedback',role:'alert'});
+  const input=el('input',{name:'code',inputmode:'numeric',autocomplete:'one-time-code',pattern:'[0-9]{6}',maxlength:6,minlength:6,required:true,class:'verification-code','aria-describedby':'code-help'});
+  const expired=challenge.expiresAt<=Date.now(),blocked=expired||challenge.locked||!S.boot.capabilities.phoneVerification||!ownerAccountActive();
+  const fields=operationFields(key,field('Codul din SMS',input),el('button',{type:'submit',class:'button',disabled:blocked},'Confirmă telefonul'));
+  const form=el('form',{},eye('Un pas înainte'),el('h2',{class:'modal-title'},'Introdu codul primit.'),el('p',{},'Număr terminat în '+challenge.phone.slice(-4)+'.'),
+    el('p',{id:'code-help',class:'muted'},'Codul are 6 cifre. Este valabil până la '+new Date(challenge.expiresAt).toLocaleTimeString('ro-RO',{hour:'2-digit',minute:'2-digit'})+' (ora dispozitivului). Nu îl comunica altor persoane.'),
+    blocked?note(expired?'Codul a expirat. Poți solicita un cod nou.':challenge.locked?'Limita de încercări a fost atinsă. Așteaptă expirarea codului înainte să ceri altul.':'Verificarea nu este disponibilă acum.',true):null,
+    fields,errorHost,el('div',{class:'phone-next-step'},b('Nu ai primit codul sau vrei alt număr?',()=>phoneSetup({change:true}),'text-button'),el('p',{class:'subtle'},'Retrimiterea se cere explicit, după cel puțin 60 de secunde. Poate trimite același cod și nu prelungește valabilitatea lui.')));
+  form.addEventListener('submit',event=>{
+    event.preventDefault();if(blocked||S.formPending.has(key))return;if(challenge.completed){errorHost.replaceChildren(note('Telefonul a fost confirmat. Reîmprospătează pagina pentru a actualiza contul.'));return;}if(challenge.locked){errorHost.replaceChildren(note('Limita de încercări a fost atinsă. Așteaptă expirarea codului.',true));return;}
+    if(challenge.expiresAt<=Date.now()){errorHost.replaceChildren(note('Codul a expirat. Solicită unul nou.',true));return;}
+    const code=input.value.trim();input.setCustomValidity(/^\d{6}$/.test(code)?'':'Introdu exact cele 6 cifre din SMS.');if(!input.reportValidity())return;
+    return modalSubmission(form,key,async()=>{try{return await api('/api/phone/check','POST',{code});}catch(error){if(error.code==='SMS_EXPIRED')challenge.expiresAt=0;if(error.code==='SMS_RATE_LIMIT')challenge.locked=true;throw error;}},
+      {errorHost,success:'Telefonul a fost confirmat.',onSaved:async()=>{challenge.completed=true;S.phoneChallenge=null;S.boot=await api('/api/bootstrap');},onVisible:async()=>{dialog.close();if(S.page==='account')await account({historyMode:'none'});}});
+  });input.addEventListener('input',()=>input.setCustomValidity(''));openModal(form);
+}
 function reconcileComparison(listings){
   const available=new Map(listings.map(l=>[l.id,l]));let transaction=null;
   S.comparisonIds=S.comparisonIds.filter((id,index,ids)=>{
@@ -515,12 +579,199 @@ async function favorites(options={}){
   finally{if(revision===S.screenRevision)host.setAttribute('aria-busy','false');}
 }
 
-function contact(l){if(!S.boot.user.phoneVerified){openModal(el('div',{},el('h2',{class:'modal-title'},'Întâi, un pas de încredere.'),note('Pentru contactare este necesar un telefon confirmat. Datele tale nu devin publice.'),b('Confirmă telefonul',phoneSetup)));return;}const f=el('form',{},eye('Direct. Cu respect.'),el('h2',{class:'modal-title'},'Hai să înceapă conversația.'),field('Spune-i proprietarului ce cauți',el('textarea',{name:'purpose',required:true,minlength:20,maxlength:600,placeholder:'Mă interesează această locuință pentru…'})),el('label',{class:'check'},el('input',{name:'agree',type:'checkbox',required:true}),el('span',{},S.boot.declarations.contact)),note('Acest angajament și versiunea lui sunt înregistrate pentru contul tău. Telefonul proprietarului nu este dezvăluit automat.'),note('Nu trimitem încă alerte prin email/SMS. Verifică răspunsurile în Mesaje.'),el('button',{type:'submit',class:'button'},'Trimite solicitarea'));f.addEventListener('submit',e=>{e.preventDefault();attempt(async()=>{const r=await api('/api/contact-requests','POST',{listingId:l.id,purpose:f.elements.purpose.value,contactDeclaration:f.elements.agree.checked,declarationVersion:S.boot.declarations.version});dialog.close();toast('Solicitarea a fost trimisă.');await messages(r.id);});});openModal(f);}
-async function messages(selected,options={}){const revision=beginScreen('messages',options);const{conversations}=await api('/api/conversations');if(revision!==S.screenRevision)return;const content=el('div',{});const aside=el('aside',{class:'conversation-list'},...conversations.map(c=>b([c.listingTitle,c.otherName,statuses[c.status]||c.status].filter(Boolean).join(' · '),()=>messages(c.id),'button secondary')));const main=el('main',{class:'page'},eye('Conversații directe'),el('h2',{class:'page-title'},'De la om la om.'),conversations.length?el('div',{class:'conversation-layout'},aside,content):empty('Conversațiile tale vor apărea aici.','Contactează un proprietar sau primește prima solicitare pentru locuința ta.','Descoperă locuințe',()=>go('browse')));shell(main);if(!conversations.length)return;const id=selected||conversations[0].id;const{conversation:c,messages:msgs,phone,viewings=[]}=await api('/api/conversations/'+id);if(revision!==S.screenRevision)return;content.append(el('h3',{},c.listingTitle||'Conversație'),el('p',{class:'subtle'},c.otherName||''),el('p',{class:'status'},statuses[c.status]||c.status));if(c.amOwner&&c.status==='requested'&&c.available!==false)content.append(note('Acceptarea deschide conversația. Telefonul tău rămâne ascuns.'),el('div',{class:'item-actions'},...['accepted','declined'].map(decision=>b(decision==='accepted'?'Acceptă solicitarea':'Refuză',()=>attempt(async()=>{await api('/api/conversations/'+id+'/decision','POST',{decision});messages(id);}),decision==='accepted'?'button small':'button small secondary'))));if(phone)content.append(note('Proprietarul ți-a oferit acces la telefon.'),el('a',{href:'tel:'+phone,class:'button secondary'},phone));if(c.amOwner&&c.status==='accepted'&&c.available!==false&&!c.phoneShared&&!c.blocked)content.append(b('Dezvăluie numărul meu',()=>openModal(el('div',{},el('h2',{class:'modal-title'},'Împărtășești numărul?'),note('Această persoană va putea vedea numărul tău. Odată văzut sau salvat, nu îl putem recupera.'),b('Da, ofer acces acestei persoane',()=>attempt(async()=>{await api('/api/conversations/'+id+'/share-phone','POST',{});dialog.close();messages(id);})))),'button small secondary'));if(c.purpose)content.append(note('Scopul declarat: '+c.purpose));if(c.available===false)content.append(note('Conversația nu permite acțiuni noi: anunțul sau un participant nu mai îndeplinește condițiile de disponibilitate.'));if(c.blocked)content.append(note('Această conversație este blocată.'));for(const m of msgs||[])content.append(el('div',{class:'message'+(m.senderId===S.boot.user.id?' mine':'')},m.body,el('small',{},new Date(m.createdAt).toLocaleString('ro-RO'))));if(c.status==='accepted'){content.append(el('h3',{style:'margin-top:26px'},'Vizionări'));for(const v of viewings){const row=el('div',{class:'list-item'},el('p',{},new Date(v.startsAt).toLocaleString('ro-RO',{dateStyle:'long',timeStyle:'short'})),el('p',{class:'subtle'},({pending:'Propusă · așteaptă răspuns',proposed:'Propusă · așteaptă răspuns',requested:'Propusă · așteaptă răspuns',accepted:'Acceptată',declined:'Refuzată'})[v.status]||v.status));if(c.amOwner&&['pending','proposed','requested'].includes(v.status)&&!c.blocked&&c.available!==false)row.append(el('div',{class:'item-actions'},...['accepted','declined'].map(decision=>b(decision==='accepted'?'Acceptă vizionarea':'Refuză',()=>attempt(async()=>{await api('/api/viewings/'+v.id,'POST',{decision});messages(id);}),decision==='accepted'?'button small':'button small secondary'))));content.append(row);}if(!viewings.length)content.append(el('p',{class:'subtle'},'Nu există vizionări propuse.'));if(!c.amOwner&&!c.blocked&&c.available!==false)content.append(b('Propune o vizionare',()=>viewingProposal(id),'button small secondary'));content.append(el('p',{class:'subtle',style:'margin:10px 0'},'Programările rămân în platformă. Nu sunt trimise alerte sau invitații în calendar.'));}if(c.status==='accepted'&&!c.blocked&&c.available!==false){const mf=el('form',{class:'message-form'},el('textarea',{name:'body',required:true,maxlength:2000,placeholder:'Scrie un mesaj…','aria-label':'Mesaj'}),el('button',{type:'submit',class:'button'},'Trimite ↗'));mf.addEventListener('submit',e=>{e.preventDefault();attempt(async()=>{await api('/api/conversations/'+id+'/messages','POST',{body:mf.elements.body.value});messages(id);});});content.append(mf);}content.append(el('div',{class:'item-actions'},b('Raportează',()=>report({conversationId:id}),'text-button'),!c.blocked?b('Blochează conversația',()=>openModal(el('div',{},el('h2',{class:'modal-title'},'Blochezi conversația?'),note('Nu veți mai putea trimite mesaje în această conversație.'),b('Confirmă blocarea',()=>attempt(async()=>{await api('/api/conversations/'+id+'/block','POST',{});dialog.close();messages(id);}),'button danger'))),'text-button'):null));}
-function report(target){const f=el('form',{},el('h2',{class:'modal-title'},'Ajută-ne să păstrăm contactul direct.'),field('Motiv',select('reason',[['suspected_agency','Suspectez o agenție / intermediar'],['contact_sharing','Distribuirea datelor de contact'],['duplicate','Anunț duplicat'],['unavailable','Proprietate indisponibilă'],['misleading','Informații înșelătoare'],['harassment','Hărțuire sau mesaje nedorite'],['other','Alt motiv']],'')),field('Ce s-a întâmplat?',el('textarea',{name:'details',required:true,minlength:10,maxlength:1500})),note('Raportarea ajunge la moderare. Nu suspendăm automat un cont doar pe baza unei suspiciuni.'),el('button',{type:'submit',class:'button'},'Trimite raportarea'));f.addEventListener('submit',e=>{e.preventDefault();attempt(async()=>{await api('/api/reports','POST',{...target,reason:f.elements.reason.value,details:f.elements.details.value});dialog.close();toast('Raportarea a fost înregistrată pentru revizuire.');});});openModal(f);}
-function appeal(reportId=null){const f=el('form',{},el('h2',{class:'modal-title'},'Cere revizuirea unei decizii.'),field('Motivul contestației',el('textarea',{name:'reason',required:true,minlength:20,maxlength:2000})),note('Contestațiile sunt analizate independent. Soluționarea poate aștepta disponibilitatea unui alt moderator; nu avem termen garantat.'),el('button',{type:'submit',class:'button'},'Trimite contestația'));f.addEventListener('submit',e=>{e.preventDefault();attempt(async()=>{await api('/api/appeals','POST',{reason:f.elements.reason.value,...(reportId?{reportId}:{})});openModal(el('div',{},el('h2',{class:'modal-title'},'Contestația este înregistrată.'),note('Soluționarea poate aștepta disponibilitatea unui alt moderator; nu avem termen garantat.'),el('p',{class:'subtle'},'Poți urmări starea contestației în contul tău.'),b('Am înțeles',()=>dialog.close())));});});openModal(f);}
-async function moderation(options={}){const revision=beginScreen('moderation',options);const data=await api('/api/moderation');if(revision!==S.screenRevision)return;const main=el('main',{class:'page'},eye('Acces restricționat'),el('h2',{class:'page-title'},'Moderare.'),note('Verifică dovezile și contextul. Semnalele și raportările nu reprezintă singure o dovadă. Nu confirma relația cu proprietatea fără verificare.'),el('h3',{},'Anunțuri în așteptare'));for(const l of data.listings||[]){main.append(el('article',{class:'list-item'},el('h3',{},l.title),el('p',{class:'subtle'},l.ownerName||l.ownerId||''),el('p',{class:'detail-description'},l.description),el('div',{class:'photos'},...(l.photos||[]).map(src=>el('img',{src,alt:'Fotografie din anunț'}))),el('div',{class:'item-actions'},b('Aprobă',()=>moderationDecision('/api/moderation/listings/'+l.id,'published'),'button small'),b('Respinge',()=>moderationDecision('/api/moderation/listings/'+l.id,'rejected'),'button small secondary'))));}if(!data.listings?.length)main.append(note('Nu sunt anunțuri în așteptare.'));main.append(el('h3',{style:'margin-top:28px'},'Sesizări'));for(const r of data.reports||[])main.append(el('article',{class:'list-item'},el('span',{class:'status'},r.status||'Deschisă'),el('h3',{},r.reason),el('p',{class:'detail-description'},r.details),el('div',{class:'item-actions'},b('Consultă contextul sesizării',()=>reportEvidence(r.id),'button small secondary'),b('Soluționează',()=>moderationDecision('/api/moderation/reports/'+r.id,'resolved'),'button small'),b('Respinge sesizarea',()=>moderationDecision('/api/moderation/reports/'+r.id,'dismissed'),'button small secondary'))));if(!data.reports?.length)main.append(note('Nu sunt sesizări.'));main.append(el('h3',{style:'margin-top:28px'},'Contestații'));for(const a of data.appeals||[])main.append(el('div',{class:'list-item'},el('p',{class:'subtle'},'Cont: '+(a.userId||'')),el('p',{},a.reason),el('p',{class:'subtle'},a.reportId?'Admiterea redeschide sesizarea asociată. Nu schimbă starea contului.':'Admiterea reactivează contul persoanei care a contestat restricția.'),el('div',{class:'item-actions'},b(a.reportId?'Admite și redeschide sesizarea':'Admite și reactivează contul',()=>moderationDecision('/api/moderation/appeals/'+a.id,'upheld'),'button small'),b('Respinge contestația',()=>moderationDecision('/api/moderation/appeals/'+a.id,'dismissed'),'button small secondary'))));main.append(el('h3',{style:'margin-top:28px'},'Starea unui cont'));const uf=el('form',{class:'form-shell'},field('ID cont',el('input',{name:'userId',required:true})),field('Stare',select('status',[['restricted','Restricționat'],['suspended','Suspendat'],['active','Activ']],'')),field('Motiv documentat',el('textarea',{name:'reason',required:true,minlength:10,maxlength:1000})),el('button',{type:'submit',class:'button'},'Înregistrează decizia'));uf.addEventListener('submit',e=>{e.preventDefault();attempt(async()=>{await api('/api/moderation/users/'+encodeURIComponent(uf.elements.userId.value),'POST',{status:uf.elements.status.value,reason:uf.elements.reason.value});toast('Decizia a fost înregistrată.');moderation();});});main.append(uf);shell(main);}
-function moderationDecision(path,decision){const f=el('form',{},el('h2',{class:'modal-title'},'Documentează decizia.'),field('Motiv',el('textarea',{name:'reason',required:true,minlength:10,maxlength:1000})),el('button',{type:'submit',class:'button'},'Confirmă'));f.addEventListener('submit',e=>{e.preventDefault();attempt(async()=>{await api(path,'POST',{decision,reason:f.elements.reason.value,ownershipReviewed:false});dialog.close();moderation();});});openModal(f);}
+function contact(l){
+  if(!S.boot?.user){signin();return;}
+  if(!ownerAccountActive()){openModal(el('div',{},el('h2',{class:'modal-title'},'Contul are restricții.'),note('Poți vedea motivul și cere revizuirea din cont.'),b('Deschide contul',()=>{dialog.close();go('account');})));return;}
+  if(!S.boot.user.phoneVerified){phoneSetup();return;}
+  if(l.acceptsContacts===false){toast('Proprietarul nu primește solicitări noi acum.');return;}
+  const key='contact:'+l.id,errorHost=el('div',{class:'form-feedback',role:'alert'}),purpose=el('textarea',{name:'purpose',required:true,minlength:20,maxlength:600,rows:5,placeholder:'Mă interesează această locuință pentru…','aria-describedby':'contact-message-help'});
+  const count=el('span',{class:'input-counter'},'0 / 600');purpose.addEventListener('input',()=>{count.textContent=purpose.value.length+' / 600';});
+  const form=el('form',{},eye('Direct. Cu respect.'),el('h2',{class:'modal-title'},'Hai să înceapă conversația.'),el('p',{class:'contact-property-name'},l.title),
+    operationFields(key,field('Spune-i proprietarului ce cauți',purpose),count,el('p',{id:'contact-message-help',class:'subtle'},'Minimum 20 de caractere. Fără număr de telefon, email sau linkuri.'),el('label',{class:'check'},el('input',{name:'agree',type:'checkbox',required:true}),el('span',{},S.boot.declarations.contact)),el('button',{type:'submit',class:'button'},'Trimite solicitarea')),
+    errorHost,note('Angajamentul și versiunea lui sunt înregistrate. Acceptarea solicitării nu dezvăluie automat telefonul proprietarului.'),el('p',{class:'subtle'},'Nu trimitem încă alerte prin email/SMS. Verifică răspunsurile în Mesaje.'));
+  form.addEventListener('submit',event=>{event.preventDefault();const payload={listingId:l.id,purpose:purpose.value,contactDeclaration:form.elements.agree.checked,declarationVersion:S.boot.declarations.version};return modalSubmission(form,key,()=>api('/api/contact-requests','POST',payload),{errorHost,success:'Solicitarea a fost trimisă.',onVisible:async result=>{dialog.close();await messages(result.id);}});});openModal(form);
+}
+function conversationState(c){
+  if(c.blocked)return {key:'closed',label:'Blocată',help:'Contactul dintre voi este blocat. Istoricul rămâne disponibil, fără acțiuni noi.'};
+  if(c.available===false)return {key:'closed',label:'Indisponibilă',help:'Anunțul sau unul dintre participanți nu mai îndeplinește condițiile pentru acțiuni noi. Istoricul este păstrat.'};
+  if(c.status==='declined')return {key:'closed',label:'Refuzată',help:'Proprietarul a refuzat solicitarea. Mesajele și vizionările nu sunt disponibile.'};
+  if(c.status==='requested')return {key:'requested',label:c.amOwner?'Așteaptă răspunsul tău':'Așteaptă proprietarul',help:c.amOwner?'Citește scopul declarat înainte să decizi. Acceptarea deschide conversația, fără să dezvăluie telefonul.':'Solicitarea ta a ajuns la proprietar. Veți putea discuta după acceptare.'};
+  return {key:'accepted',label:'Conversație deschisă',help:'Discutați direct aici. Telefonul rămâne ascuns până la o dezvăluire explicită.'};
+}
+function clujDate(timestamp,short=false){
+  if(!Number.isFinite(timestamp)||timestamp<=0)return 'Dată indisponibilă';
+  return new Intl.DateTimeFormat('ro-RO',{timeZone:'Europe/Bucharest',...(short?{day:'numeric',month:'short'}:{dateStyle:'long',timeStyle:'short'})}).format(timestamp);
+}
+function conversationActionFields(c,...children){return el('fieldset',{class:'conversation-action-fields','data-conversation-actions':c.id,disabled:S.conversationPending.has(c.id)||!ownerAccountActive()},...children);}
+function conversationSetBusy(id,busy){for(const node of document.querySelectorAll('[data-conversation-actions]'))if(node.getAttribute('data-conversation-actions')===id)node.disabled=busy||!ownerAccountActive();}
+async function conversationMutation(c,path,payload,{success='Modificarea a fost salvată.',refresh,form,errorHost,onSaved,modal=false}={}){
+  if(S.conversationPending.has(c.id)||!ownerAccountActive())return;
+  const revision=S.screenRevision,modalRevision=S.modalRevision;
+  if(form&&!form.reportValidity())return;
+  S.conversationPending.add(c.id);conversationSetBusy(c.id,true);if(errorHost)errorHost.replaceChildren();
+  let saved=false;
+  try{
+    const result=await api(path,'POST',payload);saved=true;onSaved?.(result);toast(success);
+    if(modal&&dialog.open&&S.modalRevision===modalRevision)dialog.close();
+    if(S.page==='messages'&&S.screenRevision===revision&&S.conversationId===c.id&&refresh)await refresh();
+  }catch(error){
+    const message=saved?'Acțiunea a fost salvată, dar conversația nu s-a reîncărcat. Apasă Reîmprospătează.':error.message;
+    if(errorHost)errorHost.replaceChildren(note(message,true));toast(message);
+  }finally{S.conversationPending.delete(c.id);conversationSetBusy(c.id,false);}
+}
+function conversationConfirm(c,kind,refresh){
+  const sharing=kind==='share-phone';
+  const errorHost=el('div',{role:'alert',class:'form-feedback'});
+  const form=el('form',{},eye(sharing?'Doar cu acordul tău':'Controlul îți aparține'),el('h2',{class:'modal-title'},sharing?'Împărtășești numărul?':'Blochezi acest contact?'),
+    el('p',{},sharing?'Numărul tău va fi vizibil pentru '+c.otherName+'.':'Blocarea se aplică între voi și la alte anunțuri, nu doar în această conversație.'),
+    note(sharing?'Odată văzut sau salvat, numărul nu poate fi recuperat de pe dispozitivul celeilalte persoane.':'Nu veți mai putea trimite mesaje sau solicitări noi. Accesul la telefon este retras. Istoricul nu este șters.'),
+    conversationActionFields(c,el('button',{class:'button'+(sharing?'':' danger'),type:'submit'},sharing?'Ofer acces acestei persoane':'Confirmă blocarea')),errorHost);
+  form.addEventListener('submit',event=>{event.preventDefault();return conversationMutation(c,'/api/conversations/'+c.id+'/'+kind,{}, {refresh,form,errorHost,modal:true,success:sharing?'Accesul la telefon a fost acordat.':'Contactul a fost blocat.'});});openModal(form);
+}
+function conversationComposer(c,refresh){
+  const stored=S.messageDrafts[c.id]||{body:'',requestId:null},errorHost=el('div',{class:'form-feedback',role:'alert'});
+  const input=el('textarea',{name:'body',required:true,maxlength:2000,rows:3,placeholder:'Continuă conversația…','aria-label':'Mesaj pentru '+c.otherName,'aria-describedby':'message-help-'+c.id},stored.body);
+  const count=el('span',{class:'composer-count'},stored.body.length+' / 2.000');
+  const fields=conversationActionFields(c,field('Mesajul tău',input),el('div',{class:'composer-bottom'},count,el('button',{type:'submit',class:'button'},'Trimite mesajul ↗')));
+  const form=el('form',{class:'conversation-composer'},fields,errorHost,el('p',{class:'conversation-fineprint',id:'message-help-'+c.id},'Fără telefon, email sau linkuri în mesaje. Textul netrimis se păstrează doar în această filă; reîncărcarea îl pierde.'));
+  input.addEventListener('input',()=>{input.setCustomValidity('');S.messageDrafts[c.id]={body:input.value,requestId:null};count.textContent=input.value.length+' / 2.000';});
+  form.addEventListener('submit',event=>{
+    event.preventDefault();if(S.conversationPending.has(c.id)||!form.reportValidity())return;
+    if(!input.value.trim()){input.setCustomValidity('Scrie un mesaj înainte să îl trimiți.');input.reportValidity();return;}
+    const prior=S.messageDrafts[c.id],body=input.value;
+    const requestId=prior?.body===body&&prior.requestId?prior.requestId:crypto.randomUUID().replaceAll('-','');
+    S.messageDrafts[c.id]={body,requestId};
+    return conversationMutation(c,'/api/conversations/'+c.id+'/messages',{body,requestId},{refresh,form,errorHost,success:'Mesajul a fost trimis.',onSaved:()=>{if(S.messageDrafts[c.id]?.requestId===requestId)delete S.messageDrafts[c.id];input.value='';count.textContent='0 / 2.000';}});
+  });input.addEventListener('change',()=>input.setCustomValidity(''));return form;
+}
+function conversationViewings(c,viewings,hasMore,refresh){
+  const section=el('section',{class:'conversation-viewings','aria-label':'Vizionări'},el('div',{class:'conversation-section-title'},el('h3',{},'Vizionări'),el('span',{},'Ora Clujului · Europe/Bucharest')));
+  if(!viewings.length)section.append(el('p',{class:'muted'},'Nicio vizionare propusă încă. Stabiliți împreună un moment potrivit.'));
+  const canAct=c.status==='accepted'&&!c.blocked&&c.available!==false&&ownerAccountActive();
+  for(const visit of viewings){
+    const past=visit.startsAt<=Date.now(),pending=['pending','proposed','requested'].includes(visit.status),status=pending?(past?'Propunere expirată':'Așteaptă confirmarea'):visit.status==='accepted'?(past?'Acceptată · dată trecută':'Confirmată'):'Refuzată';
+    const row=el('article',{class:'viewing-card'+(past?' is-past':'')},el('div',{},el('p',{class:'viewing-date'},clujDate(visit.startsAt)),el('span',{class:'conversation-badge '+(visit.status==='accepted'&&!past?'accepted':'')},status)));
+    if(c.amOwner&&pending&&!past&&canAct){const errorHost=el('div',{role:'alert'});row.append(conversationActionFields(c,el('div',{class:'item-actions'},...['accepted','declined'].map(decision=>b(decision==='accepted'?'Confirmă vizionarea':'Refuză',()=>conversationMutation(c,'/api/viewings/'+visit.id,{decision},{refresh,errorHost,success:decision==='accepted'?'Vizionarea a fost confirmată.':'Propunerea a fost refuzată.'}),decision==='accepted'?'button small':'button small secondary')))),errorHost);}
+    section.append(row);
+  }
+  if(hasMore)section.append(el('p',{class:'conversation-fineprint'},'Sunt afișate cele mai recente 100 de vizionări, ordonate după data propusă.'));
+  if(!c.amOwner&&canAct)section.append(conversationActionFields(c,b('Propune o vizionare →',()=>viewingProposal(c.id,refresh),'button secondary small')));
+  section.append(el('p',{class:'conversation-fineprint'},'O propunere devine confirmată după acceptarea proprietarului. Programările rămân aici; nu trimitem alerte sau invitații în calendar.'));return section;
+}
+function renderConversation(data,host,refresh,revision){
+  const threadRevision=S.threadRevision;
+  const c=data.conversation,state=conversationState(c),canAct=ownerAccountActive()&&c.available!==false&&!c.blocked;
+  const headline=el('h2',{class:'conversation-title',tabindex:'-1'},c.listingTitle||'Conversație directă');
+  const property=el('a',{href:'/atelier?listing='+c.listingId,class:'text-button',onclick:event=>{if(modifiedClick(event))return;event.preventDefault();detail(c.listingId);}},'Vezi proprietatea ↗');
+  const top=el('header',{class:'conversation-heading'},el('div',{},el('p',{class:'conversation-person'},c.otherName||'Participant'),headline),el('div',{class:'conversation-heading-actions'},el('span',{class:'conversation-badge '+state.key},state.label),property));
+  const notice=el('div',{class:'conversation-state '+state.key},state.help);
+  const content=[top,notice];
+  if(c.purpose)content.push(el('section',{class:'conversation-purpose'},el('h3',{},c.amOwner?'De ce te contactează':'Solicitarea ta'),el('p',{},c.purpose),el('small',{},'Trimisă la '+clujDate(c.createdAt))));
+  if((c.status!=='accepted'||!canAct)&&S.messageDrafts[c.id]?.body?.trim()){
+    const savedText=S.messageDrafts[c.id].body;
+    content.push(el('details',{class:'conversation-saved-draft'},el('summary',{},'Ai un text netrimis în această filă'),el('p',{class:'conversation-fineprint'},'Conversația nu permite trimiterea acum. Îl poți copia sau poți renunța la el.'),field('Textul tău',el('textarea',{readonly:true,rows:3},savedText)),b('Renunță la textul netrimis',()=>{delete S.messageDrafts[c.id];renderConversation(data,host,refresh,revision);},'text-button')));
+  }
+  const feedback=el('div',{class:'form-feedback',role:'alert'});
+  if(c.amOwner&&c.status==='requested'&&canAct)content.push(conversationActionFields(c,el('div',{class:'conversation-decisions'},...['accepted','declined'].map(decision=>b(decision==='accepted'?'Acceptă conversația':'Refuză solicitarea',()=>conversationMutation(c,'/api/conversations/'+c.id+'/decision',{decision},{refresh,errorHost:feedback,success:decision==='accepted'?'Conversația este deschisă. Telefonul rămâne ascuns.':'Solicitarea a fost refuzată.'}),decision==='accepted'?'button':'button secondary')))),feedback);
+  if(data.phone&&c.status==='accepted'&&canAct)content.push(el('div',{class:'shared-phone'},el('div',{},el('strong',{},'Telefon oferit de proprietar'),el('p',{},'Folosește-l doar pentru această discuție.')),el('a',{href:'tel:'+data.phone,class:'button secondary'},data.phone)));
+  if(c.status==='accepted'){
+    const history=el('section',{class:'conversation-history','aria-label':'Istoricul mesajelor'},el('div',{class:'conversation-section-title'},el('h3',{},'Discuția voastră'),el('span',{},'Ora Clujului')));
+    if(data.nextMessageCursor){
+      const older=b('Încarcă mesaje mai vechi',async()=>{
+        if(older.disabled)return;older.disabled=true;older.textContent='Încărcăm istoricul…';
+        try{const page=await api('/api/conversations/'+c.id+'?before='+encodeURIComponent(data.nextMessageCursor));
+          if(S.page!=='messages'||S.screenRevision!==revision||S.conversationId!==c.id||S.threadRevision!==threadRevision)return;
+          const merged=new Map([...(page.messages||[]),...(data.messages||[])].map(m=>[m.id,m]));
+          renderConversation({...page,messages:[...merged.values()]},host,refresh,revision);
+          host.querySelector('.load-older-messages')?.focus({preventScroll:true});
+        }catch(error){older.textContent='Reîncearcă încărcarea istoricului';toast(error.message);}finally{older.disabled=false;}
+      },'text-button load-older-messages');history.append(older);
+    }
+    if(!data.messages?.length)history.append(el('div',{class:'conversation-first-message'},el('strong',{},'Conversația poate începe.'),el('p',{},'Întreabă despre detaliile care contează pentru tine: disponibilitate, costuri sau o vizionare.')));
+    const transcript=el('ol',{class:'message-transcript'});let previousDay='';
+    for(const message of data.messages||[]){
+      const day=new Intl.DateTimeFormat('ro-RO',{timeZone:'Europe/Bucharest',dateStyle:'long'}).format(message.createdAt);
+      if(day!==previousDay){transcript.append(el('li',{class:'message-day'},day));previousDay=day;}
+      const mine=message.senderId===S.boot.user.id;
+      transcript.append(el('li',{class:'message-bubble'+(mine?' mine':'')},el('span',{class:'message-author'},mine?'Tu':c.otherName),el('p',{},message.body),el('time',{datetime:new Date(message.createdAt).toISOString(),title:clujDate(message.createdAt)},new Intl.DateTimeFormat('ro-RO',{timeZone:'Europe/Bucharest',hour:'2-digit',minute:'2-digit'}).format(message.createdAt))));
+    }
+    history.append(transcript);content.push(history);
+    if(canAct)content.push(conversationComposer(c,refresh));
+    content.push(conversationViewings(c,data.viewings||[],data.viewingsHasMore,refresh));
+  }
+  const safety=el('details',{class:'conversation-safety'},el('summary',{},'Confidențialitate și siguranță'),el('p',{},'Păstrează discuția aici. Nu trimite documente personale și nu redistribui datele celeilalte persoane.'));
+  if(c.amOwner&&c.status==='accepted'&&canAct){if(c.phoneShared)safety.append(note('Ai oferit acces la telefon în această conversație.'));else safety.append(conversationActionFields(c,b('Oferă acces la numărul meu',()=>conversationConfirm(c,'share-phone',refresh),'button secondary small')));}
+  safety.append(el('div',{class:'item-actions'},b('Raportează o problemă',()=>report({conversationId:c.id}),'text-button'),!c.blocked&&ownerAccountActive()?b('Blochează acest contact',()=>conversationConfirm(c,'block',refresh),'text-button'):null));
+  content.push(safety);host.replaceChildren(...content);return headline;
+}
+async function messages(selected,options={}){
+  if(!S.boot?.user){signin();return;}
+  const revision=beginScreen('messages',{...options,conversationId:selected});
+  S.conversationId=selected||null;
+  const loading=el('div',{class:'inbox-loading',role:'status'},'Încărcăm conversațiile tale…');
+  const main=el('main',{class:'page inbox-page'},el('div',{class:'inbox-heading'},el('div',{},eye('Spațiul tău de conversație'),el('h1',{class:'page-title'},'De la om la om.'),el('p',{class:'muted'},'Solicitări, răspunsuri și vizionări. Fiecare locuință are conversația ei.')),b('Reîmprospătează',()=>messages(S.conversationId,{historyMode:'none'}),'button secondary small')),el('p',{class:'inbox-service-note'},'Fără notificări automate prin email sau SMS în pilot. Revino aici și reîmprospătează pentru răspunsuri noi.'),loading);
+  shell(main,'messages');
+  try{
+    const first=await api('/api/conversations');if(revision!==S.screenRevision)return;
+    let conversations=first.conversations||[],nextCursor=first.nextCursor,selectionRevision=0;
+    if(!conversations.length&&!selected){loading.replaceChildren(empty('Un loc pentru primele discuții.','Solicitările primite și cele trimise vor apărea aici. Între timp, poți explora locuințele sau pregăti anunțul tău.','Descoperă locuințe',()=>go('browse')));return;}
+    const thread=el('section',{class:'conversation-thread','aria-label':'Conversația selectată'});
+    const list=el('div',{class:'inbox-rows'}),count=el('p',{class:'inbox-count',role:'status'}),moreHost=el('div',{class:'inbox-more'});
+    const query=el('input',{type:'search',value:S.inboxQuery||'',maxlength:100,placeholder:'Proprietate sau persoană','aria-label':'Caută în conversațiile încărcate'});
+    const filter=select('conversationFilter',[['all','Toate conversațiile'],['requested','În așteptare'],['accepted','Deschise'],['closed','Închise sau indisponibile']],S.inboxFilter||'all');filter.setAttribute('aria-label','Starea conversației');
+    const aside=el('aside',{class:'inbox-sidebar','aria-label':'Conversațiile tale'},el('h2',{},'Conversațiile tale'),query,filter,count,list,moreHost);
+    const refresh=async()=>{const id=S.conversationId;await selectConversation(id,{historyMode:'none'});};
+    const renderList=()=>{
+      const key=(S.inboxQuery||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
+      const filtered=conversations.filter(c=>(!key||(c.listingTitle+' '+c.otherName).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().includes(key))&&(!S.inboxFilter||S.inboxFilter==='all'||conversationState(c).key===S.inboxFilter));
+      count.textContent=filtered.length+' afișate din '+conversations.length+' încărcate'+(nextCursor?' · mai sunt conversații':'');
+      list.replaceChildren(...filtered.map(c=>{
+        const state=conversationState(c),button=b('',()=>selectConversation(c.id,{focus:true}),'inbox-row'+(S.conversationId===c.id?' is-selected':''));
+        button.setAttribute('aria-pressed',String(S.conversationId===c.id));button.append(el('span',{class:'inbox-row-top'},el('strong',{},c.otherName||'Participant'),el('span',{},clujDate(c.updatedAt||c.createdAt,true))),el('span',{class:'inbox-row-title'},c.listingTitle||'Proprietate'),el('span',{class:'conversation-badge '+state.key},state.label));return button;
+      }));
+      if(!filtered.length)list.append(el('p',{class:'inbox-filter-empty'},'Nicio potrivire în conversațiile încărcate. Schimbă filtrul sau încarcă mai multe.'));
+      moreHost.replaceChildren();
+      if(nextCursor){const more=b('Încarcă alte conversații',async()=>{
+        if(more.disabled)return;more.disabled=true;more.textContent='Încărcăm…';
+        try{const page=await api('/api/conversations?before='+encodeURIComponent(nextCursor));if(revision!==S.screenRevision)return;
+          conversations=[...new Map([...conversations,...page.conversations].map(c=>[c.id,c])).values()];nextCursor=page.nextCursor;renderList();
+        }catch(error){toast(error.message);more.textContent='Reîncearcă';}finally{more.disabled=false;}
+      },'button secondary small');moreHost.append(more);}
+    };
+    async function selectConversation(id,{historyMode='push',focus=false}={}){
+      const selection=++selectionRevision;S.threadRevision=(S.threadRevision||0)+1;S.conversationId=id;updateLocation('messages',{conversationId:id,historyMode});renderList();
+      thread.setAttribute('aria-busy','true');thread.replaceChildren(el('p',{class:'loading',role:'status'},'Încărcăm discuția…'));
+      try{const data=await api('/api/conversations/'+id);if(revision!==S.screenRevision||selection!==selectionRevision)return;
+        const existing=conversations.findIndex(c=>c.id===id);if(existing>=0)conversations[existing]=data.conversation;else conversations.push(data.conversation);
+        renderList();const headline=renderConversation(data,thread,refresh,revision);if(focus)headline.focus({preventScroll:true});
+      }catch(error){if(revision!==S.screenRevision||selection!==selectionRevision)return;thread.replaceChildren(el('h2',{},'Conversația nu s-a încărcat.'),note(error.message,true),b('Reîncearcă',()=>selectConversation(id,{historyMode:'none'}),'button secondary'));}
+      finally{if(revision===S.screenRevision&&selection===selectionRevision)thread.setAttribute('aria-busy','false');}
+    }
+    query.addEventListener('input',()=>{S.inboxQuery=query.value;renderList();});filter.addEventListener('change',()=>{S.inboxFilter=filter.value;renderList();});
+    loading.className='inbox-workspace';loading.removeAttribute?.('role');loading.replaceChildren(aside,thread);
+    await selectConversation(selected||conversations[0].id,{historyMode:'replace'});
+  }catch(error){if(revision!==S.screenRevision)return;loading.replaceChildren(el('div',{class:'inbox-load-error'},note(error.message,true),b('Reîncearcă',()=>messages(selected,{historyMode:'none'}),'button secondary')));}
+}
+function report(target){
+  if(!S.boot?.user){signin();return;}
+  const key='report:'+(target.conversationId||target.listingId||'general'),errorHost=el('div',{class:'form-feedback',role:'alert'});
+  const form=el('form',{},eye('O comunitate atentă'),el('h2',{class:'modal-title'},'Spune-ne ce s-a întâmplat.'),operationFields(key,
+    field('Motiv',select('reason',[['suspected_agency','Suspectez o agenție / intermediar'],['contact_sharing','Distribuirea datelor de contact'],['duplicate','Anunț duplicat'],['unavailable','Proprietate indisponibilă'],['misleading','Informații înșelătoare'],['harassment','Hărțuire sau mesaje nedorite'],['other','Alt motiv']],'')),
+    field('Contextul sesizării',el('textarea',{name:'details',required:true,minlength:10,maxlength:1500,rows:5,placeholder:'Descrie concret problema și unde ai observat-o.'})),el('button',{type:'submit',class:'button'},'Trimite raportarea')),errorHost,
+    note('Raportarea ajunge la moderare. O suspiciune nu suspendă automat contul. Poți urmări răspunsul în Contul meu.'));
+  form.addEventListener('submit',event=>{event.preventDefault();const data={...target,reason:form.elements.reason.value,details:form.elements.details.value};return modalSubmission(form,key,()=>api('/api/reports','POST',data),{errorHost,success:'Raportarea a fost înregistrată pentru revizuire.',onVisible:()=>dialog.close()});});openModal(form);
+}
+function appeal(reportId=null){
+  const key='appeal:'+(reportId||'account'),errorHost=el('div',{class:'form-feedback',role:'alert'});
+  const form=el('form',{},eye('Ai dreptul la un răspuns'),el('h2',{class:'modal-title'},'Cere revizuirea unei decizii.'),operationFields(key,field('Motivul contestației',el('textarea',{name:'reason',required:true,minlength:20,maxlength:2000,rows:5})),el('button',{type:'submit',class:'button'},'Trimite contestația')),errorHost,note('Contestațiile sunt analizate independent. Soluționarea poate aștepta disponibilitatea unui alt moderator; nu avem termen garantat.'));
+  form.addEventListener('submit',event=>{event.preventDefault();const data={reason:form.elements.reason.value,...(reportId?{reportId}:{})};return modalSubmission(form,key,()=>api('/api/appeals','POST',data),{errorHost,success:'Contestația a fost înregistrată.',onVisible:()=>openModal(el('div',{},el('h2',{class:'modal-title'},'Contestația este înregistrată.'),note('Soluționarea poate aștepta disponibilitatea unui alt moderator; nu avem termen garantat.'),el('p',{class:'subtle'},'Poți urmări starea contestației în contul tău.'),b('Am înțeles',()=>dialog.close())))});});openModal(form);
+}
+async function moderation(options={}){const revision=beginScreen('moderation',options);const data=await api('/api/moderation');if(revision!==S.screenRevision)return;const main=el('main',{class:'page'},eye('Acces restricționat'),el('h1',{class:'page-title'},'Moderare.'),note('Verifică dovezile și contextul. Semnalele și raportările nu reprezintă singure o dovadă. Nu confirma relația cu proprietatea fără verificare.'),el('h3',{},'Anunțuri în așteptare'));for(const l of data.listings||[]){main.append(el('article',{class:'list-item'},el('h3',{},l.title),el('p',{class:'subtle'},l.ownerName||l.ownerId||''),el('p',{class:'detail-description'},l.description),el('div',{class:'photos'},...(l.photos||[]).map(src=>el('img',{src,alt:'Fotografie din anunț'}))),el('div',{class:'item-actions'},b('Aprobă',()=>moderationDecision('/api/moderation/listings/'+l.id,'published'),'button small'),b('Respinge',()=>moderationDecision('/api/moderation/listings/'+l.id,'rejected'),'button small secondary'))));}if(!data.listings?.length)main.append(note('Nu sunt anunțuri în așteptare.'));main.append(el('h3',{style:'margin-top:28px'},'Sesizări'));for(const r of data.reports||[])main.append(el('article',{class:'list-item'},el('span',{class:'status'},r.status||'Deschisă'),el('h3',{},r.reason),el('p',{class:'detail-description'},r.details),el('div',{class:'item-actions'},b('Consultă contextul sesizării',()=>reportEvidence(r.id),'button small secondary'),b('Soluționează',()=>moderationDecision('/api/moderation/reports/'+r.id,'resolved'),'button small'),b('Respinge sesizarea',()=>moderationDecision('/api/moderation/reports/'+r.id,'dismissed'),'button small secondary'))));if(!data.reports?.length)main.append(note('Nu sunt sesizări.'));main.append(el('h3',{style:'margin-top:28px'},'Contestații'));for(const a of data.appeals||[])main.append(el('div',{class:'list-item'},el('p',{class:'subtle'},'Cont: '+(a.userId||'')),el('p',{},a.reason),el('p',{class:'subtle'},a.reportId?'Admiterea redeschide sesizarea asociată. Nu schimbă starea contului.':'Admiterea reactivează contul persoanei care a contestat restricția.'),el('div',{class:'item-actions'},b(a.reportId?'Admite și redeschide sesizarea':'Admite și reactivează contul',()=>moderationDecision('/api/moderation/appeals/'+a.id,'upheld'),'button small'),b('Respinge contestația',()=>moderationDecision('/api/moderation/appeals/'+a.id,'dismissed'),'button small secondary'))));main.append(el('h3',{style:'margin-top:28px'},'Starea unui cont'));const uf=el('form',{class:'form-shell'},field('ID cont',el('input',{name:'userId',required:true})),field('Stare',select('status',[['restricted','Restricționat'],['suspended','Suspendat'],['active','Activ']],'')),field('Motiv documentat',el('textarea',{name:'reason',required:true,minlength:10,maxlength:1000})),el('button',{type:'submit',class:'button'},'Înregistrează decizia'));uf.addEventListener('submit',e=>{e.preventDefault();attempt(async()=>{await api('/api/moderation/users/'+encodeURIComponent(uf.elements.userId.value),'POST',{status:uf.elements.status.value,reason:uf.elements.reason.value});toast('Decizia a fost înregistrată.');moderation();});});main.append(uf);shell(main);}
+function moderationDecision(path,decision){
+  const key='moderation:'+path,errorHost=el('div',{class:'form-feedback',role:'alert'});
+  const form=el('form',{},el('h2',{class:'modal-title'},'Documentează decizia.'),operationFields(key,field('Motiv',el('textarea',{name:'reason',required:true,minlength:10,maxlength:1000})),el('button',{type:'submit',class:'button'},'Confirmă')),errorHost);
+  form.addEventListener('submit',event=>{event.preventDefault();const data={decision,reason:form.elements.reason.value,ownershipReviewed:false};return modalSubmission(form,key,()=>api(path,'POST',data),{errorHost,success:'Decizia a fost înregistrată.',onVisible:async()=>{dialog.close();await moderation({historyMode:'none'});}});});openModal(form);
+}
 function rules(){openModal(el('div',{},eye('Regulile pilotului'),el('h2',{class:'modal-title'},'O piață pentru contact direct.'),...['Publică exclusiv proprietarii și coproprietarii. Agențiile, intermediarii și persoanele care acționează în beneficiul lor nu sunt eligibile pentru acest pilot.','Cauți pentru tine, fără colectarea contactelor pentru intermediari. Nu redistribui numerele către agenții fără acord explicit.','Un telefon confirmat nu dovedește identitatea sau proprietatea. Insignele indică doar verificările efectiv realizate.','Nu copia anunțuri sau fotografii fără permisiune. Nu publica date de contact, adrese exacte sau documente personale în descriere.','Proprietarii cu mai multe imobile pot fi supuși unei revizuiri. Reprezentarea comercială și anunțurile dezvoltatorilor nu fac parte din pilot.','Raportările sunt analizate contextual. Restricțiile pot fi contestate din cont. Nu aplicăm suspendări definitive doar în baza numărului de raportări.','Regulile sunt o versiune de pilot, în curs de validare juridică înaintea lansării comerciale.'].map(t=>el('p',{class:'detail-description'},t))));}
 function privacy(){openModal(el('div',{},eye('Date sub control'),el('h2',{class:'modal-title'},'Mai puține date. Mai mult control.'),...['Telefonul și adresa exactă nu sunt incluse în anunțurile publice. Numărul se poate dezvălui numai într-o conversație acceptată, la alegerea proprietarului.','Declarațiile acceptate sunt păstrate cu versiunea și momentul acceptării. Conversațiile și raportările au acces limitat la participanți și personal autorizat pentru moderare.','Nu încărca documente de identitate sau proprietate în fotografii. Verificarea documentelor nu este activată în acest pilot.','Fotografiile sunt redimensionate înainte de încărcare. Anunțurile, favoritele și conversațiile se salvează pe server.','Detaliile operatorului, termenele de retenție și procedurile pentru exercitarea drepturilor trebuie finalizate înainte de deschiderea comercială. Nu folosi pilotul pentru transmiterea de informații sensibile.'].map(t=>el('p',{class:'detail-description'},t))));}
 async function init(){
@@ -530,7 +781,7 @@ async function init(){
     if(boot.user)try{const f=await api('/api/favorites');if(revision!==S.screenRevision)return;S.favorites=new Set(f.listings.map(l=>l.id));}catch{}
     if(revision!==S.screenRevision)return;
     await restoreLocation();
-  }catch(e){if(revision!==S.screenRevision)return;shell(el('main',{class:'page'},eye('Între noi · Cluj-Napoca'),el('h2',{class:'page-title'},'Ne pregătim să ne cunoaștem.'),note(e.message,true),b('Reîncearcă',init)));}
+  }catch(e){if(revision!==S.screenRevision)return;shell(el('main',{class:'page'},eye('Între noi · Cluj-Napoca'),el('h1',{class:'page-title'},'Ne pregătim să ne cunoaștem.'),note(e.message,true),b('Reîncearcă',init)));}
 }
 function contactPreferences(listing){
   const controls=el('fieldset',{class:'owner-preference-fields','data-owner-actions':listing.id,disabled:S.ownerPending.has(listing.id)||!ownerAccountActive()},el('label',{class:'check'},el('input',{name:'acceptsContacts',type:'checkbox',checked:listing.acceptsContacts!==false}),el('span',{},'Primesc solicitări noi pentru acest anunț')),field('Interval preferat · opțional',el('input',{name:'contactHours',value:listing.contactHours||'',maxlength:100,placeholder:'De exemplu: luni–vineri, 17:00–20:00'}),'Nu include numărul de telefon sau alte date de contact.'),note('Oprirea solicitărilor nu ascunde anunțul și nu închide conversațiile existente. Telefonul rămâne ascuns implicit.'),el('button',{type:'submit',class:'button'},'Salvează preferințele'));
@@ -538,7 +789,16 @@ function contactPreferences(listing){
   form.addEventListener('submit',event=>{event.preventDefault();if(!form.reportValidity())return;return ownerMutation(listing,'preferences',{acceptsContacts:form.elements.acceptsContacts.checked,contactHours:form.elements.contactHours.value},'Preferințele de contact au fost salvate.',{modal:true});});openModal(form);
 }
 
-function viewingProposal(id){if(!S.boot.user?.phoneVerified){phoneSetup();return;}const dateInput=el('input',{name:'startsAt',type:'datetime-local',required:true});const now=new Date(Date.now()+61*60000);dateInput.min=new Date(now.getTime()-now.getTimezoneOffset()*60000).toISOString().slice(0,16);const latest=new Date(Date.now()+30*86400000);dateInput.max=new Date(latest.getTime()-latest.getTimezoneOffset()*60000).toISOString().slice(0,16);const f=el('form',{},eye('Faceți cunoștință cu locuința'),el('h2',{class:'modal-title'},'Propune o vizionare.'),field('Data și ora · ora dispozitivului tău',dateInput,'Între o oră și 30 de zile de acum.'),note('Aceasta este o propunere. Vizionarea devine confirmată numai după acceptarea explicită a proprietarului.'),el('button',{type:'submit',class:'button'},'Trimite propunerea'));f.addEventListener('submit',e=>{e.preventDefault();attempt(async()=>{const startsAt=new Date(dateInput.value).getTime();if(!Number.isFinite(startsAt)||startsAt<Date.now()+3600000||startsAt>Date.now()+30*86400000)throw Error('Alege un moment între o oră și 30 de zile de acum.');await api('/api/conversations/'+id+'/viewings','POST',{startsAt});dialog.close();toast('Propunerea a fost trimisă proprietarului.');messages(id);});});openModal(f);}
+function viewingProposal(id,refresh){
+  if(!S.boot.user?.phoneVerified){phoneSetup();return;}
+  const localValue=timestamp=>{const date=new Date(timestamp);return new Date(timestamp-date.getTimezoneOffset()*60000).toISOString().slice(0,16);};
+  const input=el('input',{name:'startsAt',type:'datetime-local',required:true,min:localValue(Date.now()+61*60000),max:localValue(Date.now()+30*86400000)});
+  const preview=el('p',{class:'viewing-time-preview',role:'status'},'Alege un moment pentru a vedea ora corespunzătoare în Cluj.'),errorHost=el('div',{class:'form-feedback',role:'alert'});
+  input.addEventListener('input',()=>{input.setCustomValidity('');const timestamp=new Date(input.value).getTime();preview.textContent=Number.isFinite(timestamp)?'În Cluj-Napoca: '+clujDate(timestamp)+' · Europe/Bucharest':'Alege o dată și o oră valide.';});
+  const form=el('form',{},eye('Faceți cunoștință cu locuința'),el('h2',{class:'modal-title'},'Propune o vizionare.'),
+    conversationActionFields({id},field('Data și ora · ora dispozitivului tău',input,'Între o oră și 30 de zile de acum. Fusul dispozitivului: '+Intl.DateTimeFormat().resolvedOptions().timeZone+'.'),preview,note('Aceasta este o propunere. Vizionarea devine confirmată numai după acceptarea explicită a proprietarului.'),el('button',{type:'submit',class:'button'},'Trimite propunerea')),errorHost);
+  form.addEventListener('submit',event=>{event.preventDefault();const startsAt=new Date(input.value).getTime();if(!Number.isFinite(startsAt)||startsAt<Date.now()+3600000||startsAt>Date.now()+30*86400000){input.setCustomValidity('Alege un moment între o oră și 30 de zile de acum.');input.reportValidity();return;}return conversationMutation({id},'/api/conversations/'+id+'/viewings',{startsAt},{refresh:refresh||(()=>messages(id,{historyMode:'none'})),form,errorHost,modal:true,success:'Propunerea a fost trimisă proprietarului.'});});openModal(form);
+}
 function copyListingLink(id){attempt(async()=>{const url=new URL('/atelier',window.location.origin);url.searchParams.set('listing',id);try{if(!navigator.clipboard?.writeText)throw Error('clipboard unavailable');await navigator.clipboard.writeText(url.href);toast('Linkul anunțului a fost copiat.');}catch{const input=el('input',{value:url.href,readonly:true,'aria-label':'Linkul anunțului'});openModal(el('div',{},el('h2',{class:'modal-title'},'Trimite locuința mai departe.'),el('p',{class:'muted'},'Selectează și copiază linkul de mai jos.'),input));input.select();}});}
 function reportEvidence(id){attempt(async()=>{const evidence=await api('/api/moderation/reports/'+id+'/evidence');const content=el('div',{},eye('Context restricționat · acces înregistrat'),el('h2',{class:'modal-title'},'Contextul sesizării'),evidence.listingTitle?el('h3',{},evidence.listingTitle):null,el('p',{class:'detail-description'},evidence.reason||''),el('p',{class:'detail-description'},evidence.details||''),evidence.purpose?note('Scop declarat: '+evidence.purpose):null);for(const m of evidence.messages||[])content.append(el('div',{class:'message'},m.body,el('small',{},'Cont '+m.senderId+' · '+new Date(m.createdAt).toLocaleString('ro-RO'))));if(!evidence.messages?.length)content.append(note('Nu există mesaje disponibile în contextul acestei sesizări.'));const accounts=new Map();for(const entry of evidence.involvedAccounts||[]){if(!accounts.has(entry.id))accounts.set(entry.id,[]);accounts.get(entry.id).push(({reporter:'Autorul sesizării',owner:'Proprietar',requester:'Persoană interesată'})[entry.role]||entry.role);}if(accounts.size)content.append(el('section',{class:'evidence-accounts'},el('h3',{},'Conturi implicate în acest caz'),...[...accounts.entries()].map(([userId,roles])=>el('div',{class:'evidence-account'},el('p',{},roles.join(' · ')),el('p',{class:'subtle'},userId),userId!==S.boot.user.id?el('div',{class:'item-actions'},b('Restricționează',()=>userStatusDecision(userId,'restricted'),'button secondary small'),b('Suspendă',()=>userStatusDecision(userId,'suspended'),'button secondary small'),b('Reactivează',()=>userStatusDecision(userId,'active'),'button secondary small')):el('p',{class:'subtle'},'Nu poți modifica propriul acces.')))));content.append(el('p',{class:'subtle'},'Analizează contextul disponibil înainte de a lua o decizie. Accesul este limitat la această sesizare.'));openModal(content);});}
 
@@ -550,12 +810,13 @@ const searchKeys=['district','type','currency','maxPrice','minPrice','minArea','
 function modifiedClick(e){return e.metaKey||e.ctrlKey||e.shiftKey||e.altKey||e.button>0;}
 function changeTransaction(value){if(value!==S.transaction){delete S.filters.minPrice;delete S.filters.maxPrice;S.sort='newest';}S.transaction=value;}
 function browseUrl(page=S.browsePage){const params=new URLSearchParams({view:'browse',transaction:S.transaction,currency:S.filters.currency||'EUR'});for(const key of searchKeys)if(S.filters[key])params.set(key,S.filters[key]);if(S.sort!=='newest')params.set('sort',S.sort);if(page>1)params.set('page',String(page));return '/atelier?'+params;}
-function updateLocation(page,{historyMode='push',listingId}={}){
+function updateLocation(page,{historyMode='push',listingId,conversationId}={}){
   const names={home:'Direct de la proprietar',browse:S.transaction==='rent'?'De închiriat':'De vânzare',detail:'Proprietate',account:'Contul meu',favorites:'Favorite',messages:'Mesaje',moderation:'Moderare'};
   if(!names[page])return;
   document.title=names[page]+' · Între noi · Cluj-Napoca';
   if(historyMode==='none'||!window.history)return;
   let path=page==='home'?'/atelier':page==='browse'?browseUrl():'/atelier?view='+page;
+  if(page==='messages'&&conversationId)path+='&conversation='+encodeURIComponent(conversationId);
   if(page==='detail'){const params=new URLSearchParams(browseUrl().split('?')[1]);params.delete('view');params.set('listing',listingId);path='/atelier?'+params;}
   if(path===window.location.pathname+window.location.search)return;
   window.history[historyMode==='replace'?'replaceState':'pushState'](null,'',path);
@@ -572,7 +833,8 @@ async function restoreLocation(){
   const requested=params.get('view'),allowed=['browse','account','favorites','messages','moderation'];
   const page=allowed.includes(requested)?requested:'home';
   if(['account','favorites','messages','moderation'].includes(page)&&!S.boot.user){await go('home',{historyMode:'none'});signin();return;}
-  return go(page,{historyMode:'none',pageNumber:S.browsePage});
+  const conversation=params.get('conversation');
+  return go(page,{historyMode:'none',pageNumber:S.browsePage,conversationId:page==='messages'&&/^[a-f0-9]{32}$/.test(conversation||'')?conversation:undefined});
 }
 window.addEventListener('popstate',()=>{if(S.boot)attempt(restoreLocation);});
 function copySearchLink(){copyLink(new URL(browseUrl(),window.location.origin).href,'Linkul căutării a fost copiat.','Trimite căutarea mai departe.');}
@@ -610,7 +872,11 @@ function photoGallery(l){
 
 
 function caseHistory(data){const statusNames={open:'În analiză',resolved:'Soluționată',dismissed:'Respinsă',upheld:'Admisă'};const root=el('div',{},el('h3',{},'Sesizările și contestațiile tale'));if(data.account?.status&&data.account.status!=='active')root.append(note('Starea contului: '+({restricted:'restricționat',suspended:'suspendat'}[data.account.status]||data.account.status)+(data.account.restrictionReason?'. Motiv: '+data.account.restrictionReason:'')));if(!data.reports?.length&&!data.appeals?.length){root.append(el('p',{class:'subtle'},'Nu ai sesizări sau contestații înregistrate.'));return root;}for(const report of data.reports||[])root.append(el('article',{class:'list-item'},el('span',{class:'status'},'Sesizare · '+(statusNames[report.status]||report.status)),el('h3',{},report.listingTitle||'Sesizare'),el('p',{class:'case-date'},new Date(report.createdAt).toLocaleDateString('ro-RO')),el('p',{},report.details),report.decisionReason?note('Motivul deciziei: '+report.decisionReason):null,['resolved','dismissed'].includes(report.status)?b('Contestă această decizie',()=>appeal(report.id),'text-button'):null));for(const appealCase of data.appeals||[])root.append(el('article',{class:'list-item'},el('span',{class:'status'},'Contestație · '+(statusNames[appealCase.status]||appealCase.status)),el('p',{class:'case-date'},new Date(appealCase.createdAt).toLocaleDateString('ro-RO')),el('p',{},appealCase.reason),appealCase.decisionReason?note('Motivul deciziei: '+appealCase.decisionReason):null));return root;}
-function userStatusDecision(userId,status){const title={restricted:'Restricționează contul',suspended:'Suspendă contul',active:'Reactivează contul'}[status];const f=el('form',{},el('h2',{class:'modal-title'},title),el('p',{class:'subtle'},'Cont: '+userId),field('Motiv documentat',el('textarea',{name:'reason',required:true,minlength:10,maxlength:1000})),note('Aplică o măsură proporțională, după analizarea dovezilor și a contextului.'),el('button',{type:'submit',class:'button'},'Înregistrează decizia'));f.addEventListener('submit',e=>{e.preventDefault();attempt(async()=>{await api('/api/moderation/users/'+encodeURIComponent(userId),'POST',{status,reason:f.elements.reason.value});dialog.close();toast('Decizia a fost înregistrată.');moderation();});});openModal(f);}
+function userStatusDecision(userId,status){
+  const title={restricted:'Restricționează contul',suspended:'Suspendă contul',active:'Reactivează contul'}[status],key='user-status:'+userId,errorHost=el('div',{class:'form-feedback',role:'alert'});
+  const form=el('form',{},el('h2',{class:'modal-title'},title),el('p',{class:'subtle'},'Cont: '+userId),operationFields(key,field('Motiv documentat',el('textarea',{name:'reason',required:true,minlength:10,maxlength:1000})),el('button',{type:'submit',class:'button'},'Înregistrează decizia')),errorHost,note('Aplică o măsură proporțională, după analizarea dovezilor și a contextului.'));
+  form.addEventListener('submit',event=>{event.preventDefault();const data={status,reason:form.elements.reason.value};return modalSubmission(form,key,()=>api('/api/moderation/users/'+encodeURIComponent(userId),'POST',data),{errorHost,success:'Decizia a fost înregistrată.',onVisible:async()=>{dialog.close();await moderation({historyMode:'none'});}});});openModal(form);
+}
 
 function resumeDraft(){S.step=1;resumeEditor();}
 function phoneAvailabilityNotice(){if(S.boot?.capabilities.phoneVerification||S.boot?.user?.phoneVerified)return null;return el('div',{class:'beta-service-note',role:'note'},el('strong',{},'În beta, poți pregăti o ciornă.'),' Confirmarea telefonului prin SMS nu este încă activă. Pentru conturile cu telefon neconfirmat, publicarea și contactarea rămân indisponibile.');}
