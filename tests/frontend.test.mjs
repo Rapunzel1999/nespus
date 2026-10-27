@@ -125,3 +125,47 @@ doc.querySelector('.owner-cta').listeners.click();
 assert.match(roots.get('#modal-content').textContent,/Vreau să vând/);assert.equal(requests.length,requestsBeforeOwnerCTA);
 assert.equal(run('S.boot.capabilities.phoneVerification'),false);
 console.log('PASS: honest empty feed and AI labels; buyer/owner audience states; reduced-motion search focus; district links reset stale filters and preserve transaction; cross-page how navigation; owner CTAs enforce sign-in and never send SMS or publish.');
+
+// Large-photo viewer starts at the selected image and keeps inline gallery in sync.
+run('renderDetail('+JSON.stringify(sample)+')');
+const inlineGallery=doc.querySelector('.property-gallery');
+const inlineThumbs=all(inlineGallery).filter(n=>n.className==='gallery-thumbnail');
+inlineThumbs[1].listeners.click();doc.querySelector('.gallery-expand').listeners.click();
+assert.equal(roots.get('#modal').className,'photo-dialog');
+assert.equal(roots.get('#modal-content').querySelector('.viewer-image').src,sample.photos[1]);
+const viewer=roots.get('#modal-content').querySelector('.photo-viewer');
+let viewerKeyPrevented=false;
+roots.get('#modal').listeners.keydown({key:'ArrowRight',preventDefault(){viewerKeyPrevented=true}});
+assert.equal(viewerKeyPrevented,true);assert.equal(roots.get('#modal-content').querySelector('.viewer-image').src,sample.photos[0]);
+assert.equal(doc.querySelector('.detail-photo').src,sample.photos[0]);assert.equal(inlineThumbs[0].getAttribute('aria-pressed'),'true');
+roots.get('#modal').listeners.keydown({key:'End',preventDefault(){}});assert.equal(doc.querySelector('.detail-photo').src,sample.photos[1]);
+roots.get('#modal').listeners.keydown({key:'Home',preventDefault(){}});assert.equal(doc.querySelector('.detail-photo').src,sample.photos[0]);
+assert.match(roots.get('#modal-content').querySelector('.viewer-image').alt,/Fotografia 1 din 2/);
+const viewerThumbs=all(viewer).filter(n=>n.className==='gallery-thumbnail');viewerThumbs[1].listeners.click();assert.equal(doc.querySelector('.detail-photo').src,sample.photos[1]);assert.equal(viewerThumbs[1].getAttribute('aria-pressed'),'true');
+const onePhoto={...sample,photos:[sample.photos[0]]};run('openPhotoViewer('+JSON.stringify(onePhoto)+',20)');
+assert.equal(roots.get('#modal-content').querySelector('.viewer-image').src,sample.photos[0]);assert.equal(all(roots.get('#modal-content')).filter(n=>(n.className||'').includes('gallery-arrow')).length,0);
+run('signin()');assert.equal(run('S.modalKeyHandler'),null);assert.equal(roots.get('#modal').className,'');assert.equal(roots.get('#modal').getAttribute('aria-label'),'Bine ai venit.');
+const emptyGallery=run('photoGallery('+JSON.stringify({...sample,photos:[]})+')');assert.match(emptyGallery.textContent,/Fotografii indisponibile/);assert.equal(all(emptyGallery).filter(n=>n.tag==='button').length,0);
+
+// Public property information never exposes a private address or invents costs.
+const sale={...sample,transaction:'sale',price:180000,area:60,rooms:1,currency:'RON',exactAddress:'SECRET STREET 99'};
+run('renderDetail('+JSON.stringify(sale)+')');assert.match(doc.querySelector('.detail-unit-price').textContent,/3[.\s\u00a0]?000 lei \/ m²/);assert.match(doc.querySelector('.property-facts').textContent,/1 cameră/);assert.doesNotMatch(roots.get('#app').textContent,/SECRET STREET|Chirie \/ lună/);
+for(const invalid of [{area:0},{area:null},{price:0},{price:'abc'},{transaction:'rent'}])assert.equal(run('pricePerSquareMeter('+JSON.stringify({...sale,...invalid})+')'),null);
+run('renderDetail('+JSON.stringify({...sample,rentDeposit:null,rentCosts:''})+')');assert.match(roots.get('#app').textContent,/Nespecificată/);assert.match(roots.get('#app').textContent,/Nespecificate/);assert.equal(doc.querySelector('.detail-unit-price'),null);
+let saleCards=run('cards('+JSON.stringify([sale])+')');assert.match(saleCards.textContent,/1 cameră/);assert.match(saleCards.textContent,/3[.\s\u00a0]?000 lei \/ m²/);
+const cardLink=all(saleCards).find(n=>n.className==='card-photo-link');let cardPrevented=false;const cardHistoryBefore=historyWrites.length;cardLink.listeners.click({ctrlKey:true,preventDefault(){cardPrevented=true}});assert.equal(cardPrevented,false);assert.equal(historyWrites.length,cardHistoryBefore);
+
+// Contact UI reflects server prerequisites, and passive viewing sends no mutations.
+const beforeContactChecks=requests.filter(([,o])=>['POST','PUT','PATCH','DELETE'].includes(o.method)).length;
+run('S.boot.user.phoneVerified=false;S.boot.capabilities.phoneVerification=false;renderDetail('+JSON.stringify(sample)+')');
+assert.equal(doc.querySelector('.property-contact-button').disabled,true);assert.match(doc.querySelector('#property-contact-help').textContent,/SMS nu este încă activ/);
+run('S.boot.capabilities.phoneVerification=true;renderDetail('+JSON.stringify(sample)+')');assert.equal(doc.querySelector('.property-contact-button').disabled,false);assert.match(doc.querySelector('.property-contact-button').textContent,/Confirmă telefonul/);
+doc.querySelector('.property-contact-button').listeners.click();assert.match(roots.get('#modal-content').textContent,/Trimite codul SMS/);
+run('S.boot.user.phoneVerified=true;renderDetail('+JSON.stringify(sample)+')');assert.equal(doc.querySelector('.property-contact-button').disabled,false);doc.querySelector('.property-contact-button').listeners.click();assert.match(roots.get('#modal-content').textContent,/Spune-i proprietarului ce cauți/);
+run('renderDetail('+JSON.stringify({...sample,acceptsContacts:false})+')');assert.equal(doc.querySelector('.property-contact-button').disabled,true);assert.match(doc.querySelector('#property-contact-help').textContent,/oprit temporar/);
+const contactUser=run('S.boot.user');run('S.boot.user=null;renderDetail('+JSON.stringify(sample)+')');doc.querySelector('.property-contact-button').listeners.click();assert.match(roots.get('#modal-content').textContent,/Continuă cu ChatGPT/);
+ctx.restoreContactUser=contactUser;run('S.boot.user=restoreContactUser;S.boot.user.phoneVerified=false;S.boot.capabilities.phoneVerification=false');
+run('renderDetail('+JSON.stringify(sample)+',true)');assert.equal(doc.querySelector('.property-contact-button'),null);assert.match(roots.get('#app').textContent,/Anunțul nu a fost publicat/);
+assert.equal(requests.filter(([,o])=>['POST','PUT','PATCH','DELETE'].includes(o.method)).length,beforeContactChecks);
+roots.get('#modal').close();run('clearEditor()');
+console.log('PASS: expanded photo selection, wrap/Home/End keys and inline sync; single/missing photo states; modal styling reset; sale price/area and invalid denominators; private-address omission; unknown rental costs; modified card links; anonymous, verified, SMS-off, paused and preview contact states. No SMS, contact or publication requests.');
