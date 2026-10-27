@@ -1,5 +1,17 @@
 # Criterii de acceptare și evidențe
 
+## Favorite și comparații — 27 octombrie 2026
+
+- Favoritele au o pagină dedicată, cu filtre de vânzare/închiriere și căutare după titlu/cartier fără sensibilitate la diacritice. Starea goală explică faptul că favoritele retrase, expirate sau neeligibile nu sunt returnate de API; nu pretinde că utilizatorul nu a salvat niciodată anunțuri. Limita de 50 este explicată când este atinsă.
+- Se pot compara două sau trei proprietăți din aceeași categorie de tranzacție. Selecția există numai în memoria filei, este păstrată la navigarea în acea filă și elimină ID-urile devenite indisponibile la reîncărcarea listei. Filtrele pot ascunde vizual anunțuri selectate, dar selecția rămâne explicită și poate fi golită separat de favorite.
+- Tabelul semantic arată preț, monedă, cartier, tip, suprafață, camere, condiții și stările declarate. Monedele diferite sunt semnalate, fără conversii sau clasamente după preț. Costurile nespecificate nu devin zero. Pentru vânzare, prețul/m² rămâne un calcul aproximativ din datele declarate, nu evaluare de piață. Adresa exactă și numărul de telefon nu sunt incluse.
+- Din comparație se deschide anunțul real, cu întoarcere la favorite și păstrarea selecției. Eliminarea reușită din favorite elimină și selecția; eșecul păstrează ambele. Apăsările repetate păstrează protecția existentă împotriva cererilor duplicate.
+- **Corecție de prezentare:** s-a eliminat numărul de fotografii de pe cardurile de listă, deoarece API-ul de listă returnează numai fotografia principală. Galeria anunțului complet continuă să arate numărul real al fotografiilor încărcate.
+- **61/61 teste trecute**, cu scenarii frontend extinse: filtre/căutare/resetare, limitele selecției, tranzacții distincte, EUR/RON, costuri necunoscute/zero, omiterea datelor private, navigare/întoarcere și click modificat, eliminare duplicată/eșuată, curățarea selecției indisponibile, limita listei și acces anonim refuzat înaintea citirii favoritelor.
+- TypeScript, sintaxă JS, parsare CSS, `git diff --check` și build Sites/Vinext: trecute. Fișierele JS/CSS din build corespund sursei. Fără dependențe, migrări sau modificări ale API-ului. Testele folosesc răspunsuri simulate; nicio favorită reală nu a fost modificată.
+- **QA vizual nou și test iPhone fizic: neconfirmate.** Preview-ul gestionat a eșuat anterior cu `ERR_CONNECTION_REFUSED`, fără dovadă de remediere. Testele DOM nu certifică afișarea tabelului, derularea sau focusul nativ pe dispozitive reale.
+- Pilot numai pentru proprietar; SMS oprit. Nu s-au trimis SMS-uri, contacte ori publicări reale. Verificarea SMS și proba cu două conturi găzduite rămân de executat înainte de lansare.
+
 ## Spațiul proprietarului — 27 octombrie 2026
 
 - Contul are o structură vizuală dedicată, card de stare a telefonului, acces la favorite/conversații, filtre pe stări și căutare după titlu/cartier fără sensibilitate la diacritice. Rezumatele folosesc exclusiv înregistrările primite; limita API de 50 de anunțuri este explicată când este atinsă.

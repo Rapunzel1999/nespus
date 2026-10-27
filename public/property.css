@@ -13,7 +13,6 @@
 .property-card .card-footer .price small{font-size:11px;font-weight:400;letter-spacing:0}
 .property-card .card-direct{max-width:100px;font-size:10px;line-height:1.6;text-align:right;color:#607158}
 .card-unit-price{font-size:11px;color:#63705f;margin-top:5px}
-.card-photo-count{position:absolute;bottom:13px;right:13px;pointer-events:none;background:#17392dd9;color:#fffdf5;border-radius:4px;font-size:10px;padding:5px 9px}
 .property-card .rental-card-note{font-size:11px;color:#5e6c5a;margin-top:13px}
 .card-contact-paused{font-size:11px;line-height:1.7;color:#795b39;border-top:1px solid #eee4d4;padding-top:10px;margin-top:13px}
 .browse-page .search-box{background:#fffdf9;border-radius:12px;box-shadow:0 8px 28px #193b2907}
