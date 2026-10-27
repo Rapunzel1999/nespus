@@ -1,5 +1,16 @@
 # Criterii de acceptare și evidențe
 
+## Pagina proprietății și galeria — 27 octombrie 2026
+
+- Fișa proprietății continuă identitatea editorială: galerie înaintea contactului pe mobil, informații grupate, panou de preț/proprietar, condiții de închiriere și context de localizare fără adresa exactă.
+- Fotografii mărite într-un dialog nativ, cu selecție sincronizată în galerie, miniaturi și navigare cu săgeți/Home/End. Imaginile lipsă sunt afișate explicit; nu sunt înlocuite cu imagini de brand. Dialogurile obișnuite își recuperează stilul și numele accesibil.
+- Cardurile arată numărul fotografiilor, camerele la singular/plural și solicitările oprite. Pentru vânzare, prețul aproximativ pe m² se calculează exclusiv din prețul, moneda și suprafața declarate. Nu este o evaluare de piață. Pentru chirie, garanția și costurile lipsă rămân nespecificate.
+- Butonul de contact diferențiază autentificarea, confirmarea telefonului, indisponibilitatea SMS, telefonul confirmat și oprirea solicitărilor. Previzualizarea ciornei nu oferă contactare. Aceste stări explică regulile serverului, fără să le înlocuiască.
+- **61/61 teste trecute**, cu scenarii suplimentare în testul frontend existent: sincronizare/înfășurare galerie, Home/End, o fotografie/nicio fotografie, resetarea dialogului, valori invalide pentru preț/m², păstrarea monedei, neafișarea adresei private, costuri necunoscute, click modificat pe card și toate stările contactului. Navigarea pasivă și deschiderea formularelor nu trimit solicitări, SMS sau publicări.
+- TypeScript, sintaxă JavaScript, parsare CSS, `git diff --check` și build Sites/Vinext: trecute. JavaScript și CSS rezultate în build comparate cu sursa. Fără dependențe, migrări sau schimbări ale serverului.
+- **QA vizual nou în browser, accesibilitate completă și test iPhone fizic: neconfirmate.** Preview-ul gestionat a eșuat anterior cu `ERR_CONNECTION_REFUSED`; nu există dovadă de remediere, deci nu s-a reluat. Testele DOM nu certifică aspectul, focusul nativ sau gesturile pe dispozitive reale.
+- Pilot numai pentru proprietar, SMS oprit. Livrarea SMS reală și testul cu două conturi găzduite rămân neexecutate; issue-ul de lansare rămâne deschis.
+
 ## Experiența de brand — 27 octombrie 2026
 
 - Pagină principală refăcută: imagine de atmosferă cu etichetă AI, căutare funcțională, anunțuri reale din API, principii de contact direct, parcursuri solicitant/proprietar, explorare pe cartiere și invitație pentru proprietari. Identitate vizuală comună pentru navigare și subsol.
