@@ -132,3 +132,17 @@ Semnale: același telefon pe mai mult de 3 anunțuri pending/published; fotograf
 Disponibilitatea urmează regula existentă: 30 de zile de la publicare/reconfirmare; expirarea exclude anunțul din rezultate. Nu a fost introdusă o regulă nouă de 14 zile. Lipsa unei date în istoric este afișată ca necunoscută, nu dedusă din ultima editare. Formulările istorice care ar putea sugera verificarea proprietății au fost eliminate.
 
 Rulat: `pnpm db:generate`; `pnpm test` — **113/113**; `pnpm typecheck`, `pnpm build`, `pnpm db:migrate`, `pnpm test:production-isolation` — exit 0. Noua migrare este aditivă, numai locală. Teste pentru fiecare indiciu, autorizare/audit, absența blocării automate și stările panoului. Capturi înainte L6; după în artefactul CI L7. Validarea browserului se consemnează după rulare. Nu este verificată identitatea civilă, proprietatea sau starea reală a locuinței; procedura umană de moderare și pragul pilotului trebuie revizuite înainte de lansare.
+
+### Confirmare L6 pe CI
+
+[Run 41316957911](https://github.com/Rapunzel1999/nespus/actions/runs/41316957911), commit `00f99db5aa9c127b875e511b4db39b499a482afd`: verify și browser trecute; 19 E2E trecute, 1 omis (Lighthouse WebKit). [Artefact 13088015996](https://github.com/Rapunzel1999/nespus/actions/runs/41316957911/artifacts/13088015996) include descărcarea ICS și captura vizionării confirmate. Captura mobilă a fost inspectată; nu este un import într-o aplicație de calendar. Indicatorii, citirea și secțiunea de răspunsuri sunt verificați în ambele motoare.
+
+## L8 — accesibilitate și finisaj mobil
+
+Fișiere: `public/gallery.js` extrage incremental galeria din `app.js`, fără schimbare de comportament. Măsurarea L0 (144215 octeți pentru app.js) justifică separarea responsabilităților; modulele de salvare, mesaje și încredere rămân separate. După extragere: `pnpm test` 113/113, `pnpm typecheck` și `pnpm build` exit 0. `lib/document.html` încarcă modulul și permite safe-area prin viewport-fit.
+
+`public/design.css` corectează contrastul măsurat, aplică sans-serif titlurilor H3–H6, mărește controalele la minimum 44 px și câmpurile mobile la 16 px. Editorul lateral se întinde corect pe mobil. `app.js` aliniază numele accesibile cu textele vizibile, păstrează focusul după închiderea dialogului pe titlul ecranului când elementul inițial a dispărut și declară explicit aria-live pentru erori. `messages-live.js` adaptează compozitorul la Visual Viewport. Reduce-motion existent este păstrat pentru toate elementele.
+
+`tests/e2e/flows.spec.mjs` folosește Enter/Space pentru acțiunile fluxurilor și adaugă traversare Tab, focus vizibil, închiderea/izolarea dialogului, păstrarea textului și geometria compozitorului la 375×500. Alegerea fișierului și selectoarele native sunt automatizate prin Playwright, nu prin dialogul sistemului de operare. Axe serious/critical și țintele sub 44 px sunt acum aserțiuni, nu doar raport. Cele șase pagini sunt capturate la toate cele trei dimensiuni pe Chromium și WebKit.
+
+După corecții: `pnpm test` 113/113; `pnpm typecheck`, `pnpm build`, `pnpm test:production-isolation` exit 0. Rezultatul browserului și cifrele finale axe/Lighthouse se consemnează după CI. Capturi înainte L7, după L8. Profilul WebKit mobil și micșorarea viewport-ului NU înlocuiesc tastatura virtuală și VoiceOver pe un iPhone fizic; acestea rămân verificări umane.

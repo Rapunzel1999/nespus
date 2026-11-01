@@ -112,7 +112,7 @@ const searchTarget=doc.querySelector('#home-search');let scrollOptions;
 searchTarget.scrollIntoView=options=>{scrollOptions=options};ctx.window.matchMedia=()=>({matches:true});
 await doc.querySelector('.hero-primary').listeners.click();assert.equal(scrollOptions.behavior,'auto');assert.equal(searchTarget.focused,true);delete ctx.window.matchMedia;
 run("S.filters={district:'Centru',maxPrice:'800',rooms:'4',q:'balcon'};S.transaction='rent';S.browsePage=4");
-all(doc.querySelector('.neighborhood-list')).find(n=>n.getAttribute('aria-label')==='Caută proprietăți în Zorilor').listeners.click();await tick();
+all(doc.querySelector('.neighborhood-list')).find(n=>n.getAttribute('aria-label')?.endsWith('Caută proprietăți în Zorilor')).listeners.click();await tick();
 assert.equal(run('S.page'),'browse');assert.equal(run('S.transaction'),'rent');assert.equal(run('S.browsePage'),1);assert.equal(run('S.filters.district'),'Zorilor');assert.equal(run('S.filters.maxPrice'),undefined);assert.equal(run('S.filters.q'),undefined);assert.equal(run('S.filters.rooms'),undefined);
 assert.match(requests.at(-1)[0],/transaction=rent/);assert.match(requests.at(-1)[0],/district=Zorilor/);
 await run('scrollHomeSection("how")');assert.equal(run('S.page'),'home');assert.equal(doc.querySelector('#how').focused,true);

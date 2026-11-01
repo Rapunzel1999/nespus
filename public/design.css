@@ -79,3 +79,19 @@ input,select,textarea,.button.secondary,.filter-chip{border-color:#7b886e}
 .conversation-guidance{background:#f1eee2;border-left:3px solid #7a6544;border-radius:4px;padding:16px;font-size:13px;line-height:1.7;color:#4e4937;margin:20px 0}
 .viewing-card>a{margin-top:12px}.nav [data-message-nav]{white-space:nowrap}
 .listing-trust{margin-top:24px;padding-top:24px;border-top:1px solid var(--line)}.listing-trust h2{font-size:24px;line-height:1.2}.listing-trust dl{display:grid;grid-template-columns:1fr;gap:4px;margin:20px 0}.listing-trust dt{font-size:13px;color:var(--muted)}.listing-trust dd{margin:0 0 12px;font-size:15px}.listing-trust>p,.review-signals p{font-size:14px;line-height:1.6}.review-signals{padding:16px;border:1px solid var(--line);border-radius:12px;background:var(--cream)}
+/* L8 — measured contrast and keyboard/touch polish. */
+.brand-owner-copy .owner-pilot-note{color:#4e5b47}
+body h3,body h4,body h5,body h6{font-family:var(--font-ui)!important;letter-spacing:0}
+.brand-home .card-title,.neighborhood-name,.experience-number,.promise-number,.principle-number{font-family:var(--font-ui)}
+button,summary,a.button,a.brand,input:not([type=checkbox]):not([type=radio]),select,textarea{min-height:44px;min-width:44px}
+button{touch-action:manipulation}summary{padding-block:12px}label.check{min-height:44px;align-items:center}
+#main-content:focus-visible{outline-offset:0;outline-width:2px}.brand-footer :focus-visible{outline-color:#faf8f2;box-shadow:0 0 0 2px #183f35}
+@media(max-width:720px){
+  input,select,textarea{font-size:16px!important}
+  .container{padding-left:max(16px,env(safe-area-inset-left));padding-right:max(16px,env(safe-area-inset-right))}
+  .editor-aside{align-items:stretch}.editor-aside>*{width:100%}.editor-summary .editor-cover-empty{width:100%}
+  .conversation-composer:focus-within{position:fixed;z-index:30;left:max(16px,env(safe-area-inset-left));right:max(16px,env(safe-area-inset-right));bottom:var(--keyboard-inset,0px);margin:0;padding-bottom:max(16px,env(safe-area-inset-bottom));box-shadow:0 -8px 32px #183f3520}
+  .conversation-composer:focus-within textarea{min-height:88px;max-height:25dvh}
+  .conversation-thread:has(.conversation-composer:focus-within){padding-bottom:260px}
+  body:has(.conversation-composer:focus-within) #toast{bottom:calc(var(--keyboard-inset,0px) + 220px)}
+}

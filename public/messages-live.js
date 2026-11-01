@@ -32,3 +32,12 @@ function startMessagePolling(){
   };S.messagePollTimer=setTimeout(run,0);
 }
 document.addEventListener?.('visibilitychange',()=>{if(typeof S==='undefined')return;startMessagePolling();});
+// Layout viewport correction for a focused composer when the mobile keyboard reduces the visual viewport.
+function updateComposerViewport(){
+  const viewport=window.visualViewport;if(!viewport||!document.documentElement?.style)return;
+  const inset=Math.max(0,window.innerHeight-viewport.height-viewport.offsetTop);
+  document.documentElement.style.setProperty('--keyboard-inset',inset+'px');
+}
+window.visualViewport?.addEventListener('resize',updateComposerViewport);
+window.visualViewport?.addEventListener('scroll',updateComposerViewport);
+document.addEventListener?.('focusin',updateComposerViewport);
