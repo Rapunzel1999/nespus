@@ -35,7 +35,7 @@ test('draft, simulated phone, submission, independent moderation',async({page})=
 
 test('autosave distinguishes unsaved edits and preserves typing during a slow response',async({page},info)=>{
   await page.setViewportSize({width:375,height:812});await login(page,'unverified');await page.goto('/atelier');
-  await page.getByRole('button',{name:'Publică anunț +',exact:true}).press('Enter');await page.getByRole('button',{name:'Vreau să vând →',exact:true}).press('Enter');
+  const publish=page.getByRole('button',{name:'Publică anunț +',exact:true});await expect(publish).toBeEnabled();await publish.press('Enter');await page.getByRole('button',{name:'Vreau să vând →',exact:true}).press('Enter');
   await page.getByRole('button',{name:'Continuă →',exact:true}).press('Enter');const address=page.locator('[name=exactAddress]'),state=page.locator('.editor-save-state');
   await address.fill('DEMO adresă privată inițială');await expect(state).toContainText('Salvat acum');
   const folder='outputs/e2e/'+info.project.name+'/draft-recovery';await mkdir(folder,{recursive:true});await page.screenshot({path:folder+'/before-edit.png',fullPage:true});
