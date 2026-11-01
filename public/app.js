@@ -781,10 +781,10 @@ async function messages(selected,options={}){
     S.pollInbox=async()=>{const fresh=await api('/api/conversations');if(revision!==S.screenRevision)return false;const before=JSON.stringify(conversations);conversations=[...new Map([...conversations,...(fresh.conversations||[])].map(c=>[c.id,c])).values()].sort((a,b)=>(b.updatedAt-a.updatedAt)||b.id.localeCompare(a.id));if(conversations.length<=25)nextCursor=fresh.nextCursor;const changed=before!==JSON.stringify(conversations);if(changed)renderList();return changed;};
     S.pollConversation=async()=>{
       const id=S.conversationId,selection=selectionRevision,old=S.renderedConversation?.id===id?S.renderedConversation.data:null;if(!id||S.conversationPending.has(id)||dialog.open)return false;
-      const data=await api('/api/conversations/'+id);if(revision!==S.screenRevision||selection!==selectionRevision||document.visibilityState==='hidden')return false;
+      const data=await api('/api/conversations/'+id);if(revision!==S.screenRevision||selection!==selectionRevision||document.visibilityState==='hidden'||S.conversationPending.has(id)||dialog.open)return false;
       const input=thread.querySelector('textarea[name="body"]'),focused=document.activeElement===input,selectionStart=input?.selectionStart,selectionEnd=input?.selectionEnd,safetyOpen=thread.querySelector('.conversation-safety')?.open;
       if(old){const merged=new Map([...(old.messages||[]),...(data.messages||[])].map(m=>[m.id,m]));data.messages=[...merged.values()].sort((a,b)=>(a.createdAt-b.createdAt)||a.id.localeCompare(b.id));if(old.messages.length>50)data.nextMessageCursor=old.nextMessageCursor;}
-      if(old&&JSON.stringify(old)===JSON.stringify(data))return false;
+      if(old&&conversationDisplaySignature(old)===conversationDisplaySignature(data)){S.renderedConversation={id,data};markMessagesRead(id,data.unreadMessageIds);return false;}
       renderConversation(data,thread,refresh,revision);const updated=thread.querySelector('textarea[name="body"]');if(focused&&updated){updated.focus({preventScroll:true});updated.setSelectionRange?.(selectionStart,selectionEnd);}const safety=thread.querySelector('.conversation-safety');if(safety)safety.open=!!safetyOpen;return true;
     };
     query.addEventListener('input',()=>{S.inboxQuery=query.value;renderList();});filter.addEventListener('change',()=>{S.inboxFilter=filter.value;renderList();});

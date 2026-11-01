@@ -14,6 +14,11 @@ async function markMessagesRead(conversationId,ids){
   catch{/* A failed receipt remains unread; the next visible refresh can retry. */}
   finally{for(const id of pending)S.readPending.delete(id);}
 }
+// Read receipts update navigation; they must not replace focused controls in the thread.
+function conversationDisplaySignature(data){
+  const {unreadMessageIds,...visible}=data;const {unreadCount,...conversation}=visible.conversation;
+  return JSON.stringify({...visible,conversation});
+}
 function startMessagePolling(){
   clearTimeout(S.messagePollTimer);S.messagePollGeneration=(S.messagePollGeneration||0)+1;
   if(!S.boot?.user||S.boot.user.status==='suspended'||document.visibilityState==='hidden')return;
