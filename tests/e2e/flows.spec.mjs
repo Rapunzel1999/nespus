@@ -20,7 +20,7 @@ test('draft, simulated phone, submission, independent moderation',async({page})=
   await expect(page.locator('.editor-save-state')).toContainText('Salvat acum');await page.reload();await page.getByRole('button',{name:'Continuă editarea',exact:true}).click();await expect(page.locator('.step-label')).toHaveText('PASUL 6 DIN 8');await expect(page.locator('[name=title]')).toHaveValue('DEMO Ciornă creată în browser');
   await next();await page.locator('[name=contactHours]').fill('DEMO: seara');await next();await page.locator('[name=ownerDeclaration]').check();
   await page.getByRole('button',{name:'Previzualizare mobil',exact:true}).click();await expect(page.locator('.preview-mobile')).toBeVisible();await expect(page.locator('body')).not.toContainText('DEMO ADRESĂ PRIVATĂ');await page.getByRole('button',{name:'← Înapoi la editare',exact:true}).click();await page.getByRole('button',{name:'Salvează ciorna',exact:true}).click();
-  await expect(page.getByText('DEMO Ciornă creată în browser',{exact:true})).toBeVisible();
+  await expect(page).toHaveURL(/view=account/);await expect(page.locator('.owner-inventory-host').getByText('DEMO Ciornă creată în browser',{exact:true})).toBeVisible();
   const mine=await (await page.request.get('/api/mine')).json(),id=mine.listings[0].id;
   expect((await post(page,'/api/listings/'+id+'/submit')).status()).toBe(403);
   expect((await post(page,'/api/phone/start',{phone:'+40700000009'})).ok()).toBeTruthy();
