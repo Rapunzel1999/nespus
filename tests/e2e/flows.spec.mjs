@@ -47,7 +47,22 @@ test('autosave distinguishes unsaved edits and preserves typing during a slow re
   }finally{release();}
   await expect.poll(async()=>((await (await page.request.get('/api/editor-draft')).json()).draft||{}).exactAddress).toBe('DEMO text nou în timpul salvării');await expect(state).toContainText('Salvat acum');
   await page.reload();await page.getByRole('button',{name:'Continuă editarea',exact:true}).press('Enter');await expect(page.locator('[name=exactAddress]')).toHaveValue('DEMO text nou în timpul salvării');await expect(page.locator('.editor-save-state')).toContainText('Salvat acum');
+  await expect(page.locator('.editor-save-announcement')).toHaveText('Ciorna este salvată în cont.');await expect(page.locator('.editor-save-state')).toHaveAttribute('aria-live','off');
+  const clock=await page.locator('.editor-save-state').textContent();await page.evaluate(()=>{window.announcementWrites=0;window.announcementObserver=new MutationObserver(records=>window.announcementWrites+=records.length);window.announcementObserver.observe(document.querySelector('.editor-save-announcement'),{subtree:true,childList:true,characterData:true});});
+  await expect.poll(()=>page.locator('.editor-save-state').textContent()).not.toBe(clock);expect(await page.evaluate(()=>{window.announcementObserver.disconnect();return window.announcementWrites;})).toBe(0);
   await page.screenshot({path:folder+'/after-recovery.png',fullPage:true});
+});
+
+test('discard failure retains the working copy and an explicit retry preserves saved listings',async({page},info)=>{
+  await page.setViewportSize({width:375,height:812});await login(page,'unverified');const saved=await post(page,'/api/listings',{...draftInput,title:'DEMO Anunț salvat separat'});expect(saved.status()).toBe(201);const {listing}=await saved.json();
+  await page.goto('/atelier');const publish=page.getByRole('button',{name:'Publică anunț +',exact:true});await expect(publish).toBeEnabled();await publish.press('Enter');await page.getByRole('button',{name:'Vreau să vând →',exact:true}).press('Enter');await page.getByRole('button',{name:'Continuă →',exact:true}).press('Enter');
+  await page.locator('[name=exactAddress]').fill('DEMO ciornă păstrată după eroare');await expect(page.locator('.editor-save-state')).toContainText('Salvat acum');await page.getByRole('button',{name:'Contul meu',exact:true}).press('Enter');
+  let deletes=0;await page.route('**/api/editor-draft',async route=>{if(route.request().method()==='DELETE'&&++deletes===1){await route.fulfill({status:503,contentType:'application/json',body:JSON.stringify({error:'DEMO: eliminarea nu a fost confirmată.'})});return;}await route.continue();});
+  await page.getByRole('button',{name:'Renunță',exact:true}).press('Enter');await expect(page.getByRole('dialog')).toContainText('ciorna de lucru din cont');await page.getByRole('button',{name:'Renunță la modificări',exact:true}).press('Enter');await expect(page.locator('#modal .form-feedback')).toContainText('eliminarea nu a fost confirmată');
+  expect((await (await page.request.get('/api/editor-draft')).json()).draft.exactAddress).toBe('DEMO ciornă păstrată după eroare');expect(deletes).toBe(1);expect(await page.evaluate(()=>JSON.parse(sessionStorage.getItem('intre-noi-editor:'+S.boot.user.id)).draft.exactAddress)).toBe('DEMO ciornă păstrată după eroare');
+  const folder='outputs/e2e/'+info.project.name+'/draft-discard';await mkdir(folder,{recursive:true});await page.screenshot({path:folder+'/failure-preserves-copy.png',fullPage:true});
+  await page.getByRole('button',{name:'Renunță la modificări',exact:true}).press('Enter');await expect(page.getByRole('dialog')).not.toBeVisible();await expect(page.locator('.draft-resume')).toHaveCount(0);expect(deletes).toBe(2);expect((await (await page.request.get('/api/editor-draft')).json()).draft).toBeNull();
+  const mine=await (await page.request.get('/api/mine')).json();expect(mine.listings.some(l=>l.id===listing.id&&l.status==='draft')).toBeTruthy();await expect(page.getByRole('heading',{name:'DEMO Anunț salvat separat',exact:true})).toBeVisible();await page.screenshot({path:folder+'/saved-listing-preserved.png',fullPage:true});
 });
 
 test('search filters, detail, favorites and comparison',async({page},info)=>{

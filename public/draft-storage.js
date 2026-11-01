@@ -17,7 +17,12 @@ function draftSaveLabel(){
   if(S.editorDirty)return 'Modificări nesalvate încă · salvarea automată urmează';
   return 'Ciornă în lucru · salvare automată după completare';
 }
-function paintDraftSaveState(){const node=document.querySelector('.editor-save-state');if(node&&!S.editorSaving&&!S.editorProcessing)node.textContent=draftSaveLabel();}
+function paintDraftSaveState(){
+  const label=S.editorSaving?'Salvăm ciorna în cont…':S.editorProcessing?'Pregătim fotografiile…':draftSaveLabel();
+  const node=document.querySelector('.editor-save-state');if(node&&node.textContent!==label)node.textContent=label;
+  const announcement=document.querySelector('.editor-save-announcement'),message=label.startsWith('Salvat acum ')?'Ciorna este salvată în cont.':label;
+  if(announcement&&announcement.textContent!==message)announcement.textContent=message;
+}
 function scheduleDraftSave(){
   if(!S.boot?.user||!S.editorDirty)return;preserveDraftLocally();clearTimeout(S.autosaveTimer);
   S.autosaveTimer=setTimeout(()=>flushDraftSave().catch(()=>{}),1500);
@@ -34,10 +39,15 @@ function flushDraftSave(){
     finally{S.autosaveBusy=false;paintDraftSaveState();}
   });S.draftQueue=task.catch(()=>{});return task;
 }
-function resetDraftBuffer(){
-  clearTimeout(S.autosaveTimer);try{window.sessionStorage?.removeItem(draftStorageKey());window.sessionStorage?.removeItem(draftStorageKey()+':conflict');S.conflictingDraft=null;}catch{}
-  S.draftSavedAt=0;S.draftSavedSignature='';S.draftConfirmed=null;S.autosaveError='';
-  const task=(S.draftQueue||Promise.resolve()).then(async()=>{if(!S.draftHasContent||!S.draftVersion)return;const result=await api('/api/editor-draft','DELETE',{revision:S.draftVersion});if(!Number.isSafeInteger(result.revision))throw Error('Ștergerea ciornei nu a fost confirmată.');S.draftVersion=result.revision;S.draftHasContent=false;});
+function resetDraftBuffer({preserveUntilConfirmed=false}={}){
+  clearTimeout(S.autosaveTimer);
+  const clearLocal=()=>{try{window.sessionStorage?.removeItem(draftStorageKey());window.sessionStorage?.removeItem(draftStorageKey()+':conflict');}catch{}S.conflictingDraft=null;S.draftSavedAt=0;S.draftSavedSignature='';S.draftConfirmed=null;S.autosaveError='';};
+  if(!preserveUntilConfirmed)clearLocal();
+  const task=(S.draftQueue||Promise.resolve()).then(async()=>{
+    if(preserveUntilConfirmed&&!S.draftHasContent&&S.autosaveError)throw Error('Nu am putut verifica ciorna din cont. Reîncarcă înainte să renunți; copia ta rămâne aici.');
+    if(S.draftVersion&&(S.draftHasContent||preserveUntilConfirmed)){const result=await api('/api/editor-draft','DELETE',{revision:S.draftVersion});if(!Number.isSafeInteger(result.revision))throw Error('Ștergerea ciornei nu a fost confirmată.');S.draftVersion=result.revision;S.draftHasContent=false;}
+    if(preserveUntilConfirmed)clearLocal();
+  });
   S.draftQueue=task.catch(error=>{S.autosaveError=error.message;});return task;
 }
 async function recoverEditorDraft(){

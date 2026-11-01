@@ -70,3 +70,51 @@ test('failed account recovery keeps the tab copy and reports uncertainty without
   const h=frontend({fetcher:()=>{throw Error('offline');}});tabStorage(h,storage);await h.run('recoverEditorDraft()');
   assert.equal(h.run('S.draft.title'),'Text local privat');assert.match(h.run('draftSaveLabel()'),/Nu am putut verifica ciorna din cont/);assert.equal(h.timers.length,0);assert.equal(h.requests.length,1);assert.equal(storage.size,1);
 });
+
+test('the save clock updates visually without repeating screen-reader announcements',async()=>{
+  const h=frontend({fetcher:()=>({revision:1,savedAt:Date.now()})});h.run("create();S.draft.title='Ciornă confirmată';S.editorDirty=true");await h.run('flushDraftSave()');
+  const status=h.doc.querySelector('.editor-save-announcement'),clock=h.doc.querySelector('.editor-save-state');assert.ok(status,'separate stable announcement region');assert.equal(status.getAttribute('role'),'status');assert.equal(clock.getAttribute('aria-live'),'off');assert.equal(status.textContent,'Ciorna este salvată în cont.');
+  let writes=0;const descriptor=Object.getOwnPropertyDescriptor(Object.getPrototypeOf(status),'textContent');Object.defineProperty(status,'textContent',{get(){return descriptor.get.call(this);},set(value){writes++;descriptor.set.call(this,value);}});
+  const before=clock.textContent;h.run('S.draftSavedAt-=3000;paintDraftSaveState()');assert.notEqual(clock.textContent,before);assert.equal(writes,0);
+  h.run("S.draft.title='Modificare nouă';paintDraftSaveState()");assert.equal(writes,1);assert.match(status.textContent,/nesalvate/);h.run('paintDraftSaveState()');assert.equal(writes,1);
+  h.run("S.autosaveError='Conexiune întreruptă.';paintDraftSaveState()");assert.equal(writes,2);assert.match(status.textContent,/Conexiune întreruptă/);
+});
+
+test('leaving a confirmed draft is quiet but pending, uncertain and unsaved work stays protected',async()=>{
+  const h=frontend({fetcher:()=>({revision:1,savedAt:Date.now()})});h.run("S.draft={title:'Salvat',photos:[]};S.editorDirty=true");await h.run('flushDraftSave()');
+  const warns=()=>{let blocked=false;h.windowEvents.beforeunload({preventDefault(){blocked=true;}});return blocked;};assert.equal(warns(),false,'confirmed content should not trigger a loss warning');
+  h.run("S.draft.title='Nesalvat'");assert.equal(warns(),true);h.run("S.draft.title='Salvat';S.autosaveBusy=true");assert.equal(warns(),true);
+  h.run("S.autosaveBusy=false;S.autosaveError='Confirmare necunoscută'");assert.equal(warns(),true);h.run("S.autosaveError='';S.editorProcessing=true");assert.equal(warns(),true);
+});
+
+test('a separate conflicting tab copy remains protected even without an active editor draft',()=>{
+  const h=frontend();h.run("S.editorDirty=false;S.conflictingDraft={draft:{title:'Copie doar în filă'}}");let blocked=false;h.windowEvents.beforeunload({preventDefault(){blocked=true;}});assert.equal(blocked,true);
+});
+
+test('discard confirmation explains removal of the account working copy as well as local edits',async()=>{
+  const h=frontend({fetcher:(_path,options)=>({revision:options.method==='DELETE'?2:1,savedAt:Date.now()})});h.run("S.draft={title:'Ciornă de lucru',photos:[]};S.editorDirty=true");await h.run('flushDraftSave()');h.run("S.page='home';shell(el('main',{},'Acasă'))");
+  await h.button(h.roots.get('#app'),'Renunță').fire('click');assert.match(h.roots.get('#modal-content').textContent,/ciorna de lucru din cont/);assert.doesNotMatch(h.roots.get('#modal-content').textContent,/doar modificările din această filă/);
+  await h.button(h.roots.get('#modal-content'),'Renunță la modificări').fire('click');await h.run('S.draftQueue');assert.equal(h.requests.filter(r=>r.options.method==='DELETE').length,1);assert.equal(h.requests.at(-1).path,'/api/editor-draft');assert.equal(h.run('S.editorDirty'),false);
+});
+
+test('failed or conflicting discard keeps local text, blocks duplicate requests and permits explicit retry',async()=>{
+  for(const status of [409,503]){
+    const pending=deferred(),storage=new Map();let deletes=0;
+    const h=frontend({fetcher:(_path,options)=>options.method==='DELETE'?(deletes++,pending.promise):{revision:1,savedAt:Date.now()}});tabStorage(h,storage);
+    h.run("S.draft={title:'Text de păstrat',photos:[]};S.editorDirty=true");await h.run('flushDraftSave()');h.run("S.page='home';shell(el('main',{},'Acasă'))");await h.button(h.roots.get('#app'),'Renunță').fire('click');
+    const button=h.button(h.roots.get('#modal-content'),'Renunță la modificări'),first=button.fire('click');await button.fire('click');await tick();assert.equal(deletes,1);assert.equal(h.run('S.editorDirty'),true);assert.equal(storage.size,1);assert.equal(h.run('editorBusy()'),true);
+    pending.resolve(Response.json({error:'Eliminarea nu a fost confirmată.'},{status}));await first;
+    assert.equal(h.run('S.draft.title'),'Text de păstrat');assert.equal(storage.size,1);assert.match(h.roots.get('#modal-content').textContent,/Eliminarea nu a fost confirmată/);assert.equal(h.run('editorBusy()'),false);assert.equal(deletes,1);
+  }
+});
+
+test('successful replacement starts after the pending guard clears and never hijacks a newer dialog',async()=>{
+  for(const replaced of [false,true]){
+    const pending=deferred(),h=frontend({fetcher:(_path,options)=>options.method==='DELETE'?pending.promise:{revision:1,savedAt:Date.now()}});
+    h.run("createFor('sale');S.draft.title='Ciornă veche';S.editorDirty=true;renderCreate()");await h.run('flushDraftSave()');h.run("createFor('rent')");
+    const saving=h.button(h.roots.get('#modal-content'),'Renunță și continuă').fire('click');await tick();assert.equal(h.doc.querySelector('.editor-fields').disabled,true);let text;if(replaced){h.run('rules()');text=h.roots.get('#modal-content').textContent;}
+    pending.resolve({revision:2,deleted:true});await saving;
+    if(replaced){assert.equal(h.roots.get('#modal-content').textContent,text);assert.equal(h.run('S.page'),'create');assert.equal(h.roots.get('#app').querySelector('form').elements.title.value,'');assert.equal(h.run('S.editorDirty'),false);assert.equal(h.doc.querySelector('.editor-fields').disabled,false);}
+    else{assert.equal(h.run('S.page'),'create');assert.equal(h.run('S.draft.transaction'),'rent');assert.equal(h.run('editorBusy()'),false);}
+  }
+});
