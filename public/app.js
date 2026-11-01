@@ -26,7 +26,13 @@ function openModal(content,options={}){
   if(!dialog.open)dialog.showModal();
   if(heading){heading.tabIndex=-1;heading.focus({preventScroll:true});}
 }
-dialog.addEventListener('keydown',event=>S.modalKeyHandler?.(event));
+dialog.addEventListener('keydown',event=>{
+  S.modalKeyHandler?.(event);if(event.key!=='Tab'||!dialog.open)return;
+  const controls=[...dialog.querySelectorAll('a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),summary,[tabindex]:not([tabindex="-1"])')].filter(node=>node.getClientRects().length&&!node.closest('[hidden],[inert],[aria-hidden="true"]'));
+  const first=controls[0],last=controls.at(-1),focused=document.activeElement;
+  if(!first){event.preventDefault();return;}
+  if(!controls.includes(focused)||(event.shiftKey&&focused===first)||(!event.shiftKey&&focused===last)){event.preventDefault();(event.shiftKey?last:first).focus();}
+});
 dialog.addEventListener('close',()=>{if(dialog.open)return;S.modalKeyHandler=null;const main=document.querySelector('#main-content');const target=S.modalOpener?.isConnected?S.modalOpener:(main?.querySelector('h1')||main);target?.focus?.({preventScroll:true});S.modalOpener=null;});
 document.querySelector('.modal-close').addEventListener('click',()=>dialog.close());dialog.addEventListener('click',e=>{if(e.target===dialog)dialog.close();});
 function signin(){openModal(el('div',{},eye('Contul tău'),el('h2',{class:'modal-title'},'Bine ai venit.'),el('p',{class:'muted'},'Autentifică-te pentru a salva locuințe, a publica anunțuri și a discuta direct cu proprietarii.'),note('Telefonul confirmat este necesar înainte de publicare și contactare. Nu echivalează cu verificarea identității.'),el('a',{class:'button',href:'/signin-with-chatgpt?return_to='+encodeURIComponent(window.location.pathname==='/atelier'?'/atelier'+window.location.search:'/atelier'),target:'_top'},'Continuă cu ChatGPT ↗')));}
@@ -41,6 +47,7 @@ function shell(content,active=''){
   const previousFocus=document.activeElement,previousName=previousFocus?.name;
   content.id='main-content';content.tabIndex=-1;app.replaceChildren(el('a',{class:'skip-link',href:'#main-content'},'Sari la conținut'),el('div',{class:'container'},header,mobileNav,el('div',{id:'draft-resume'},draftResumeContent()),content,footer));
   for(const navigation of [header,mobileNav])for(const button of navigation.querySelectorAll?.('button')||[])if((button.className||'').split(' ').includes('active'))button.setAttribute('aria-current','page');
+  if(!S.boot)for(const navigation of [header,mobileNav])for(const button of navigation.querySelectorAll?.('button')||[])button.disabled=true;
   paintUnreadIndicators();
   const title=content.querySelector('h1')||content.querySelector('h2');
   if(!dialog.open&&S.boot&&S.focusedScreenRevision!==S.screenRevision&&title){title.tabIndex=-1;title.focus({preventScroll:true});S.focusedScreenRevision=S.screenRevision;}

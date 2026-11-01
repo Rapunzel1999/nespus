@@ -15,14 +15,14 @@ try{
   let ready=false;
   for(let n=0;n<100;n++){
     if(child.exitCode!==null)throw Error('Production test server exited: '+diagnostic);
-    try{ready=(await fetch(origin+'/api/health',{signal:AbortSignal.timeout(1000)})).ok;}catch{}
+    try{const response=await fetch(origin+'/api/health',{signal:AbortSignal.timeout(1000),headers:{connection:'close'}});ready=response.ok;await response.arrayBuffer();}catch{}
     if(ready)break;await new Promise(resolve=>setTimeout(resolve,250));
   }
   if(!ready)throw Error('Production test server unavailable: '+diagnostic);
   console.log('Production runtime: checking disabled test login route.');
-  assert.equal((await fetch(origin+'/__test/login',{signal:AbortSignal.timeout(15000),method:'POST',headers:{origin,'Content-Type':'application/json'},body:JSON.stringify({role:'moderator'})})).status,404);
+  const login=await fetch(origin+'/__test/login',{signal:AbortSignal.timeout(15000),method:'POST',headers:{origin,connection:'close','Content-Type':'application/json'},body:JSON.stringify({role:'moderator'})});assert.equal(login.status,404);await login.arrayBuffer();
   console.log('Production runtime: checking anonymous bootstrap with DEMO cookie.');
-  const bootstrap=await (await fetch(origin+'/api/bootstrap',{signal:AbortSignal.timeout(15000),headers:{cookie:'DEMO-test-role=moderator'}})).json();
+  const bootstrap=await (await fetch(origin+'/api/bootstrap',{signal:AbortSignal.timeout(15000),headers:{cookie:'DEMO-test-role=moderator',connection:'close'}})).json();
   assert.equal(bootstrap.user,null);assert.equal(bootstrap.capabilities.phoneVerification,false);
   console.log('Production runtime: test login 404; DEMO cookie ignored; simulated phone disabled, including with test flags.');
 }catch(error){throw new Error('Production isolation runtime failed: '+error.message+'\n'+diagnostic,{cause:error});}finally{if(child.exitCode===null){const closed=once(child,'exit');child.kill('SIGTERM');await closed;}}

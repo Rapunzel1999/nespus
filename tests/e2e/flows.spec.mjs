@@ -11,7 +11,7 @@ test.beforeEach(async({request})=>{const r=await request.post('/__test/reset',{h
 
 test('draft, simulated phone, submission, independent moderation',async({page})=>{
   await login(page,'unverified');
-  await page.goto('/atelier');await page.getByRole('button',{name:'Publică anunț +',exact:true}).press('Enter');await page.getByRole('button',{name:'Vreau să vând →',exact:true}).press('Enter');
+  await page.goto('/atelier');await expect(page.getByRole('button',{name:'Publică anunț +',exact:true})).toBeEnabled();await page.getByRole('button',{name:'Publică anunț +',exact:true}).press('Enter');await page.getByRole('button',{name:'Vreau să vând →',exact:true}).press('Enter');
   const next=()=>page.getByRole('button',{name:'Continuă →',exact:true}).press('Enter');
   await next();await page.locator('[name=district]').selectOption('Centru');await next();
   await page.locator('[name=area]').fill('60');await page.locator('[name=rooms]').fill('2');await next();await page.locator('[name=price]').fill('120000');await next();
@@ -82,14 +82,14 @@ for(const viewport of [{width:375,height:812},{width:768,height:1024},{width:128
   await page.goto('/atelier');await capture('home');await page.goto('/atelier?view=browse&transaction=sale&currency=EUR');await capture('results');await page.goto('/atelier?listing='+listingId(1));await capture('listing');
   await page.goto('/atelier?view=favorites');for(let n=0;n<2;n++)await page.locator('.favorite-compare-button[aria-pressed="false"]').first().press('Enter');await page.getByRole('button',{name:'Compară proprietățile ↗',exact:true}).press('Enter');await capture('comparison');await page.keyboard.press('Escape');
   await page.goto('/atelier?view=messages&conversation='+id);await capture('conversation');
-  await login(page,'owner');await page.goto('/atelier');await page.getByRole('button',{name:'Publică anunț +',exact:true}).press('Enter');await page.getByRole('button',{name:'Vreau să vând →',exact:true}).press('Enter');await capture('editor');
+  await login(page,'owner');await page.goto('/atelier');await expect(page.getByRole('button',{name:'Publică anunț +',exact:true})).toBeEnabled();await page.getByRole('button',{name:'Publică anunț +',exact:true}).press('Enter');await page.getByRole('button',{name:'Vreau să vând →',exact:true}).press('Enter');await capture('editor');
   await writeFile(folder+'/axe.json',JSON.stringify(report,null,2));await info.attach('axe-report',{body:JSON.stringify(report),contentType:'application/json'});
 });
 
 
 test('keyboard navigation, dialog containment and mobile composer geometry',async({page},info)=>{
   const id=await accepted(page);await login(page,'buyer');await page.goto('/atelier');await expect(page.locator('html')).toHaveAttribute('lang','ro');
-  async function tabTo(locator){for(let n=0;n<120;n++){if(await locator.evaluate(node=>node===document.activeElement))return;await page.keyboard.press('Tab');}throw Error('Unreachable by Tab: '+await locator.textContent());}
+  async function tabTo(locator){await expect(locator).toBeEnabled();for(let n=0;n<120;n++){if(await locator.evaluate(node=>node===document.activeElement))return;await page.keyboard.press('Tab');}throw Error('Unreachable by Tab: '+await locator.textContent());}
   const publish=page.getByRole('button',{name:'Publică anunț +',exact:true});await tabTo(publish);await expect(publish).toBeFocused();expect(await publish.evaluate(n=>getComputedStyle(n).outlineStyle)).not.toBe('none');await page.keyboard.press('Enter');
   const dialog=page.getByRole('dialog');await expect(dialog).toBeVisible();for(let n=0;n<12;n++){await page.keyboard.press('Tab');expect(await dialog.evaluate(d=>d.contains(document.activeElement))).toBeTruthy();}await page.keyboard.press('Escape');await expect(publish).toBeFocused();
   await page.goto('/atelier?view=messages&conversation='+id);const input=page.locator('textarea[name=body]');await tabTo(input);await page.keyboard.type('DEMO text păstrat când se schimbă dimensiunea ferestrei');await page.setViewportSize({width:375,height:500});await expect(input).toHaveValue('DEMO text păstrat când se schimbă dimensiunea ferestrei');
