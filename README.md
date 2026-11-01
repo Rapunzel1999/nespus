@@ -4,7 +4,7 @@ Platformă în dezvoltare pentru vânzare și închiriere directă între propri
 
 Baza acestei direcții este organizată pe branch-ul `imobiliare-cluj` din [Rapunzel1999/nespus](https://github.com/Rapunzel1999/nespus). Proiectul Nespus de pe `main` este păstrat. „Între Noi” este un nume de lucru; disponibilitatea sa comercială și a domeniului nu este verificată.
 
-Etapa 10 este organizată în PR-uri succesive, începând cu [PR #10](https://github.com/Rapunzel1999/nespus/pull/10), peste PR #9. Ramura de sinteză este `imobiliare-cluj-etapa-10-l9`. Codul nou și dovezile sunt în GitHub; versiunea găzduită este încă 12, privată proprietarului. Livrarea Etapei 10 așteaptă autorizarea reînnoirii accesului temporar Sites, conform condiției L9. Niciun PR nu este îmbinat în `main`.
+Etapa 10 este organizată în PR-uri succesive, începând cu [PR #10](https://github.com/Rapunzel1999/nespus/pull/10), peste PR #9. Ramura de sinteză este `imobiliare-cluj-etapa-10-l9`. Codul nou și dovezile sunt în GitHub. Etapa 10 este livrată începând cu **versiunea 13**, privată proprietarului, la [Între noi](https://imobiliare-cluj-direct.verdant11.chatgpt.site). Accesul temporar Sites a fost reînnoit după autorizarea continuării; accesul privat a fost reverificat după livrare. Niciun PR nu este îmbinat în `main`.
 
 ## Stadiu și limite
 
@@ -31,7 +31,7 @@ pnpm start
 
 `pnpm db:migrate` aplică migrările locale; datele din `.wrangler/state` sunt separate de baza găzduită. Nu adăuga această stare sau secretele în Git. Pentru dezvoltare folosește `pnpm dev`. Găzduirea prin Sites urmează fluxul de build și publicare al integrării, separat de pornirea locală.
 
-Verificare la **1 noiembrie 2026**: **114/114 teste Node**, TypeScript, build și izolarea producției trecute. Playwright rulează în CI pe Chromium și WebKit cu D1 local și conturi DEMO, nu pe site-ul găzduit. Rezultatele exacte pe livrabil, capturile, axe și Lighthouse sunt în [raportul Etapei 10](docs/ETAPA-10-LIVRABILE.md). SMS rămâne neconfigurat: nu există cont Twilio sau cele trei credențiale. Nu s-au efectuat SMS reale, testare cu două conturi SIWC găzduite, iPhone fizic sau VoiceOver.
+Verificare la **1 noiembrie 2026**: **115/115 teste Node**, TypeScript, build și izolarea producției trecute. Playwright rulează în CI pe Chromium și WebKit cu D1 local și conturi DEMO, nu pe site-ul găzduit. Rezultatele exacte pe livrabil, capturile, axe și Lighthouse sunt în [raportul Etapei 10](docs/ETAPA-10-LIVRABILE.md). SMS rămâne neconfigurat: nu există cont Twilio sau cele trei credențiale. Nu s-au efectuat SMS reale, testare cu două conturi SIWC găzduite, iPhone fizic sau VoiceOver.
 
 ## Experiența implementată
 

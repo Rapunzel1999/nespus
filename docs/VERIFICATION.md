@@ -6,17 +6,25 @@ Această secțiune descrie starea actuală a codului. Secțiunile datate octombr
 
 ### Verificat automat
 
-- `pnpm test`: **114/114** teste Node/SQLite/DOM și parser ICS. Nu sunt 114 teste E2E; fișierul DOM conține și aserțiuni grupate.
-- `pnpm typecheck`, `pnpm build`: exit 0. `pnpm test:production-isolation`: CI L8 exit 0; ultima verificare locală L9 a avut un timeout bootstrap de 15 secunde, apoi a trecut la reluare neschimbată. Intermitența este consemnată în raport, fără retry automat sau relaxarea aserțiunilor. Build-ul nu include login-ul DEMO sau providerul simulat; runtime-ul de producție ignoră cookie-ul DEMO chiar cu variabilele de test injectate.
-- `pnpm db:migrate`: migrările aditive 0000–0004 aplicate numai în D1 local. `pnpm db:generate`: fără diferențe de schemă. Niciun seed, backfill sau DELETE pe baza găzduită.
+- `pnpm test`: **115/115** teste Node/SQLite/DOM și parser ICS. Nu sunt 115 teste E2E; fișierul DOM conține și aserțiuni grupate.
+- `pnpm typecheck`, `pnpm build`: exit 0. `pnpm test:production-isolation`: CI L8 și L9 exit 0; ultima verificare locală L9 a avut un timeout bootstrap de 15 secunde, apoi a trecut la reluare neschimbată. Intermitența este consemnată în raport, fără retry automat sau relaxarea aserțiunilor. Build-ul nu include login-ul DEMO sau providerul simulat; runtime-ul de producție ignoră cookie-ul DEMO chiar cu variabilele de test injectate.
+- `pnpm db:migrate`: migrările 0000–0004 verificate în D1 local; migrările aditive 0001–0004 sunt aplicate ulterior prin livrarea privată Sites a versiunii 13. `pnpm db:generate`: fără diferențe de schemă. Niciun seed, backfill sau DELETE pe baza găzduită.
 - `pnpm exec playwright test server.spec.mjs --project=chromium`: **1/1**, traseu HTTP real prin Worker/D1 local, fără instalarea unui browser local.
 - Playwright din CI: Chromium și WebKit mobil, conturi DEMO separate, fluxuri publicare/moderare, căutare/favorite/comparare, contact/mesaje/vizionare/telefon, blocare/raportare și refuzuri fără verificare. Capturi la 375×812, 768×1024 și 1280×800. Rezultatele exacte ale ultimei rulări, axe și Lighthouse sunt în ETAPA-10-LIVRABILE.md.
 - L8: **23 E2E trecute, 1 omis** (Lighthouse WebKit), axe **0 încălcări în 36 de evaluări**, controale 44 px și lipsa overflow-ului. Run `41320296222`; pentru commitul final L9 vezi verificările și artefactul legate în PR-ul de sinteză.
 - L6/L7: 19 E2E trecute, 1 omis explicit pentru Lighthouse pe WebKit; 36 capturi standard per livrabil, fișiere ICS și imagini suplimentare. Parserul independent verifică iarna/vara/ambele instanțe ale orei repetate de toamnă.
 - `node scripts/twilio-preflight.mjs`: exit **2**, `ready:false`, trei credențiale lipsă, `smsSendingEnabled:false`. Acesta este blocajul așteptat, nu un test SMS real. Testele unitare dovedesc că preflight-ul fără credențiale nu face cereri de rețea.
-- Citire Sites: versiunea 12 activă, acces custom numai proprietarul, zero vizitatori externi. Lipsesc cheile Twilio. Valorile secretelor de activare/plafon sunt mascate de API; nu au fost schimbate. Nu s-a reînnoit credențiala Sites expirată și nu s-a inițiat livrarea Etapei 10.
+- Livrare Sites: **versiunea 13, succeeded**, sursă `b2c1bf388ce44de21bd8113b4aeaac19b50c5132`, arbore identic cu PR #19 (`7d1ec9752a025c786c3ea947bb9a39867db692ea`). Acces recitit: custom, un owner, zero grupuri și vizitatori externi. Configurația runtime rămâne revision 2; nu s-au schimbat variabilele SMS. Schema are 16 tabele, inclusiv saved_searches/editor_drafts/message_reads; listings are coloanele noi și zero rânduri.
 
 O singură comandă de verificare, după instalarea dependențelor și bibliotecilor OS: `pnpm qa`. În mediul de lucru browserul local/preview-ul gestionat nu a fost disponibil; browser QA s-a executat pe GitHub Actions cu server și D1 locale runnerului. Aceasta nu este testarea site-ului găzduit.
+
+### Corecție după livrarea inițială
+
+Testul `hiding or restarting the poll during inbox refresh never starts a stale thread request` reproducea o cerere suplimentară pornită după ascunderea filei. După revalidarea vizibilității/generației între etapele polling-ului: `node --test tests/messages-live.test.mjs` 4/4, `pnpm test` 115/115, TypeScript și build exit 0. Testele de browser ale commitului de corecție sunt legate în PR-ul următor; nu sunt confundate cu rularea istorică L9.
+
+### Livrare privată și limite browser
+
+La 1 noiembrie 2026, 20:53:57 Europe/Bucharest, `save_version_and_deploy_private` a întors `succeeded`. Build-ul din mecanismul sursei a trecut. Schema a fost inspectată înainte și după: 13 → 16 tabele; fără date DEMO. CI L9 `41321120157`: 114 Node, 23 Playwright trecute, 1 omis intenționat; 0 încălcări axe în 36 de evaluări. Cele șase repetări diagnostice locale ulterioare au trecut; intermitența anterioară nu este declarată rezolvată.
 
 ### De verificat uman / cu autorizare
 
@@ -26,7 +34,7 @@ O singură comandă de verificare, după instalarea dependențelor și bibliotec
 - Importul ICS în Apple Calendar, Google Calendar și Outlook, inclusiv ora ambiguă de toamnă. Captura descărcării și parserul nu dovedesc importul în aceste produse.
 - Variantele foto 400/800/1600, WebP, srcset și migrarea reversibilă, după aprobarea arhitecturii/stocării. Niciun serviciu plătit activat; pragul de 100 KB nu este certificat cu imagini DEMO uniforme.
 - Revizuire juridică a declarațiilor/regulilor/confidențialității, operator/retenție/ștergere, al doilea moderator, backup/restaurare, buget și proceduri de operare.
-- Livrarea privată Etapa 10: autorizarea reînnoirii accesului temporar Sites, apoi mecanismul existent de sincronizare sursă/build/livrare și reverificarea accesului. Promptul L9 cere oprire la credențială nouă; nu s-a ocolit această condiție.
+- Verificare vizuală autentificată a găzduirii: browserul a ajuns la poarta SIWC, apoi la formularul OpenAI fără sesiune; fluxurile autentificate nu au fost executate. Livrarea privată și accesul sunt confirmate prin Sites, nu prin presupunerea unui login reușit.
 
 Issue #1 rămâne deschis. Rezultatele automate nu autorizează acces public, SMS sau servicii cu facturare. Textele juridice sunt **DE REVIZUIT JURIDIC**.
 

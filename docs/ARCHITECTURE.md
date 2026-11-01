@@ -1,6 +1,6 @@
 # Arhitectură și contracte de securitate
 
-Stare implementată în codul Etapei 10, 1 noiembrie 2026. Găzduirea rămâne la versiunea 12 până la livrarea autorizată. Stack-ul, găzduirea, D1 și SIWC sunt păstrate. Verificările efective sunt în VERIFICATION.md; descrierea nu este dovadă de test uman.
+Stare implementată în codul Etapei 10, 1 noiembrie 2026. Livrarea inițială Etapa 10 este versiunea 13, publicată privat la 1 noiembrie 2026, 20:53:57 Europe/Bucharest. Stack-ul, găzduirea, D1 și SIWC sunt păstrate. Verificările efective sunt în VERIFICATION.md; descrierea nu este dovadă de test uman.
 
 ## Componente
 
@@ -121,7 +121,7 @@ Solicitarea unui SMS pentru același număr deja confirmat pe cont este refuzat�
 - `lib/moderation-signals.mjs`: indicii telefon >3 anunțuri, cuvinte-cheie și dHash calculat pe server. Comparație între conturi, maximum 1000 de anunțuri recente; lipsurile sunt afișate. Niciun semnal nu schimbă automat eligibilitatea.
 - `/api/moderation/audit`: numai rol de moderator; ultimele 50 de decizii persistente, nu acces global la conversații. Datele de încredere provin din declarații și evenimente efective, nu din `updated_at`.
 
-Migrările `0001`–`0004` sunt aditive: căutări salvate/costuri lunare/index audit, ciornă cu revizie, confirmări de citire/index participant, metadate foto nullable. Au fost aplicate numai în D1 local. Nu conțin seed, ștergeri sau backfill găzduit. `pnpm db:generate` nu mai produce diferențe între schema TS și metadata.
+Migrările `0001`–`0004` sunt aditive: căutări salvate/costuri lunare/index audit, ciornă cu revizie, confirmări de citire/index participant, metadate foto nullable. Au fost verificate local, apoi aplicate în găzduire prin livrarea privată Sites a versiunii 13. Citirea schemei confirmă noile tabele și coloane. Nu conțin seed, ștergeri sau backfill găzduit. `pnpm db:generate` nu mai produce diferențe între schema TS și metadata.
 
 ## Izolarea testelor
 

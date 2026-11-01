@@ -190,3 +190,25 @@ Verificări locale finale L9: `pnpm test` **114/114**, `pnpm typecheck`, `pnpm b
 Măsurare finală a sursei: `public/app.js` **956 linii / 152684 octeți (152,684 KB)**, CSS total **131842 octeți**, galerie **4382**, draft-storage **5272**, messages-live **3558**, trust **2241** octeți. Răspunsul sintetic pentru 20 de rezultate: **13167 octeți UTF-8**, status 200, fără date base64. KB = 1000 octeți. Acestea sunt măsurători pe disc/API sintetic, nu trafic real găzduit.
 
 La închiderea L9, prima rulare locală `pnpm test:production-isolation` a eșuat după 15 secunde la bootstrap, după health 200 și login de test 404. Reluarea aceleiași comenzi, fără modificarea codului sau aserțiunilor, a trecut. Nu este considerată o cauză rezolvată: consumarea răspunsurilor/conexiunile închise nu elimină complet intermitența runtime-ului local. Testul rămâne blocant, fără retry automat; CI L8 exact a trecut, iar CI L9 trebuie evaluat separat. Nu există dovezi că acest timeout local reprezintă starea găzduirii.
+
+
+## Continuare autorizată — L9 livrat privat, 1 noiembrie 2026
+
+Această actualizare înlocuiește blocajul de livrare consemnat mai sus, păstrat ca istoric. Utilizatorul a cerut continuarea după întrebarea explicită privind reînnoirea accesului Sites și livrarea privată.
+
+- Fișiere actualizate: README, CHANGELOG, PRODUCT, ARCHITECTURE, VERIFICATION, DECISIONS-PENDING și acest raport. Produsul livrat are exact arborele testat în PR #19, `7d1ec9752a025c786c3ea947bb9a39867db692ea`; SHA local/Sites `b2c1bf388ce44de21bd8113b4aeaac19b50c5132`, SHA GitHub `4c052cf11c0778aee0576f08deeb42db8eaee710`.
+- `node /root/.codex/plugins/cache/openai-curated-remote/sites/1.1.2/scripts/site-workflow.mjs --project-id appgprj_6ad120b11cd08191b0126b19198e6daf`: deschidere și apoi împachetare, exit 0. Comanda de build din workflow: `node /root/.codex/plugins/cache/openai-curated-remote/sites/1.1.2/scripts/build-site.mjs`, exit 0. Credentialul a circulat numai prin stdin ascuns, nu în fișiere, Git sau browser.
+- `save_version_and_deploy_private`: **succeeded**, versiunea **13**, la **20:53:57 Europe/Bucharest**. Arhiva: 2129920 octeți, 91 fișiere, SHA-256 `0a2ccb3e132ee2102a2e4b34b87b6e08e0bd76c0a4ad499c40e5c5de10f9b91e`.
+- `get_site` după livrare: activ, custom, un singur owner, zero grupuri, zero vizitatori externi. `get_site_version`: commitul sursei confirmat. `read_database_overview`: 13 tabele înainte, 16 după. `read_database_table_rows` pentru listings: zero rânduri, noile coloane monthly_costs/photo_hashes prezente. Migrările aditive 0001–0004 au fost aplicate de Sites; fără seed, backfill sau ștergeri.
+- Browser găzduit: pagina arată «Log in to access» și Continue with ChatGPT. Următorul ecran este formularul OpenAI fără sesiune. Nu s-au introdus credențiale și nu s-a folosit un bypass. UI-ul autentificat, două conturi găzduite, iPhone fizic, SMS și importurile umane ICS rămân neverificate.
+- Capturi înainte/după: livrarea nu schimbă sursa vizuală față de L9; se păstrează [artefactul CI final](https://github.com/Rapunzel1999/nespus/actions/runs/41321120157/artifacts/13089632238), 36 evaluări axe fără încălcări. Nu se prezintă capturi locale drept capturi găzduite autentificate.
+- Investigare timeout: `node /tmp/isolation-diagnostic.mjs`, de șase ori — **6/6 exit 0**, durate 1,49 / 1,37 / 1,36 / 1,35 / 1,37 / 1,34 s. Scriptul este o copie temporară a probei existente, cu diagnostic HTTP exclusiv în catch; acesta nu s-a executat. Nu există dovadă pentru o cauză nouă și nu se schimbă testul pentru a ascunde problema.
+
+SMS rămâne oprit, fără servicii plătite noi. GitHub main nu a fost modificată. Rămân deschise decizia de stocare foto, probele reale și condițiile juridice/operaționale; livrarea privată nu închide issue #1.
+
+
+### Corecție verificabilă: fila ascunsă în timpul actualizării inbox-ului
+
+`public/messages-live.js`: după răspunsul asincron al inbox-ului, revalidează vizibilitatea și generația ciclului înainte de a cere conversația. `tests/messages-live.test.mjs`: răspuns întârziat, apoi filă ascunsă sau pornirea unui ciclu nou. Înainte de fix, `node --test tests/messages-live.test.mjs` a avut 3 trecute și 1 eșec (threadCalls 1 în loc de 0). După fix: **4/4**. `pnpm test`: **115/115**; `pnpm typecheck`, `pnpm build`, `git diff --check`: exit 0. Nu se modifică aspectul, schema, permisiunile sau cadența unui ciclu activ normal.
+
+Capturile înainte sunt cele ale L9; cele după sunt generate de CI pentru PR-ul corecției, cu aceleași pagini/dimensiuni. Rezultatele exacte CI și livrarea corecției sunt în descrierea acelui PR. Autentificarea găzduită și dispozitivele fizice rămân neverificate; problema separată a timeout-ului local nu este declarată rezolvată de această corecție.
