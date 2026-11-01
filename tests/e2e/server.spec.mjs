@@ -2,6 +2,9 @@ import {test,expect} from '@playwright/test';
 import {draftInput,listingId} from './seed.mjs';
 const headers={origin:'http://127.0.0.1:4180'};
 test('local D1 exercises real API with isolated DEMO identities and simulated Verify',async({request})=>{
+  const html=await request.get('/atelier');expect(html.status()).toBe(200);expect(await html.text()).toContain('DEMO · Numai test local');
+  const script=await request.get('/app.js');expect(script.status()).toBe(200);expect(await script.text()).toContain('init();');
+  expect((await request.get('/app.css')).status()).toBe(200);
   expect((await request.post('/__test/reset',{headers})).status()).toBe(200);
   const login=async role=>expect((await request.post('/__test/login',{headers,data:{role}})).status()).toBe(200);
   const post=(path,data={})=>request.post(path,{headers,data});

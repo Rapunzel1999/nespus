@@ -6,7 +6,7 @@ test('mobile Lighthouse and cold homepage network measurements',async({request,b
   test.setTimeout(180000);
   expect((await request.post('/__test/reset',{headers:{origin:'http://127.0.0.1:4180'}})).status()).toBe(200);
   await mkdir('outputs/e2e/baseline',{recursive:true});
-  const context=await browser.newContext({viewport:{width:375,height:812}}),page=await context.newPage();
+  const context=await browser.newContext({baseURL:'http://127.0.0.1:4180',viewport:{width:375,height:812}}),page=await context.newPage();
   const responses=[];page.on('response',r=>responses.push({url:r.url(),status:r.status()}));
   await page.goto('/atelier');await page.waitForLoadState('networkidle');await expect(page.locator('.property-card').first()).toBeVisible();
   const entries=await page.evaluate(()=>[...performance.getEntriesByType('navigation'),...performance.getEntriesByType('resource')].map(e=>({name:e.name,transferSize:e.transferSize,encodedBodySize:e.encodedBodySize,decodedBodySize:e.decodedBodySize})));
