@@ -42,7 +42,7 @@ test('search filters, detail, favorites and comparison',async({page})=>{
 });
 
 test('request, acceptance, messages, viewing and explicit phone disclosure',async({page})=>{
-  await login(page,'buyer');await page.goto('/atelier?listing='+listingId(1));await page.getByRole('button',{name:'Trimite o solicitare',exact:true}).click();
+  await login(page,'buyer');await page.goto('/atelier?listing='+listingId(1));await page.locator('.property-contact-button').click();
   await page.locator('#modal textarea').fill('DEMO: Mă interesează această locuință pentru uz personal.');await page.locator('#modal input[type=checkbox]').check();await page.getByRole('button',{name:'Trimite solicitarea',exact:true}).click();
   await expect(page).toHaveURL(/conversation=/);const id=new URL(page.url()).searchParams.get('conversation');
   await login(page,'owner');await page.reload();await page.getByRole('button',{name:'Acceptă conversația',exact:true}).click();
