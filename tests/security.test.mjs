@@ -32,7 +32,7 @@ function fixture() {
   };
   const request=async(path,{as=null,method='GET',data,headers={},now=NOW,...extra}={})=>{
     const response=await handleApi(new Request('https://test.invalid/api'+path,{method,headers:{...(method==='GET'?{}:{origin:'https://test.invalid','content-type':'application/json'}),...headers},...(data===undefined?{}:{body:JSON.stringify(data)})}),db,{principal:as?identity(as):null,moderatorEmails:['mod@test.invalid','mod2@test.invalid'],now,...extra});
-    return {status:response.status,data:response.status===304?null:response.headers.get('content-type')?.startsWith('image/')?new Uint8Array(await response.arrayBuffer()):await response.json(),headers:response.headers};
+    return {status:response.status,data:response.headers.get('content-type')?.startsWith('text/calendar')?await response.text():response.status===304?null:response.headers.get('content-type')?.startsWith('image/')?new Uint8Array(await response.arrayBuffer()):await response.json(),headers:response.headers};
   };
   const contact=(listingId=lid(1),as='buyer',extra={})=>request('/contact-requests',{as,method:'POST',data:{listingId,purpose:'Doresc să cumpăr această locuință pentru familia mea.',contactDeclaration:true,declarationVersion:VERSION,...extra}});
   const accepted=async()=>{listing();const c=await contact();assert.equal(c.status,201,JSON.stringify(c));assert.equal((await request('/conversations/'+c.data.id+'/decision',{as:'owner',method:'POST',data:{decision:'accepted'}})).status,200);return c.data.id;};
@@ -796,4 +796,34 @@ test('editor buffer rejects other owners, live listing edits, excessive data and
   for(const extra of [{step:8},{revision:-1},{draft:{photos:[],title:'x'.repeat(121)}},{draft:{photos:['data:image/svg+xml;base64,eA==']}}])assert.equal((await f.request('/editor-draft',{as:'buyer',method:'PUT',data:{revision:0,step:0,draft:{photos:[]},...extra}})).status,400);
   const clean=await f.request('/editor-draft',{as:'buyer',method:'PUT',data:{revision:0,step:0,draft:{photos:[],status:'published',ownerId:'owner',phoneVerified:true}}});assert.equal(clean.status,200);
   const data=(await f.request('/editor-draft',{as:'buyer'})).data.draft;assert.equal(data.status,undefined);assert.equal(data.ownerId,undefined);assert.equal(data.phoneVerified,undefined);
+});
+
+test('read receipts mark only displayed incoming messages, remain private and are idempotent',async()=>{
+  const f=fixture(),c=await f.accepted();
+  const send=async(body,as='buyer')=>f.request('/conversations/'+c+'/messages',{as,method:'POST',data:{body}});
+  await send('Primul mesaj');const displayed=(await f.request('/conversations/'+c,{as:'owner'})).data;
+  assert.equal(displayed.unreadMessageIds.length,1);assert.equal(displayed.conversation.unreadCount,1);
+  await send('Mesaj sosit după citirea paginii');await send('Mesaj propriu','owner');
+  assert.equal((await f.request('/notifications',{as:'owner'})).data.unreadMessages,2);
+  assert.equal((await f.request('/notifications')).status,401);
+  assert.equal((await f.request('/conversations/'+c+'/read',{as:'other',method:'POST',data:{messageIds:displayed.unreadMessageIds}})).status,404);
+  for(const expected of [1,0])assert.equal((await f.request('/conversations/'+c+'/read',{as:'owner',method:'POST',data:{messageIds:displayed.unreadMessageIds}})).data.marked,expected);
+  assert.equal((await f.request('/notifications',{as:'owner'})).data.unreadMessages,1);assert.equal((await f.request('/notifications',{as:'buyer'})).data.unreadMessages,1);
+  assert.equal((await f.request('/conversations/'+c+'/read',{as:'owner',method:'POST',data:{messageIds:[lid(9999)]}})).data.marked,0);
+  assert.equal((await f.request('/conversations/'+c+'/read',{as:'owner',method:'POST',data:{messageIds:Array(51).fill(lid(9999))}})).status,400);
+});
+test('waiting replies and calendar are participant scoped and require a confirmed viewing',async()=>{
+  const f=fixture();f.listing();const c=(await f.contact()).data.id;
+  assert.equal((await f.request('/conversations',{as:'owner'})).data.conversations[0].awaitingReply,true);
+  assert.equal((await f.request('/conversations',{as:'buyer'})).data.conversations[0].awaitingReply,false);
+  await f.request('/conversations/'+c+'/decision',{as:'owner',method:'POST',data:{decision:'accepted'}});
+  assert.equal((await f.request('/conversations',{as:'owner'})).data.conversations[0].awaitingReply,false);
+  const visit=await f.request('/conversations/'+c+'/viewings',{as:'buyer',method:'POST',data:{startsAt:NOW+3600000}});assert.equal(visit.status,201);
+  const id=f.sql.prepare('SELECT id FROM viewings').get().id;
+  assert.equal((await f.request('/conversations',{as:'owner'})).data.conversations[0].awaitingReply,true);
+  assert.equal((await f.request('/viewings/'+id+'/calendar',{as:'buyer'})).status,404);
+  await f.request('/viewings/'+id,{as:'owner',method:'POST',data:{decision:'accepted'}});
+  for(const as of ['buyer','owner']){const r=await f.request('/viewings/'+id+'/calendar',{as});assert.equal(r.status,200);assert.match(r.data,/TZID:Europe\/Bucharest/);assert.doesNotMatch(r.data,/SECRETĂ|\+407/);assert.equal(r.headers.get('cache-control'),'no-store');}
+  assert.equal((await f.request('/viewings/'+id+'/calendar',{as:'other'})).status,404);
+  assert.equal((await f.request('/conversations',{as:'owner'})).data.conversations[0].awaitingReply,false);
 });

@@ -29,7 +29,7 @@ export const contactRequests=sqliteTable('contact_requests',{
   requesterId:text('requester_id').notNull().references(()=>users.id),ownerId:text('owner_id').notNull().references(()=>users.id),
   purpose:text('purpose').notNull(),status:text('status').notNull().default('requested'),
   phoneShared:integer('phone_shared').notNull().default(0),createdAt:integer('created_at').notNull(),updatedAt:integer('updated_at').notNull(),
-},t=>[uniqueIndex('contact_pair').on(t.listingId,t.requesterId),index('contact_owner').on(t.ownerId)]);
+},t=>[uniqueIndex('contact_pair').on(t.listingId,t.requesterId),index('contact_owner').on(t.ownerId),index('contact_requester').on(t.requesterId)]);
 export const messages=sqliteTable('messages',{
   id:text('id').primaryKey(),conversationId:text('conversation_id').notNull().references(()=>contactRequests.id),
   senderId:text('sender_id').notNull().references(()=>users.id),body:text('body').notNull(),createdAt:integer('created_at').notNull(),
@@ -70,3 +70,6 @@ export const editorDrafts=sqliteTable('editor_drafts',{
   userId:text('user_id').primaryKey().references(()=>users.id),payload:text('payload').notNull(),
   revision:integer('revision').notNull(),updatedAt:integer('updated_at').notNull(),
 });
+export const messageReads=sqliteTable('message_reads',{
+  userId:text('user_id').notNull().references(()=>users.id),messageId:text('message_id').notNull().references(()=>messages.id),
+},t=>[uniqueIndex('message_read_pair').on(t.userId,t.messageId)]);
