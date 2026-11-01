@@ -45,8 +45,22 @@ Măsurătoare sintetică, reproductibilă: 20 de anunțuri DEMO în SQLite în m
 
 Diferență față de ipoteza promptului: răspunsurile de căutare conțin deja URL-uri autorizate, nu date de imagine. L2 trebuie să păstreze acest contract. Obiectivul rămas este micșorarea imaginilor solicitate separat și validarea cache-ului fără pierderea autorizării.
 
-## Măsurători browser încă neobținute
+## Măsurători browser executate pe runnerul CI
 
-Nu există încă număr măsurat de cereri/transfer pentru încărcarea paginii, scor Lighthouse mobil sau capturi înainte/după. Preview-ul gestionat nu a putut fi deschis. Valorile nu sunt estimate din dimensiunile sursei. L1 pregătește un mediu D1 local separat și un runner reproductibil; rezultatele browserului vor fi adăugate numai după o execuție reușită, cu mediul identificat.
+Preview-ul gestionat din container rămâne inaccesibil. Măsurătorile de mai jos au fost executate cu **D1 local în runnerul GitHub Actions**, Chromium, Lighthouse 13.5.0, la 1 noiembrie 2026, 13:22 UTC. Nu provin din site-ul găzduit sau dintr-un iPhone fizic. Fișierele produsului sunt încă identice cu PR #9; harness-ul adaugă bannerul DEMO și autentificarea de test exclusiv în intrarea locală.
 
-L0 este livrat ca inventar verificabil, cu măsurătorile de browser rămase deschise. Nicio certificare de performanță, accesibilitate sau iPhone fizic.
+Comandă: `pnpm run test:e2e`, testul `mobile Lighthouse and cold homepage network measurements`: **trecut** în [run 41310837797](https://github.com/Rapunzel1999/nespus/actions/runs/41310837797). Întregul job a eșuat separat în scenarii UI din cauza selectorilor de test; acest lucru nu anulează rezultatul individual și nu este prezentat ca succes al întregii suite.
+
+Context rece, viewport 375×812, înainte de derulare, opt anunțuri DEMO cu imagini procedurale: **15 răspunsuri HTTP**, **208126 octeți transferSize**, **203626 octeți encodedBodySize**, însumate din Navigation/Resource Timing. Nu include traficul după derulare ori gateway-ul SIWC. Fotografiile sintetice sunt mult mai simple decât fotografiile reale; nu extrapola aceste cifre la inventarul viitor.
+
+| Pagină | Lighthouse performance | Lighthouse accessibility | LCP (ms) | CLS | TBT (ms) |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Acasă | 98 | 97 | 2158,008 | 0 | 12 |
+| Rezultate | 99 | 95 | 1812,9096 | 0 | 0 |
+| Anunț | 99 | 94 | 1849,4984 | 0 | 0 |
+
+O singură execuție/pagină, profil mobil cu throttling implicit Lighthouse; scorurile pot varia. Scorul accessibility nu echivalează cu un audit WCAG sau raport axe curat.
+
+Dovezi: [artefact CI 13085422850](https://github.com/Rapunzel1999/nespus/actions/runs/41310837797/artifacts/13085422850), `baseline/measurements.json`, trei rapoarte HTML și capturi ale stării inițiale pentru acasă/rezultate/anunț la 375, 768 și 1280 px, în Chromium și WebKit. Artefactul CI are retenție 14 zile; cifrele și proveniența rămân în acest document. Comparație vizuală înainte/după: L0 nu schimbă interfața; capturile sunt referința pentru livrabilele ulterioare.
+
+L0: inventar și măsurători obținute; niciun comportament al produsului schimbat. Capturile celorlalte trei ecrane și scenariile UI complete aparțin L1 și rămân în verificare.
