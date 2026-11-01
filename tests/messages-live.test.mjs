@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {frontend,deferred} from './helpers/frontend.mjs';
+import {frontend,deferred,tick} from './helpers/frontend.mjs';
 test('visible polling backs off, paints title/navigation, and stops while hidden',async()=>{
   const f=frontend({fetcher:()=>({unreadMessages:2})}),jobs=[];f.doc.title='Între noi';f.doc.visibilityState='visible';f.context.setTimeout=(fn,ms)=>{jobs.push({fn,ms});return jobs.length;};
   f.run("shell(el('main',{},'Acasă')); startMessagePolling()");assert.equal(jobs[0].ms,0);await jobs.shift().fn();if(jobs[0]?.ms===4500)jobs.shift();assert.equal(f.doc.title,'(2) Între noi');assert.match(f.doc.querySelector('[data-message-nav]').textContent,/\(2\)/);
@@ -22,4 +22,15 @@ test('receipt-only poll preserves the focused viewing button; a viewing change s
   const fetch=f.context.fetch;f.context.fetch=async()=>Response.json(f.context.receiptData);
   assert.equal(await f.run('S.pollConversation()'),false);assert.equal(f.doc.activeElement,button);assert.ok(button.isConnected);
   f.context.fetch=fetch;confirmed=true;assert.equal(await f.run('S.pollConversation()'),true);assert.equal(f.button(f.roots.get('#app'),'Confirmă vizionarea'),undefined);assert.match(f.roots.get('#app').textContent,/Confirmată/);
+});
+
+test('hiding or restarting the poll during inbox refresh never starts a stale thread request',async()=>{
+  for(const change of ['hidden','restarted']){
+    const inbox=deferred(),f=frontend({fetcher:()=>({unreadMessages:0})});let threadCalls=0;
+    f.doc.visibilityState='visible';f.context.pendingInbox=inbox.promise;f.context.refreshThread=async()=>{threadCalls++;return false;};
+    f.run("S.page='messages';S.pollInbox=()=>pendingInbox;S.pollConversation=refreshThread;startMessagePolling()");
+    const run=f.timers.shift()();await tick();
+    if(change==='hidden')f.doc.visibilityState='hidden';else f.run('startMessagePolling()');
+    inbox.resolve(false);await run;assert.equal(threadCalls,0,change+' must stop the old polling cycle');assert.equal(f.requests.length,1);assert.equal(f.timers.length,change==='hidden'?0:1);
+  }
 });

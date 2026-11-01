@@ -65,7 +65,7 @@ Disponibilitatea se reconfirmă la cel mult 30 de zile. Serverul exclude anunțu
 Nu există plăți active. Modelul posibil este anunț gratuit și promovare clar marcată. Plata nu cumpără verificare, acces la contacte, ocolirea moderării sau protecții de bază.
 
 
-## Experiența Etapei 10 — cod pregătit, livrare privată în așteptare
+## Experiența Etapei 10 — pilot privat din versiunea 13
 
 Editorul are opt pași: Tip și tranzacție → Locație → Detalii → Costuri → Fotografii → Descriere → Disponibilitate și contact → Previzualizare și declarație. Ciorna incompletă se salvează automat în cont, separat de anunț. Un conflict între file se explică și păstrează copia locală; publicarea rămâne acțiune separată. Cinci fotografii sunt recomandate, minimum una rămâne necesară pentru trimiterea la moderare. Nu se deduce fotografia unei camere din conținutul imaginii.
 

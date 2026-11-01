@@ -24,10 +24,14 @@ Partea independentă: ETag SHA-256 și `private, no-cache` permit răspunsuri 30
 - L7: pragul de revizuire este >3 anunțuri active pe telefon, fără sancțiune automată. Revizuirea operațională a pragului, potrivirilor false dHash și procedurii umane rămâne necesară. Datele foto istorice sunt semnalate ca neprocesate; orice backfill găzduit se propune separat, cu buget de execuție. Limita de comparație este 1000 de anunțuri recente, afișată moderatorului când restrânge verificarea.
 
 
-## L9 — acces Sites expirat, livrare oprită la condiția utilizatorului
+## L9 — livrare privată efectuată după autorizare
 
-Credențiala temporară disponibilă pentru sursa Sites a expirat la **2026-11-01 13:18:21 UTC**. Nu este un secret lipsă din aplicație și nu cere schimbarea SIWC, însă continuarea fluxului de livrare ar necesita emiterea unei credențiale temporare noi. Promptul L9 spune explicit: «Dacă livrarea cere o credențială nouă sau ar face site-ul public, te oprești.» Nu a fost cerută/emisă o nouă credențială și nu s-a ocolit sincronizarea sursei prin alt mecanism de upload.
+Blocajul inițial a fost ridicat prin răspunsul utilizatorului la cererea de reînnoire a accesului și livrare privată. Accesul temporar a fost reînnoit fără persistarea tokenului. Mecanismul Sites a sincronizat sursa exactă, a construit arhiva și a livrat **versiunea 13** la **1 noiembrie 2026, 20:53:57 Europe/Bucharest**.
 
-Codul rămâne în PR-urile draft succesive. Citirea Sites din sesiune confirmă versiunea găzduită **12**, acces custom exclusiv proprietarul, fără grupuri sau vizitatori externi. Nicio migrare găzduită nu a fost aplicată. Pentru continuare este necesară autorizarea reînnoirii accesului temporar pentru **același proiect și livrare privată**, apoi sincronizarea exactă a sursei, build, salvare/livrare privată și verificarea accesului. Aceasta nu autorizează SMS, R2 sau acces public.
+Accesul recitit după livrare este custom, exclusiv proprietarul, fără grupuri și cu zero vizitatori externi. Cele patru migrări aditive sunt aplicate; tabelul `listings` rămâne gol. Nu există date DEMO, ștergeri sau backfill în găzduire. SMS și revision 2 de configurare au rămas neschimbate; nu au fost activate servicii noi sau acces public.
+
+Browserul a afișat poarta de autentificare, apoi formularul OpenAI fără sesiune. Verificarea vizuală autentificată a site-ului găzduit rămâne neefectuată. Nu a fost folosit niciun token în browser și nu s-a încercat ocolirea autentificării. Celelalte condiții umane/de stocare de mai sus rămân deschise.
 
 - **Runtime local / CI:** proba bootstrap a build-ului de producție a expirat intermitent în Wrangler local; ultima reluare neschimbată a trecut și CI L8 este verde. Cauza nu este stabilită. Aserțiunea rămâne blocantă fără retry automat; orice nou eșec trebuie investigat și raportat, nu etichetat ca succes.
+
+Investigare suplimentară runtime: șase porniri consecutive neschimbate au trecut, fiecare în 1,34–1,49 secunde, într-o probă temporară care ar fi folosit un GET HTTP independent numai pentru diagnostic după eșec. Ramura de diagnostic nu a fost executată fiindcă nu s-a reprodus timeout-ul. Nu afirmăm că problema este rezolvată și nu schimbăm implementarea pe baza unei cauze presupuse.

@@ -30,6 +30,8 @@ function startMessagePolling(){
       const previous=S.unreadMessages||0;S.unreadMessages=result.unreadMessages||0;changed=S.unreadMessages!==previous;paintUnreadIndicators();
       if(S.unreadMessages>previous)toast('Ai '+S.unreadMessages+' mesaje necitite.');
       if(S.page==='messages'&&S.pollInbox)changed=(await S.pollInbox())||changed;
+      // The tab may hide or start a new poll while the inbox request is in flight.
+      if(generation!==S.messagePollGeneration||document.visibilityState==='hidden')return;
       if(S.page==='messages'&&S.pollConversation)changed=(await S.pollConversation())||changed;
     }catch(error){if(error.status===401||error.status===403)return;}
     if(generation!==S.messagePollGeneration||document.visibilityState==='hidden')return;
