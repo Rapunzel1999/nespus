@@ -48,3 +48,25 @@ test('a draft recovered from the account is confirmed until its contents change'
   const current=frontend({fetcher:()=>({draft:{title:'Ciornă actuală',photos:[]},step:5,revision:4,updatedAt:Date.now()})});
   await current.run('recoverEditorDraft()');assert.match(current.run('draftSaveLabel()'),/^Salvat acum/);
 });
+
+function tabStorage(h,storage){h.context.window.sessionStorage={setItem:(k,v)=>storage.set(k,v),getItem:k=>storage.get(k),removeItem:k=>storage.delete(k)};}
+test('reload retains a confirmed local copy only at the same account revision',async()=>{
+  const storage=new Map(),savedAt=Date.now(),draft={title:'Ciornă confirmată',photos:[]};
+  const first=frontend({fetcher:()=>({revision:3,savedAt})});tabStorage(first,storage);
+  first.run("S.editorDirty=true;S.draft={title:'Ciornă confirmată',photos:[]};S.step=2");await first.run('flushDraftSave()');
+  const resumed=frontend({fetcher:()=>({draft,revision:3,step:2,updatedAt:savedAt})});tabStorage(resumed,storage);await resumed.run('recoverEditorDraft()');assert.match(resumed.run('draftSaveLabel()'),/^Salvat acum/);
+  const newer=frontend({fetcher:()=>({draft:{...draft,title:'Versiune nouă din altă filă'},revision:4,step:2,updatedAt:savedAt})});tabStorage(newer,storage);await newer.run('recoverEditorDraft()');assert.equal(newer.run('S.draft.title'),'Versiune nouă din altă filă');assert.equal(newer.run('S.conflictingDraft.draft.title'),draft.title);
+});
+
+test('recovering pending tab edits resumes autosave without losing the edits',async()=>{
+  const savedAt=Date.now(),storage=new Map([['intre-noi-editor:buyer',JSON.stringify({draft:{title:'Text local mai nou',photos:[]},step:2,revision:3})]]);
+  const h=frontend({fetcher:(_path,options)=>options.method==='PUT'?{revision:4,savedAt}:{draft:{title:'Text vechi în cont',photos:[]},revision:3,step:2,updatedAt:savedAt}});tabStorage(h,storage);
+  await h.run('recoverEditorDraft()');assert.equal(h.run('S.draft.title'),'Text local mai nou');assert.doesNotMatch(h.run('draftSaveLabel()'),/^Salvat acum/);assert.equal(h.timers.length,1,'pending recovery must actually schedule its promised save');
+  await h.timers[0]();await tick();assert.equal(JSON.parse(h.requests.at(-1).options.body).draft.title,'Text local mai nou');assert.match(h.run('draftSaveLabel()'),/^Salvat acum/);
+});
+
+test('failed account recovery keeps the tab copy and reports uncertainty without writing',async()=>{
+  const storage=new Map([['intre-noi-editor:buyer',JSON.stringify({draft:{title:'Text local privat',photos:[]},step:2,revision:3,confirmedAt:Date.now()})]]);
+  const h=frontend({fetcher:()=>{throw Error('offline');}});tabStorage(h,storage);await h.run('recoverEditorDraft()');
+  assert.equal(h.run('S.draft.title'),'Text local privat');assert.match(h.run('draftSaveLabel()'),/Nu am putut verifica ciorna din cont/);assert.equal(h.timers.length,0);assert.equal(h.requests.length,1);assert.equal(storage.size,1);
+});

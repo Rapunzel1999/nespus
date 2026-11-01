@@ -46,7 +46,7 @@ test('autosave distinguishes unsaved edits and preserves typing during a slow re
     await address.fill('DEMO text nou în timpul salvării');await expect(state).toContainText('Salvăm automat');await page.screenshot({path:folder+'/saving-newer-edits.png',fullPage:true});
   }finally{release();}
   await expect.poll(async()=>((await (await page.request.get('/api/editor-draft')).json()).draft||{}).exactAddress).toBe('DEMO text nou în timpul salvării');await expect(state).toContainText('Salvat acum');
-  await page.reload();await page.getByRole('button',{name:'Continuă editarea',exact:true}).press('Enter');await expect(page.locator('[name=exactAddress]')).toHaveValue('DEMO text nou în timpul salvării');
+  await page.reload();await page.getByRole('button',{name:'Continuă editarea',exact:true}).press('Enter');await expect(page.locator('[name=exactAddress]')).toHaveValue('DEMO text nou în timpul salvării');await expect(page.locator('.editor-save-state')).toContainText('Salvat acum');
   await page.screenshot({path:folder+'/after-recovery.png',fullPage:true});
 });
 

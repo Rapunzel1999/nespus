@@ -4,7 +4,8 @@
 
 - Răspunsurile autosave întârziate nu mai refac copia din sessionStorage eliminată la ieșirea din cont, nici la succes, nici la eroare. Dacă navigarea este anulată, editarea deliberată poate crea o copie nouă.
 - „Salvat acum” apare numai cât textul, fotografiile, pasul și declarația corespund copiei confirmate. Modificările noi au o stare distinctă până la confirmare.
-- Regresii Node pentru cele trei cazuri și scenariu Chromium/WebKit cu răspuns lent, editare în timpul salvării și recuperare după reîncărcare. Rezultatele exacte sunt în jurnalul livrării.
+- La reîncărcare, confirmarea locală este păstrată numai după verificarea reviziei și datei de pe server. Editările încă nesalvate reiau autosalvarea; o eroare de citire a contului păstrează copia și explică incertitudinea fără scriere automată.
+- Regresii Node pentru cele șase cazuri și scenariu Chromium/WebKit cu răspuns lent, editare în timpul salvării și recuperare după reîncărcare. Rezultatele exacte sunt în jurnalul livrării.
 
 ## Corecție ulterioară Etapei 10 — versiunea 14 livrată privat
 

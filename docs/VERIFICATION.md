@@ -6,7 +6,7 @@ Această secțiune descrie starea actuală a codului. Secțiunile datate octombr
 
 ### Verificat automat
 
-- `pnpm test`: **118/118** teste Node/SQLite/DOM și parser ICS. Nu sunt 118 teste E2E; fișierul DOM conține și aserțiuni grupate.
+- `pnpm test`: **121/121** teste Node/SQLite/DOM și parser ICS. Nu sunt 121 teste E2E; fișierul DOM conține și aserțiuni grupate.
 - `pnpm typecheck`, `pnpm build`: exit 0. `pnpm test:production-isolation`: CI L8 și L9 exit 0; ultima verificare locală L9 a avut un timeout bootstrap de 15 secunde, apoi a trecut la reluare neschimbată. Intermitența este consemnată în raport, fără retry automat sau relaxarea aserțiunilor. Build-ul nu include login-ul DEMO sau providerul simulat; runtime-ul de producție ignoră cookie-ul DEMO chiar cu variabilele de test injectate.
 - `pnpm db:migrate`: migrările 0000–0004 verificate în D1 local; migrările aditive 0001–0004 sunt aplicate ulterior prin livrarea privată Sites a versiunii 13. `pnpm db:generate`: fără diferențe de schemă. Niciun seed, backfill sau DELETE pe baza găzduită.
 - `pnpm exec playwright test server.spec.mjs --project=chromium`: **1/1**, traseu HTTP real prin Worker/D1 local, fără instalarea unui browser local.

@@ -3,7 +3,7 @@
 function draftStorageKey(){return 'intre-noi-editor:'+S.boot?.user?.id;}
 function preserveDraftLocally(){
   if(!S.boot?.user)return;
-  try{window.sessionStorage?.setItem(draftStorageKey(),JSON.stringify({draft:{...S.draft,photos:S.photos},step:S.step,revision:S.draftVersion||0,modifiedAt:Date.now()}));}catch{/* RAM remains intact if tab storage is full/unavailable. */}
+  try{window.sessionStorage?.setItem(draftStorageKey(),JSON.stringify({draft:{...S.draft,photos:S.photos},step:S.step,revision:S.draftVersion||0,confirmedAt:draftMatchesConfirmed()?S.draftSavedAt:0,modifiedAt:Date.now()}));}catch{/* RAM remains intact if tab storage is full/unavailable. */}
 }
 function draftMatchesConfirmed(){
   const saved=S.draftConfirmed;if(!saved||saved.step!==S.step||saved.draft.photos.length!==S.photos.length)return false;
@@ -43,15 +43,19 @@ function resetDraftBuffer(){
 async function recoverEditorDraft(){
   if(!S.boot?.user)return;let local;try{local=JSON.parse(window.sessionStorage?.getItem(draftStorageKey())||'null');}catch{}
   try{S.conflictingDraft=JSON.parse(window.sessionStorage?.getItem(draftStorageKey()+':conflict')||'null');}catch{}
-  let remote;try{remote=await api('/api/editor-draft');}catch{remote={revision:local?.revision||0};}
+  let remote,remoteRead=true;try{remote=await api('/api/editor-draft');}catch{remoteRead=false;remote={revision:local?.revision||0};S.autosaveError='Nu am putut verifica ciorna din cont. Reîncearcă atunci când conexiunea revine.';}
   S.draftVersion=remote.revision||0;S.draftHasContent=!!remote.draft;
   const chosen=local&&local.revision===S.draftVersion?local:remote;
   if(local&&local.revision!==S.draftVersion){S.conflictingDraft=local;try{window.sessionStorage?.setItem(draftStorageKey()+':conflict',JSON.stringify(local));}catch{}}
   if(!chosen.draft)return;
-  S.draft=chosen.draft;S.photos=[...(chosen.draft.photos||[])];S.step=Math.max(0,Math.min(7,Number(chosen.step)||0));S.editorDirty=true;S.draftSavedAt=chosen===remote?remote.updatedAt:0;
-  S.draftConfirmed=chosen===remote?{draft:{...chosen.draft,photos:[...S.photos]},step:S.step}:null;
+  S.draft=chosen.draft;S.photos=[...(chosen.draft.photos||[])];S.step=Math.max(0,Math.min(7,Number(chosen.step)||0));S.editorDirty=true;
+  // A local acknowledgement is valid only after checking the same account revision
+  // and server timestamp; pending edits never inherit an older confirmation.
+  const confirmed=remoteRead&&(chosen===remote||(Number.isFinite(local?.confirmedAt)&&local.confirmedAt>0&&local.confirmedAt===remote.updatedAt));
+  S.draftSavedAt=confirmed?remote.updatedAt:0;S.draftConfirmed=confirmed?{draft:{...chosen.draft,photos:[...S.photos]},step:S.step}:null;
   if(S.draft.ownerDeclaration&&S.draft.declarationVersion!==S.boot.declarations.version)S.draft.ownerDeclaration=false;
   if(local&&local.revision!==S.draftVersion){S.conflictingDraft=local;try{window.sessionStorage?.setItem(draftStorageKey()+':conflict',JSON.stringify(local));}catch{}S.autosaveError='Versiunea din cont diferă de copia locală. Poți recupera separat copia locală.';}
+  if(remoteRead&&!draftMatchesConfirmed())scheduleDraftSave();
 }
 
 function recoverConflictingDraft(){
