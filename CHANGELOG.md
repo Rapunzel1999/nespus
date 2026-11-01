@@ -1,5 +1,12 @@
 # Changelog
 
+## Portofoliul proprietarului — 2026-11-02
+
+- Filtrele de stare se așează pe rânduri, cu etichete de 13 px și fără comprimarea butoanelor peste text. Toate cele șase opțiuni rămân accesibile fără derulare orizontală.
+- Explicațiile sumarului portofoliului folosesc culoarea semantică existentă pentru text secundar; noua verificare a contului a detectat contrastul insuficient al culorii vechi.
+- Pagina contului intră în matricea de capturi și axe la 375, 768 și 1280 px, în Chromium și WebKit. Verificările de geometrie acoperă etichetele, suprapunerile, țintele tactile și marginile ecranului; navigarea Tab și resetarea selecției sunt verificate separat.
+- Filtrarea, numerele afișate, API-ul și datele contului nu se schimbă. Rezultatele efective sunt în raportul livrabilului și PR.
+
 ## Editor — 2026-11-02
 
 - Contorul de secunde rămâne vizibil, iar regiunea accesibilă anunță numai schimbările stării de salvare.
