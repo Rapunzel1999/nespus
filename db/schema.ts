@@ -10,7 +10,7 @@ export const listings=sqliteTable('listings',{
   city:text('city').notNull().default('Cluj-Napoca'),district:text('district').notNull(),
   price:real('price').notNull(),currency:text('currency').notNull(),area:real('area').notNull(),rooms:integer('rooms').notNull(),
   description:text('description').notNull(),photos:text('photos').notNull(),exactAddress:text('exact_address').notNull().default(''),
-  relationship:text('relationship').notNull(),rentDeposit:real('rent_deposit'),rentCosts:text('rent_costs').notNull().default(''),
+  relationship:text('relationship').notNull(),rentDeposit:real('rent_deposit'),rentCosts:text('rent_costs').notNull().default(''),monthlyCosts:real('monthly_costs'),
   status:text('status').notNull().default('draft'),ownershipStatus:text('ownership_status').notNull().default('declared'),
   acceptsContacts:integer('accepts_contacts').notNull().default(1),contactHours:text('contact_hours').notNull().default(''),
   riskSignals:text('risk_signals').notNull().default('[]'),moderationReason:text('moderation_reason').notNull().default(''),
@@ -50,7 +50,7 @@ export const appeals=sqliteTable('appeals',{
 export const auditEvents=sqliteTable('audit_events',{
   id:text('id').primaryKey(),actorId:text('actor_id').notNull(),action:text('action').notNull(),targetId:text('target_id').notNull(),
   reason:text('reason').notNull().default(''),createdAt:integer('created_at').notNull(),
-});
+},t=>[index('audit_target_action_time').on(t.targetId,t.action,t.createdAt)]);
 export const phoneChallenges=sqliteTable('phone_challenges',{
   userId:text('user_id').primaryKey().references(()=>users.id),phone:text('phone').notNull(),providerSid:text('provider_sid').notNull(),expiresAt:integer('expires_at').notNull(),
 });
@@ -61,3 +61,8 @@ export const viewings=sqliteTable('viewings',{
   id:text('id').primaryKey(),conversationId:text('conversation_id').notNull().references(()=>contactRequests.id),
   proposedBy:text('proposed_by').notNull().references(()=>users.id),startsAt:integer('starts_at').notNull(),status:text('status').notNull().default('requested'),createdAt:integer('created_at').notNull(),
 });
+
+export const savedSearches=sqliteTable('saved_searches',{
+  id:text('id').primaryKey(),userId:text('user_id').notNull().references(()=>users.id),
+  queryJson:text('query_json').notNull(),seenEvent:integer('seen_event').notNull(),createdAt:integer('created_at').notNull(),
+},t=>[uniqueIndex('saved_search_pair').on(t.userId,t.queryJson)]);

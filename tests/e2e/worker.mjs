@@ -1,6 +1,7 @@
 // TEST ENTRY POINT ONLY. Never imported by app/, lib/ or the production Worker.
 import document from '../../lib/document.html';
 import schema from '../../drizzle/0000_nervous_leader.sql';
+import schema1 from '../../drizzle/0001_pale_sauron.sql';
 import {handleApi} from '../../lib/api.mjs';
 import {localTestAllowed} from './guard.mjs';
 import {seed} from './seed.mjs';
@@ -21,8 +22,8 @@ export default {async fetch(request,env) {
   if(request.method!=='GET'&&request.headers.get('origin')!==url.origin)return new Response('Origin rejected',{status:403});
   if(url.pathname==='/__test/health')return Response.json({mode:'DEMO local D1 only'});
   if(url.pathname==='/__test/reset'&&request.method==='POST'){
-    for(const statement of schema.replace(/--> statement-breakpoint/g,'').split(';').map(v=>v.trim()).filter(Boolean)){
-      try{await env.DB.prepare(statement).run();}catch(e){if(!String(e).includes('already exists'))throw e;}
+    for(const statement of [schema,schema1].join(';').replace(/--> statement-breakpoint/g,'').split(';').map(v=>v.trim()).filter(Boolean)){
+      try{await env.DB.prepare(statement).run();}catch(e){if(!/already exists|duplicate column name/.test(String(e)))throw e;}
     }
     await seed(env.DB);verifications.clear();return Response.json({seeded:8,mode:'DEMO'});
   }

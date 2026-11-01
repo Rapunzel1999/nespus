@@ -150,8 +150,8 @@ const emptyGallery=run('photoGallery('+JSON.stringify({...sample,photos:[]})+')'
 // Public property information never exposes a private address or invents costs.
 const sale={...sample,transaction:'sale',price:180000,area:60,rooms:1,currency:'RON',exactAddress:'SECRET STREET 99'};
 run('renderDetail('+JSON.stringify(sale)+')');assert.match(doc.querySelector('.detail-unit-price').textContent,/3[.\s\u00a0]?000 RON \/ m²/);assert.match(doc.querySelector('.property-facts').textContent,/1 cameră/);assert.doesNotMatch(roots.get('#app').textContent,/SECRET STREET|Chirie \/ lună/);
-for(const invalid of [{area:0},{area:null},{price:0},{price:'abc'},{transaction:'rent'}])assert.equal(run('pricePerSquareMeter('+JSON.stringify({...sale,...invalid})+')'),null);
-run('renderDetail('+JSON.stringify({...sample,rentDeposit:null,rentCosts:''})+')');assert.match(roots.get('#app').textContent,/Nespecificată/);assert.match(roots.get('#app').textContent,/Nespecificate/);assert.equal(doc.querySelector('.detail-unit-price'),null);
+for(const invalid of [{area:0},{area:null},{price:0},{price:'abc'}])assert.equal(run('pricePerSquareMeter('+JSON.stringify({...sale,...invalid})+')'),null);
+run('renderDetail('+JSON.stringify({...sample,rentDeposit:null,rentCosts:''})+')');assert.match(roots.get('#app').textContent,/Nespecificată/);assert.match(roots.get('#app').textContent,/Nespecificate/);assert.match(doc.querySelector('.detail-unit-price').textContent,/calculat/);
 let saleCards=run('cards('+JSON.stringify([sale])+')');assert.match(saleCards.textContent,/1 cameră/);assert.match(saleCards.textContent,/3[.\s\u00a0]?000 RON \/ m²/);
 const cardLink=all(saleCards).find(n=>n.className==='card-photo-link');let cardPrevented=false;const cardHistoryBefore=historyWrites.length;cardLink.listeners.click({ctrlKey:true,preventDefault(){cardPrevented=true}});assert.equal(cardPrevented,false);assert.equal(historyWrites.length,cardHistoryBefore);
 

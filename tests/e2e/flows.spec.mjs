@@ -30,9 +30,12 @@ test('draft, simulated phone, submission, independent moderation',async({page})=
   await expect.poll(async()=>(await page.request.get('/api/listings/'+id)).status()).toBe(200);
 });
 
-test('search filters, detail, favorites and comparison',async({page})=>{
+test('search filters, detail, favorites and comparison',async({page},info)=>{
   await login(page,'buyer');await page.goto('/atelier?view=browse&transaction=sale&currency=EUR');
-  await page.locator('[name=district]').selectOption('Centru');await page.getByRole('button',{name:/Caută anunțuri/}).click();
+  if(page.viewportSize().width<=620){await page.getByRole('button',{name:'Filtrează rezultatele',exact:true}).click();await page.locator('#modal [name=district]').selectOption('Centru');await expect(page.locator('#modal button[type=submit]')).toHaveText('Arată 2 rezultate');const folder='outputs/e2e/'+info.project.name+'/filters';await mkdir(folder,{recursive:true});await page.screenshot({path:folder+'/mobile-panel.png'});await page.locator('#modal button[type=submit]').click();}
+  else {await page.locator('[name=district]').selectOption('Centru');await page.getByRole('button',{name:/Caută anunțuri/}).click();}
+  await page.locator('.save-search-button').click();await expect(page.locator('#toast')).toContainText('Căutarea este salvată');
+  await page.goto('/atelier?view=account');await expect(page.locator('.saved-search-count')).toHaveText('0 anunțuri noi de la ultima vizită');await page.getByRole('button',{name:'Vezi rezultatele',exact:true}).click();
   await expect(page.locator('.property-card')).toHaveCount(2);await expect(page).toHaveURL(/district=Centru/);
   await page.locator('.card-photo-link').first().click();await expect(page.locator('h1')).toContainText('DEMO');await expect(page.locator('body')).not.toContainText('DEMO ADRESĂ PRIVATĂ');
   await page.locator('.property-gallery').focus();await page.keyboard.press('ArrowRight');await expect(page.locator('.photo-counter')).toHaveText('2 / 2');

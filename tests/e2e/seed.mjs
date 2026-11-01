@@ -7,7 +7,7 @@ export const demoPhoto='data:image/jpeg;base64,'+Buffer.from(jpeg.encode({data:B
 export const draftInput={title:'DEMO Ciornă de test în Cluj',transaction:'sale',type:'apartment',district:'Centru',price:120000,currency:'EUR',area:60,rooms:2,description:'DEMO: locuință fictivă pentru verificarea locală a fluxului. Nu este o ofertă disponibilă.',photos:[demoPhoto],relationship:'owner',ownerDeclaration:true,declarationVersion:VERSION};
 export async function seed(db,now=Date.now()) {
   const q=(sql,...args)=>db.prepare(sql).bind(...args);
-  for(const table of ['appeals','reports','viewings','messages','declarations','favorites','contact_requests','blocks','phone_challenges','rate_limits','audit_events','listings','users'])await q('DELETE FROM '+table).run();
+  for(const table of ['saved_searches','appeals','reports','viewings','messages','declarations','favorites','contact_requests','blocks','phone_challenges','rate_limits','audit_events','listings','users'])await q('DELETE FROM '+table).run();
   for(const [i,role] of ['owner','buyer','moderator','unverified'].entries())await q('INSERT INTO users(id,name,email,phone,phone_hash,phone_verified_at,created_at) VALUES (?,?,?,?,?,?,?)','DEMO-'+role,'DEMO '+role,role+'@example.invalid',role==='unverified'?null:'+4070000000'+i,role==='unverified'?null:'DEMO-hash-'+role,role==='unverified'?null:now,now).run();
   for(let n=1;n<=8;n++){
     const id=listingId(n),district=['Centru','Gheorgheni','Zorilor','Mărăști'][(n-1)%4];
