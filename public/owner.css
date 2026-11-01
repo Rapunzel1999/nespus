@@ -24,7 +24,7 @@
 .owner-summary>div{display:flex;align-items:center;gap:20px;border:1px solid #dce3d2;background:#f0f3e9;border-radius:10px;padding:23px}
 .owner-summary-number{font:400 43px/1 Georgia,serif;letter-spacing:-1.5px;color:#44633a;min-width:28px}
 .owner-summary strong{font-size:12px;font-weight:600;display:block;margin-bottom:6px}
-.owner-summary p{font-size:10px;line-height:1.7;color:#64745b;max-width:210px}
+.owner-summary p{font-size:10px;line-height:1.7;color:var(--muted);max-width:210px}
 .owner-attention{display:flex;justify-content:space-between;align-items:center;gap:25px;background:#f2ebdf;border:1px solid #e3d8c6;border-radius:10px;padding:22px 25px;margin:0 0 25px}
 .owner-attention strong{font-size:13px;color:#725c3c;font-weight:500}.owner-attention p{font-size:11px;line-height:1.8;color:#77684d;margin-top:5px}
 .owner-attention .button{min-height:44px;flex-shrink:0;font-size:11px}

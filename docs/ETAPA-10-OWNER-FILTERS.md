@@ -27,4 +27,8 @@ Capturi înainte: artefactul versiunii 16 de mai sus, contul din `draft-discard/
 
 ## Limite și decizii
 
+Prima execuție [CI 41362012695](https://github.com/Rapunzel1999/nespus/actions/runs/41362012695) pe sursa GitHub `8211693ac58db76531cae033068bb23da565d3ae`: verify trecut, browser **8 trecute / 3 eșuate / 17 nerulate**. Oprirea după trei eșecuri păstrează regula existentă. Toate cele trei eșecuri sunt în noua captură a contului: axe a identificat contrast insuficient la cele trei explicații din `.owner-summary p`. [Artefact inițial](https://github.com/Rapunzel1999/nespus/actions/runs/41362012695/artifacts/13105392371).
+
+Culoarea veche `#64745b` pe `#f0f3e9` are raportul calculat **4,4623:1**, sub pragul de 4,5:1. Corecția folosește tokenul existent `--muted`, fără relaxarea testului. Nu au fost modificate aserțiuni, timeout-uri, retry-uri ori limita eșecurilor. Arhiva intermediară a fost pregătită, dar nu a fost livrată; site-ul a rămas la versiunea 16. Rezultatele pe sursa finală sunt consemnate în PR.
+
 Nu sunt verificate dispozitive fizice, VoiceOver/NVDA, două conturi SIWC găzduite sau UI-ul găzduit autentificat. Testele de tastatură și geometrie nu înlocuiesc aceste probe. Nu s-au trimis SMS/emailuri, nu s-a activat facturare și nu s-au modificat autentificarea, audiența, schema sau datele găzduite. Pilotul rămâne privat. Variantele foto L2 și celelalte condiții de lansare din DECISIONS-PENDING rămân deschise. Timeout-ul istoric Wrangler nu este declarat rezolvat.
