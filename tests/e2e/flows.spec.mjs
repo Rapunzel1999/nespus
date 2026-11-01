@@ -12,11 +12,14 @@ test.beforeEach(async({request})=>{const r=await request.post('/__test/reset',{h
 test('draft, simulated phone, submission, independent moderation',async({page})=>{
   await login(page,'unverified');
   await page.goto('/atelier');await page.getByRole('button',{name:'Publică anunț +',exact:true}).click();await page.getByRole('button',{name:'Vreau să vând →',exact:true}).click();
-  await page.locator('[name=district]').selectOption('Centru');await page.locator('[name=price]').fill('120000');await page.locator('[name=area]').fill('60');await page.locator('[name=rooms]').fill('2');
-  await page.getByRole('button',{name:'Continuă →',exact:true}).click();
+  const next=()=>page.getByRole('button',{name:'Continuă →',exact:true}).click();
+  await next();await page.locator('[name=district]').selectOption('Centru');await next();
+  await page.locator('[name=area]').fill('60');await page.locator('[name=rooms]').fill('2');await next();await page.locator('[name=price]').fill('120000');await next();
+  await page.getByLabel('Adaugă fotografii',{exact:true}).setInputFiles({name:'DEMO.jpg',mimeType:'image/jpeg',buffer:Buffer.from(draftInput.photos[0].split(',')[1],'base64')});await expect(page.locator('.editor-photo')).toHaveCount(1);await next();
   await page.locator('[name=title]').fill('DEMO Ciornă creată în browser');await page.locator('textarea[name=description]').fill(draftInput.description);
-  await page.getByLabel('Adaugă fotografii',{exact:true}).setInputFiles({name:'DEMO.jpg',mimeType:'image/jpeg',buffer:Buffer.from(draftInput.photos[0].split(',')[1],'base64')});
-  await expect(page.locator('.editor-photo')).toHaveCount(1);await page.locator('[name=ownerDeclaration]').check();await page.getByRole('button',{name:'Salvează ciorna',exact:true}).click();
+  await expect(page.locator('.editor-save-state')).toContainText('Salvat acum');await page.reload();await page.getByRole('button',{name:'Continuă editarea',exact:true}).click();await expect(page.locator('.step-label')).toHaveText('PASUL 6 DIN 8');await expect(page.locator('[name=title]')).toHaveValue('DEMO Ciornă creată în browser');
+  await next();await page.locator('[name=contactHours]').fill('DEMO: seara');await next();await page.locator('[name=ownerDeclaration]').check();
+  await page.getByRole('button',{name:'Previzualizare mobil',exact:true}).click();await expect(page.locator('.preview-mobile')).toBeVisible();await expect(page.locator('body')).not.toContainText('DEMO ADRESĂ PRIVATĂ');await page.getByRole('button',{name:'← Înapoi la editare',exact:true}).click();await page.getByRole('button',{name:'Salvează ciorna',exact:true}).click();
   await expect(page.getByText('DEMO Ciornă creată în browser',{exact:true})).toBeVisible();
   const mine=await (await page.request.get('/api/mine')).json(),id=mine.listings[0].id;
   expect((await post(page,'/api/listings/'+id+'/submit')).status()).toBe(403);
@@ -32,7 +35,7 @@ test('draft, simulated phone, submission, independent moderation',async({page})=
 
 test('search filters, detail, favorites and comparison',async({page},info)=>{
   await login(page,'buyer');await page.goto('/atelier?view=browse&transaction=sale&currency=EUR');
-  if(page.viewportSize().width<=620){await page.getByRole('button',{name:'Filtrează rezultatele',exact:true}).click();await page.locator('#modal [name=district]').selectOption('Centru');await expect(page.locator('#modal button[type=submit]')).toHaveText('Arată 2 rezultate');const folder='outputs/e2e/'+info.project.name+'/filters';await mkdir(folder,{recursive:true});await page.screenshot({path:folder+'/mobile-panel.png'});await page.locator('#modal button[type=submit]').click();}
+  if(page.viewportSize().width<=620){await page.setViewportSize({width:375,height:812});await page.getByRole('button',{name:'Filtrează rezultatele',exact:true}).click();await page.locator('#modal [name=district]').selectOption('Centru');await expect(page.locator('#modal button[type=submit]')).toHaveText('Arată 2 rezultate');const folder='outputs/e2e/'+info.project.name+'/filters';await mkdir(folder,{recursive:true});await page.screenshot({path:folder+'/mobile-panel.png'});await page.locator('#modal button[type=submit]').click();}
   else {await page.locator('[name=district]').selectOption('Centru');await page.getByRole('button',{name:/Caută anunțuri/}).click();}
   await page.locator('.save-search-button').click();await expect(page.locator('#toast')).toContainText('Căutarea este salvată');
   await page.goto('/atelier?view=account');await expect(page.locator('.saved-search-count')).toHaveText('0 anunțuri noi de la ultima vizită');await page.getByRole('button',{name:'Vezi rezultatele',exact:true}).click();

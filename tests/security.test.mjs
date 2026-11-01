@@ -772,3 +772,28 @@ test('saved searches are private, bounded and count actual publications with a s
   assert.equal((await f.request('/saved-searches',{as:'buyer',method:'POST',data:{filters:{transaction:'sale',currency:'EUR',minPrice:'11'}}})).status,409);
   assert.equal((await f.request('/saved-searches/'+id,{as:'buyer',method:'DELETE'})).status,200);
 });
+
+test('incomplete editor drafts are private, never listings, and use monotonic compare-and-swap revisions',async()=>{
+  const f=fixture(),payload={revision:0,step:2,draft:{title:'În lucru',photos:[],area:60}};
+  assert.equal((await f.request('/editor-draft',{method:'PUT',data:payload})).status,401);
+  const first=await f.request('/editor-draft',{as:'unverified',method:'PUT',data:payload});assert.equal(first.status,200);assert.equal(first.data.revision,1);
+  assert.equal(f.sql.prepare('SELECT COUNT(*) AS n FROM listings').get().n,0);assert.equal(f.sql.prepare('SELECT COUNT(*) AS n FROM declarations').get().n,0);
+  assert.equal((await f.request('/editor-draft',{as:'buyer'})).data.draft,null);
+  const own=await f.request('/editor-draft',{as:'unverified'});assert.equal(own.data.step,2);assert.equal(own.data.draft.title,'În lucru');
+  assert.equal((await f.request('/editor-draft',{as:'unverified',method:'PUT',data:payload})).status,409);
+  assert.equal((await f.request('/editor-draft',{as:'unverified',method:'PUT',data:{...payload,revision:1,step:5}})).data.revision,2);
+  assert.equal((await f.request('/editor-draft',{as:'unverified',method:'DELETE',data:{revision:1}})).status,409);
+  assert.equal((await f.request('/editor-draft',{as:'unverified',method:'DELETE',data:{revision:2}})).data.revision,3);
+  assert.equal((await f.request('/editor-draft',{as:'unverified'})).data.draft,null);
+  assert.equal((await f.request('/editor-draft',{as:'unverified',method:'PUT',data:{...payload,revision:3}})).data.revision,4);
+  assert.equal((await f.request('/editor-draft',{as:'unverified',method:'PUT',data:{...payload,revision:1}})).status,409);
+});
+
+test('editor buffer rejects other owners, live listing edits, excessive data and injected publication fields',async()=>{
+  const f=fixture();f.listing();const payload={revision:0,step:0,draft:{id:lid(1),photos:[]}};
+  assert.equal((await f.request('/editor-draft',{as:'buyer',method:'PUT',data:payload})).status,404);
+  assert.equal((await f.request('/editor-draft',{as:'owner',method:'PUT',data:payload})).status,409);
+  for(const extra of [{step:8},{revision:-1},{draft:{photos:[],title:'x'.repeat(121)}},{draft:{photos:['data:image/svg+xml;base64,eA==']}}])assert.equal((await f.request('/editor-draft',{as:'buyer',method:'PUT',data:{revision:0,step:0,draft:{photos:[]},...extra}})).status,400);
+  const clean=await f.request('/editor-draft',{as:'buyer',method:'PUT',data:{revision:0,step:0,draft:{photos:[],status:'published',ownerId:'owner',phoneVerified:true}}});assert.equal(clean.status,200);
+  const data=(await f.request('/editor-draft',{as:'buyer'})).data.draft;assert.equal(data.status,undefined);assert.equal(data.ownerId,undefined);assert.equal(data.phoneVerified,undefined);
+});

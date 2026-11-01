@@ -86,3 +86,21 @@ Noile anunțuri sunt numărate după evenimentele reale de publicare. Marcajul u
 Rulat: `pnpm run db:generate` — migrare generată și inspectată; `pnpm test` — **99/99**; `pnpm run typecheck`, `pnpm build`, `pnpm run db:migrate`, `pnpm run test:production-isolation` — exit 0. `pnpm exec playwright test server.spec.mjs --project=chromium` — **1/1**, API real pe D1 local, fără browser. Migrarea este aplicată numai local; nu s-au modificat datele găzduite. Nu sunt trimise emailuri sau SMS.
 
 Capturi înainte: L3. Capturi după și panoul de filtre: CI L4, rezultat în așteptare. Totalul lunar nu este calculat din textul liber al costurilor; gol rămâne necunoscut, zero înseamnă explicit fără costuri suplimentare. Harta opțională nu a fost inventată: modelul conține nume de cartiere, nu geometrie verificată.
+
+### Confirmare L4 pe CI
+
+[Run 41314069138](https://github.com/Rapunzel1999/nespus/actions/runs/41314069138), commit `8fa2d681221ca7d4932716848128c6bbbf2baf6e`: verify și browser trecute; **19 E2E trecute, 1 omis** (Lighthouse WebKit). [Artefact 13085973752](https://github.com/Rapunzel1999/nespus/actions/runs/41314069138/artifacts/13085973752). Panoul mobil a fost inspectat vizual în captura WebKit: acțiunea de aplicare rămâne jos în timp ce câmpurile pot fi derulate. Captura suplimentară a panoului folosea profilul de 390 px; L5 o fixează explicit la 375×812 și compactează titlul. Cele șase ecrane standard continuă să fie capturate la 375/768/1280 px.
+
+Lighthouse L4: performanță/accesibilitate acasă 98/97, rezultate 99/100, anunț 99/100. CLS rezultate 0,006962, celelalte 0. Acasă rece: 16 răspunsuri, 212793 octeți transferați, 207993 codificați. Aceleași limite DEMO/local și variație între rulări ca în baseline.
+
+## L5 — opt pași și ciornă recuperabilă
+
+Fișiere: `public/app.js` păstrează editorul, ordonarea fotografiilor, previzualizarea și controalele de publicare, împărțite în opt pași; `public/draft-storage.js` gestionează salvarea automată după 1,5 secunde fără modificări și copia de recuperare din filă; `public/design.css` stilizează pașii și previzualizarea mobilă; `lib/document.html` încarcă noul modul. `lib/editor-draft.mjs`, `lib/api.mjs`, `db/schema.ts` și migrarea aditivă `0002_gray_nomad.sql` păstrează o singură ciornă incompletă privată per cont, separată de anunțuri și declarații. Testele și seed-ul local sunt actualizate.
+
+Reviziile ciornei cresc monoton inclusiv după golirea ei, pentru ca o filă veche să nu poată suprascrie o ciornă nouă. Erorile și conflictele păstrează textul local. O copie locală diferită de server poate fi recuperată explicit; nu înlocuiește automat versiunea din cont. Fotografiile din ciorna incompletă nu au rută de servire; la salvarea anunțului trec în continuare prin validare/recodare. Publicarea și contactarea cer aceleași verificări de telefon. Adresa exactă rămâne exclusă din datele publice și din previzualizare.
+
+Declarația proprietarului este textul cerut în prompt, versiunea `2026-11-01.1`, marcată **DE REVIZUIT JURIDIC** în cod și interfață. Data, versiunea și textul acceptat continuă să fie stocate în declarații. Ghidul recomandă cinci fotografii, fără a modifica regula existentă de minimum una pentru publicare.
+
+Rulat: `pnpm run db:generate` — migrare inspectată, exclusiv CREATE TABLE; `pnpm test` — **103/103**; `pnpm run typecheck`, `pnpm build`, `pnpm run db:migrate`, `pnpm run test:production-isolation` — exit 0. `pnpm exec playwright test server.spec.mjs --project=chromium` — **1/1**, traseu HTTP/D1 local. E2E de publicare este actualizat pentru opt pași, autosalvare, reîncărcare/reluare și previzualizare mobilă; rezultatul browser exact al ramurii este în așteptare.
+
+Capturi înainte: L4; după: CI L5. Nu s-au rulat migrări găzduite. Nu s-au testat iPhone fizic, două conturi SIWC găzduite sau SMS real. Retenția ciornelor și procedura de ștergere a contului trebuie stabilite înainte de lansarea publică; copia din filă se șterge la ieșirea explicită din cont sau renunțarea la ciornă. Dacă stocarea filei este indisponibilă/plină, textul rămâne în memorie cât fila este deschisă.
