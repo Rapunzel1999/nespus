@@ -17,3 +17,34 @@ test('failed autosave leaves the current text and the tab recovery copy intact',
   h.run("S.editorDirty=true;S.draft={title:'Text de recuperat',photos:[]};S.step=5");
   await assert.rejects(h.run('flushDraftSave()'),/s-a schimbat/);assert.equal(h.run('S.draft.title'),'Text de recuperat');assert.match(h.run('draftSaveLabel()'),/păstrate în această filă/);assert.equal(JSON.parse([...storage.values()][0]).step,5);
 });
+
+test('an autosave response cannot restore the local copy removed on signout',async()=>{
+  for(const failure of [false,true]){
+    const pending=deferred(),storage=new Map(),h=frontend({fetcher:()=>pending.promise});
+    h.context.window.sessionStorage={setItem:(k,v)=>storage.set(k,v),getItem:k=>storage.get(k),removeItem:k=>storage.delete(k)};
+    h.run("S.editorDirty=true;S.draft={title:'Text privat',photos:[]};preserveDraftLocally()");
+    const saving=h.run('flushDraftSave()');await tick();h.run('forgetLocalDraftOnSignout()');assert.equal(storage.size,0);
+    if(failure){pending.reject(Error('offline'));await assert.rejects(saving);}else{pending.resolve({revision:1,savedAt:Date.now()});await saving;}
+    assert.equal(storage.size,0,'a late '+(failure?'failure':'success')+' must not recreate private tab storage');
+    // A cancelled navigation followed by deliberate editing can save a new copy.
+    h.run("S.draft.title='Editare continuată';scheduleDraftSave()");assert.equal(JSON.parse([...storage.values()][0]).draft.title,'Editare continuată');
+  }
+});
+
+test('save status distinguishes confirmed content from newer edits and wizard steps',async()=>{
+  const h=frontend({fetcher:()=>({revision:1,savedAt:Date.now()})});
+  h.run("S.editorDirty=true;S.draft={title:'Text confirmat',photos:[]};S.step=2");await h.run('flushDraftSave()');
+  assert.match(h.run('draftSaveLabel()'),/^Salvat acum/);
+  h.run("S.draft.title='Text încă nesalvat'");assert.doesNotMatch(h.run('draftSaveLabel()'),/^Salvat acum/);
+  h.run("S.draft.title='Text confirmat';S.step=3");assert.doesNotMatch(h.run('draftSaveLabel()'),/^Salvat acum/);
+  h.run("S.step=2;S.photos=['data:image/jpeg;base64,new']");assert.doesNotMatch(h.run('draftSaveLabel()'),/^Salvat acum/);
+});
+
+test('a draft recovered from the account is confirmed until its contents change',async()=>{
+  const h=frontend({fetcher:()=>({draft:{title:'Ciornă din cont',photos:[],declarationVersion:'old',ownerDeclaration:true},step:5,revision:4,updatedAt:Date.now()})});
+  await h.run('recoverEditorDraft()');assert.equal(h.run('S.draft.ownerDeclaration'),false);
+  // Invalidating an old declaration changes the recovered content and needs a new save.
+  assert.doesNotMatch(h.run('draftSaveLabel()'),/^Salvat acum/);
+  const current=frontend({fetcher:()=>({draft:{title:'Ciornă actuală',photos:[]},step:5,revision:4,updatedAt:Date.now()})});
+  await current.run('recoverEditorDraft()');assert.match(current.run('draftSaveLabel()'),/^Salvat acum/);
+});

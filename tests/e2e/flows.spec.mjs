@@ -33,6 +33,23 @@ test('draft, simulated phone, submission, independent moderation',async({page})=
   await expect.poll(async()=>(await page.request.get('/api/listings/'+id)).status()).toBe(200);
 });
 
+test('autosave distinguishes unsaved edits and preserves typing during a slow response',async({page},info)=>{
+  await page.setViewportSize({width:375,height:812});await login(page,'unverified');await page.goto('/atelier');
+  await page.getByRole('button',{name:'Publică anunț +',exact:true}).press('Enter');await page.getByRole('button',{name:'Vreau să vând →',exact:true}).press('Enter');
+  await page.getByRole('button',{name:'Continuă →',exact:true}).press('Enter');const address=page.locator('[name=exactAddress]'),state=page.locator('.editor-save-state');
+  await address.fill('DEMO adresă privată inițială');await expect(state).toContainText('Salvat acum');
+  const folder='outputs/e2e/'+info.project.name+'/draft-recovery';await mkdir(folder,{recursive:true});await page.screenshot({path:folder+'/before-edit.png',fullPage:true});
+  let release,notify,held=false;const gate=new Promise(resolve=>release=resolve),intercepted=new Promise(resolve=>notify=resolve);
+  await page.route('**/api/editor-draft',async route=>{if(route.request().method()==='PUT'&&!held){held=true;notify();await gate;}await route.continue();});
+  try{
+    await address.fill('DEMO editare înainte de răspuns');await expect(state).toContainText('Modificări nesalvate încă');await intercepted;
+    await address.fill('DEMO text nou în timpul salvării');await expect(state).toContainText('Salvăm automat');await page.screenshot({path:folder+'/saving-newer-edits.png',fullPage:true});
+  }finally{release();}
+  await expect.poll(async()=>((await (await page.request.get('/api/editor-draft')).json()).draft||{}).exactAddress).toBe('DEMO text nou în timpul salvării');await expect(state).toContainText('Salvat acum');
+  await page.reload();await page.getByRole('button',{name:'Continuă editarea',exact:true}).press('Enter');await expect(page.locator('[name=exactAddress]')).toHaveValue('DEMO text nou în timpul salvării');
+  await page.screenshot({path:folder+'/after-recovery.png',fullPage:true});
+});
+
 test('search filters, detail, favorites and comparison',async({page},info)=>{
   await login(page,'buyer');await page.goto('/atelier?view=browse&transaction=sale&currency=EUR');
   if(page.viewportSize().width<=620){await page.setViewportSize({width:375,height:812});await page.getByRole('button',{name:'Filtrează rezultatele',exact:true}).press('Enter');await page.locator('#modal [name=district]').selectOption('Centru');await expect(page.locator('#modal button[type=submit]')).toHaveText('Arată 2 rezultate');const folder='outputs/e2e/'+info.project.name+'/filters';await mkdir(folder,{recursive:true});await page.screenshot({path:folder+'/mobile-panel.png'});await page.locator('#modal button[type=submit]').press('Enter');}
