@@ -115,6 +115,22 @@ for(const viewport of [{width:375,height:812},{width:768,height:1024},{width:128
   await page.goto('/atelier?view=favorites');for(let n=0;n<2;n++)await page.locator('.favorite-compare-button[aria-pressed="false"]').first().press('Enter');await page.getByRole('button',{name:'Compară proprietățile ↗',exact:true}).press('Enter');await capture('comparison');await page.keyboard.press('Escape');
   await page.goto('/atelier?view=messages&conversation='+id);await capture('conversation');
   await login(page,'owner');await page.goto('/atelier');await expect(page.getByRole('button',{name:'Publică anunț +',exact:true})).toBeEnabled();await page.getByRole('button',{name:'Publică anunț +',exact:true}).press('Enter');await page.getByRole('button',{name:'Vreau să vând →',exact:true}).press('Enter');await capture('editor');
+  await page.goto('/atelier?view=account');await expect(page.locator('.owner-listing')).toHaveCount(8);await capture('owner');
+  const geometry=await page.locator('.owner-filter').evaluateAll(buttons=>buttons.map(button=>{
+    const box=button.getBoundingClientRect(),range=document.createRange();range.selectNodeContents(button);const label=range.getBoundingClientRect();
+    return {text:button.textContent,left:box.left,right:box.right,top:box.top,bottom:box.bottom,width:box.width,height:box.height,labelLeft:label.left,labelRight:label.right};
+  }));
+  expect(geometry).toHaveLength(6);
+  for(const button of geometry){
+    expect(button.labelLeft,button.text+' left edge').toBeGreaterThanOrEqual(button.left+1);expect(button.labelRight,button.text+' right edge').toBeLessThanOrEqual(button.right-1);
+    expect(button.width,button.text+' touch width').toBeGreaterThanOrEqual(44);expect(button.height,button.text+' touch height').toBeGreaterThanOrEqual(44);
+    expect(button.left,button.text+' viewport left').toBeGreaterThanOrEqual(0);expect(button.right,button.text+' viewport right').toBeLessThanOrEqual(viewport.width);
+  }
+  for(let i=0;i<geometry.length;i++)for(let j=i+1;j<geometry.length;j++){const a=geometry[i],b=geometry[j];expect(a.right<=b.left||b.right<=a.left||a.bottom<=b.top||b.bottom<=a.top,a.text+' / '+b.text+' do not overlap').toBeTruthy();}
+  await writeFile(folder+'/owner-filter-geometry.json',JSON.stringify(geometry,null,2));
+  const filters=page.locator('.owner-filter');await filters.first().focus();for(let i=1;i<6;i++){await page.keyboard.press('Tab');await expect(filters.nth(i)).toBeFocused();}
+  await page.keyboard.press('Enter');await expect(filters.last()).toHaveAttribute('aria-pressed','true');await expect(page.locator('.owner-results')).toContainText('Niciun anunț în această selecție.');
+  await page.getByRole('button',{name:'Arată toate anunțurile',exact:true}).press('Enter');await expect(filters.first()).toHaveAttribute('aria-pressed','true');await expect(page.locator('.owner-listing')).toHaveCount(8);
   await writeFile(folder+'/axe.json',JSON.stringify(report,null,2));await info.attach('axe-report',{body:JSON.stringify(report),contentType:'application/json'});
 });
 
