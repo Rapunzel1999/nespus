@@ -1,0 +1,12 @@
+{
+  "name": "intre-noi-local-e2e-only",
+  "main": "worker.mjs",
+  "compatibility_date": "2026-05-15",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": false,
+  "preview_urls": false,
+  "vars": {"INTRE_NOI_TEST_MODE": "local-d1-only", "INTRE_NOI_BUILD": "test"},
+  "d1_databases": [{"binding": "DB", "database_name": "intre-noi-local-e2e-only", "database_id": "00000000-0000-4000-8000-000000000000"}],
+  "assets": {"directory": "../../public", "binding": "ASSETS", "run_worker_first": true},
+  "rules": [{"type": "Text", "globs": ["**/*.html", "**/*.sql"], "fallthrough": true}]
+}

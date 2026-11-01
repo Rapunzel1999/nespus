@@ -15,7 +15,10 @@
     "test": "node --test tests/*.test.mjs",
     "typecheck": "tsc --noEmit",
     "db:migrate": "node scripts/migrate-local.mjs",
-    "sms:preflight": "node scripts/twilio-preflight.mjs"
+    "sms:preflight": "node scripts/twilio-preflight.mjs",
+    "test:e2e": "playwright test",
+    "test:production-isolation": "node scripts/check-production-isolation.mjs",
+    "qa": "node scripts/run-qa.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",
@@ -45,8 +48,10 @@
     "zod": "^3.25.76"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.14.0",
     "@cloudflare/vite-plugin": "1.37.1",
     "@cloudflare/workers-types": "4.20260515.1",
+    "@playwright/test": "^1.64.1",
     "@tailwindcss/postcss": "4.2.1",
     "@types/node": "22.19.19",
     "@types/react": "19.2.14",
@@ -57,6 +62,7 @@
     "eslint": "9.39.4",
     "eslint-config-next": "16.3.4",
     "json-rpc-2.0": "1.7.1",
+    "lighthouse": "^13.5.0",
     "raw-body": "3.0.2",
     "react-server-dom-webpack": "19.2.6",
     "tailwindcss": "4.2.1",
