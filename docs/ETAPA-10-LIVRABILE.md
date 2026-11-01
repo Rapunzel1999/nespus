@@ -62,3 +62,11 @@ Fișiere: `lib/model.mjs` plafonează totalul fotografiilor pentru limita de râ
 Rulat: `pnpm test` — **96/96**; `pnpm run typecheck` — exit 0; `pnpm build` — exit 0; `pnpm run test:production-isolation` — exit 0. Datele de căutare rămân fără imagine inline. Nu s-a migrat nicio bază găzduită și nu s-a activat stocare cu facturare.
 
 Capturi înainte: artefactul L1. După și Lighthouse: suita browser din CI pentru această ramură (rezultatul se completează după execuție). Schimbarea nu produce un nou layout; comparația nu poate demonstra optimizarea variantelor, care nu este implementată. Pragul de ~100 KB pentru fotografii reale și migrarea variantelor rămân neverificate/blocate de decizia de stocare. Nu se confundă dimensiunea fotografiilor DEMO uniforme cu o medie de producție.
+
+## L3 — ierarhie vizuală și mobil
+
+Fișiere: `public/design.css` formalizează verde/crem, culori semantice, spațiere și tipografie; `lib/document.html` încarcă stratul comun; `public/app.js` reorganizează cardurile (fotografie 4:3, preț/monedă/tranzacție, date, disponibilitate, favorite), adaugă sumarul mobil și bara de acțiuni, glisare în galerie și nume accesibile concordante. `lib/api.mjs` și `lib/model.mjs` expun doar data evenimentelor reale de publicare/reconfirmare, fără a transforma o simplă editare în reconfirmare. Testele și seed-ul DEMO sunt adaptate.
+
+Rulat: `pnpm test` — **97/97**; `pnpm run typecheck` și `pnpm build` — exit 0. Caz nou: editarea anunțului nu falsifică data disponibilității. Selectorii E2E păstrează verificarea reală a salvării favoritelor și adaugă navigarea galeriei cu tastatura.
+
+Capturi înainte: L1. Capturi după, axe și Lighthouse: CI pentru ramura L3; rezultatul se consemnează după rulare. Nu s-au folosit imagini noi, statistici sau testimoniale. Fotografiile DEMO sunt numai în test. Comportamentul tactil este implementat, dar nu a fost verificat pe iPhone fizic. Contrastele sunt corectate pentru constatările L1; certificarea tuturor paginilor rămâne în L8.

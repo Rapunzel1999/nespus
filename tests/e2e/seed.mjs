@@ -12,6 +12,7 @@ export async function seed(db,now=Date.now()) {
   for(let n=1;n<=8;n++){
     const id=listingId(n),district=['Centru','Gheorgheni','Zorilor','Mărăști'][(n-1)%4];
     await q('INSERT INTO listings(id,owner_id,title,"transaction",type,district,price,currency,area,rooms,description,photos,exact_address,relationship,status,created_at,updated_at,available_until) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',id,'DEMO-owner','DEMO Locuință '+n,n>6?'rent':'sale','apartment',district,n>6?700:120000+n*5000,'EUR',50+n*5,2,'DEMO: proprietate fictivă, generată exclusiv pentru testarea locală. Nu reprezintă o ofertă reală.',JSON.stringify([demoPhoto,demoPhoto]),'DEMO ADRESĂ PRIVATĂ','owner','published',now-n*1000,now-n*1000,now+30*DAY).run();
+    await q('INSERT INTO audit_events(id,actor_id,action,target_id,created_at) VALUES (?,?,?,?,?)',listingId(200+n),'DEMO-moderator','listing_published',id,now-n*DAY).run();
     await q('INSERT INTO declarations(id,user_id,kind,version,listing_id,accepted_at,text_snapshot) VALUES (?,?,?,?,?,?,?)',listingId(100+n),'DEMO-owner','owner',VERSION,id,now,DECLARATIONS.owner).run();
   }
 }

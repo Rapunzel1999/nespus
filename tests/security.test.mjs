@@ -725,3 +725,14 @@ test('combined valid JPEG uploads leave room inside the D1 row limit',()=>{
   assert.equal(validateListing({...draftInput,photos:[photo]}).photos.length,1);
   assert.throws(()=>validateListing({...draftInput,photos:Array(5).fill(photo)}),/prea mult spațiu/);
 });
+
+test('availability dates come from audit events, never general edit timestamps',async()=>{
+  const f=fixture();f.listing();
+  assert.equal((await f.request('/listings')).data.listings[0].availabilityConfirmedAt,null);
+  f.sql.prepare('INSERT INTO audit_events(id,actor_id,action,target_id,created_at) VALUES (?,?,?,?,?)').run(lid(100),'mod','listing_published',lid(1),NOW-2*DAY);
+  assert.equal((await f.request('/listings/'+lid(1))).data.listing.availabilityConfirmedAt,NOW-2*DAY);
+  f.sql.prepare('UPDATE listings SET updated_at=?').run(NOW);
+  assert.equal((await f.request('/listings')).data.listings[0].availabilityConfirmedAt,NOW-2*DAY);
+  await f.request('/listings/'+lid(1)+'/reconfirm',{as:'owner',method:'POST'});
+  assert.equal((await f.request('/listings')).data.listings[0].availabilityConfirmedAt,NOW);
+});
