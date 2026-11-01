@@ -163,10 +163,10 @@ function pricePerSquareMeter(l){
 }
 function roomLabel(rooms){return Number(rooms)===1?'1 cameră':rooms+' camere';}
 function cards(listings){
-  return el('div',{class:'cards'},...listings.map(l=>{
+  return el('div',{class:'cards'},...listings.map((l,index)=>{
     const linkAttrs={href:'/atelier?listing='+encodeURIComponent(l.id),onclick:e=>{if(modifiedClick(e))return;e.preventDefault();detail(l.id);}};
     const metric=pricePerSquareMeter(l);
-    return el('article',{class:'card property-card'},el('div',{class:'card-image'},el('a',{...linkAttrs,class:'card-photo-link','aria-label':'Deschide '+l.title},l.photos?.[0]?el('img',{src:l.photos[0],alt:l.title,loading:'lazy',decoding:'async'}):el('div',{class:'photo-placeholder'},el('span',{'aria-hidden':'true'},'⌂'),el('span',{},'Fotografii indisponibile'))),el('span',{class:'pill'},l.transaction==='rent'?'DE ÎNCHIRIAT':'DE VÂNZARE'),favoriteButton(l.id,true)),
+    return el('article',{class:'card property-card'},el('div',{class:'card-image'},el('a',{...linkAttrs,class:'card-photo-link','aria-label':'Deschide '+l.title},l.photos?.[0]?el('img',{src:l.photos[0],alt:l.title,width:800,height:600,loading:index===0?'eager':'lazy',decoding:'async'}):el('div',{class:'photo-placeholder'},el('span',{'aria-hidden':'true'},'⌂'),el('span',{},'Fotografii indisponibile'))),el('span',{class:'pill'},l.transaction==='rent'?'DE ÎNCHIRIAT':'DE VÂNZARE'),favoriteButton(l.id,true)),
       el('div',{class:'card-body'},el('p',{class:'card-location'},l.district+' · Cluj-Napoca'),el('h3',{},el('a',{...linkAttrs,class:'card-title'},l.title)),el('div',{class:'card-facts'},el('span',{},typeNames[l.type]||l.type),el('span',{},l.area+' m²'),l.rooms?el('span',{},roomLabel(l.rooms)):null),
         el('div',{class:'card-footer'},el('div',{},el('div',{class:'price'},money(l.price,l.currency),l.transaction==='rent'?el('small',{},' / lună'):null),metric?el('p',{class:'card-unit-price'},metric):null),el('span',{class:'card-direct'},'Direct de la proprietar')),
         l.transaction==='rent'?el('p',{class:'rental-card-note'},l.rentDeposit!=null?'Garanție: '+money(l.rentDeposit,l.currency):'Garanție nespecificată'):null,
@@ -853,20 +853,20 @@ function openPhotoViewer(l,start=0,onSelect=()=>{}){
   const stage=el('div',{class:'viewer-stage'},image);
   if(photos.length>1){const prev=b('‹',()=>update(selected-1),'gallery-arrow previous'),next=b('›',()=>update(selected+1),'gallery-arrow next');prev.setAttribute('aria-label','Fotografia precedentă');next.setAttribute('aria-label','Fotografia următoare');stage.append(prev,next);}
   const root=el('section',{class:'photo-viewer'},el('div',{class:'viewer-heading'},el('h2',{id:'photo-viewer-title'},l.title),status),stage);
-  if(photos.length>1){photos.forEach((src,index)=>thumbs.push(el('button',{type:'button',class:'gallery-thumbnail','aria-label':'Vezi fotografia '+(index+1),onclick:()=>update(index)},el('img',{src,alt:'',loading:'lazy'}))));root.append(el('div',{class:'gallery-thumbnails','aria-label':'Alege fotografia mărită'},...thumbs),el('p',{class:'viewer-hint'},'← → pentru fotografii · Esc pentru închidere'));}
+  if(photos.length>1){photos.forEach((src,index)=>thumbs.push(el('button',{type:'button',class:'gallery-thumbnail','aria-label':'Vezi fotografia '+(index+1),onclick:()=>update(index)},el('img',{src,alt:'',width:120,height:90,loading:'lazy'}))));root.append(el('div',{class:'gallery-thumbnails','aria-label':'Alege fotografia mărită'},...thumbs),el('p',{class:'viewer-hint'},'← → pentru fotografii · Esc pentru închidere'));}
   const onKeydown=event=>{const moves={ArrowLeft:selected-1,ArrowRight:selected+1,Home:0,End:photos.length-1};if(Object.hasOwn(moves,event.key)){event.preventDefault();update(moves[event.key]);}};
   update(Number.isInteger(start)?Math.max(0,Math.min(photos.length-1,start)):0);openModal(root,{className:'photo-dialog',label:'Fotografii · '+l.title,onKeydown});
 }
 function photoGallery(l){
   const photos=l.photos||[];if(!photos.length)return el('div',{class:'photo-placeholder detail-placeholder'},el('span',{'aria-hidden':'true'},'⌂'),el('p',{},'Fotografii indisponibile'));
-  let selected=0;const image=el('img',{class:'detail-photo',src:photos[0],alt:'Fotografia 1 din '+photos.length+' · '+l.title,decoding:'async'});
+  let selected=0;const image=el('img',{class:'detail-photo',width:1200,height:900,src:photos[0],alt:'Fotografia 1 din '+photos.length+' · '+l.title,decoding:'async'});
   const status=el('span',{class:'photo-counter','aria-live':'polite'},'1 / '+photos.length),thumbnails=[];
   const update=index=>{selected=(index+photos.length)%photos.length;image.src=photos[selected];image.alt='Fotografia '+(selected+1)+' din '+photos.length+' · '+l.title;status.textContent=(selected+1)+' / '+photos.length;thumbnails.forEach((button,i)=>button.setAttribute('aria-pressed',String(i===selected)));};
   const stage=el('div',{class:'gallery-stage'},image,status,b('Mărește fotografiile ↗',()=>openPhotoViewer(l,selected,update),'gallery-expand'));
   if(photos.length>1){const prev=b('‹',()=>update(selected-1),'gallery-arrow previous'),next=b('›',()=>update(selected+1),'gallery-arrow next');prev.setAttribute('aria-label','Fotografia precedentă');next.setAttribute('aria-label','Fotografia următoare');stage.append(prev,next);}
   const container=el('div',{class:'property-gallery',tabindex:'0','aria-label':'Galerie fotografii. Folosește săgețile pentru a schimba fotografia.'},stage);
   container.addEventListener('keydown',e=>{if(e.target!==container)return;if(e.key==='ArrowRight'){e.preventDefault();update(selected+1);}if(e.key==='ArrowLeft'){e.preventDefault();update(selected-1);}});
-  if(photos.length>1){for(const[src,index]of photos.map((src,index)=>[src,index]))thumbnails.push(el('button',{type:'button',class:'gallery-thumbnail','aria-label':'Vezi fotografia '+(index+1),'aria-pressed':String(index===0),onclick:()=>update(index)},el('img',{src,alt:'',loading:'lazy'})));container.append(el('div',{class:'gallery-thumbnails','aria-label':'Alege fotografia'},...thumbnails));}
+  if(photos.length>1){for(const[src,index]of photos.map((src,index)=>[src,index]))thumbnails.push(el('button',{type:'button',class:'gallery-thumbnail','aria-label':'Vezi fotografia '+(index+1),'aria-pressed':String(index===0),onclick:()=>update(index)},el('img',{src,alt:'',width:120,height:90,loading:'lazy'})));container.append(el('div',{class:'gallery-thumbnails','aria-label':'Alege fotografia'},...thumbnails));}
   return container;
 }
 
