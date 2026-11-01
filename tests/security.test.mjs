@@ -32,7 +32,7 @@ function fixture() {
   };
   const request=async(path,{as=null,method='GET',data,headers={},now=NOW,...extra}={})=>{
     const response=await handleApi(new Request('https://test.invalid/api'+path,{method,headers:{...(method==='GET'?{}:{origin:'https://test.invalid','content-type':'application/json'}),...headers},...(data===undefined?{}:{body:JSON.stringify(data)})}),db,{principal:as?identity(as):null,moderatorEmails:['mod@test.invalid','mod2@test.invalid'],now,...extra});
-    return {status:response.status,data:response.headers.get('content-type')?.startsWith('image/')?new Uint8Array(await response.arrayBuffer()):await response.json(),headers:response.headers};
+    return {status:response.status,data:response.status===304?null:response.headers.get('content-type')?.startsWith('image/')?new Uint8Array(await response.arrayBuffer()):await response.json(),headers:response.headers};
   };
   const contact=(listingId=lid(1),as='buyer',extra={})=>request('/contact-requests',{as,method:'POST',data:{listingId,purpose:'Doresc să cumpăr această locuință pentru familia mea.',contactDeclaration:true,declarationVersion:VERSION,...extra}});
   const accepted=async()=>{listing();const c=await contact();assert.equal(c.status,201,JSON.stringify(c));assert.equal((await request('/conversations/'+c.data.id+'/decision',{as:'owner',method:'POST',data:{decision:'accepted'}})).status,200);return c.data.id;};
@@ -657,10 +657,10 @@ test('past viewing proposals cannot be accepted and the response is bounded to r
   const r=await f.request('/conversations/'+c,{as:'buyer'});assert.equal(r.data.viewings.length,100);assert.equal(r.data.viewingsHasMore,true);assert.equal(r.data.viewings.at(-1).id,lid(6105));
 });
 
-test('public images are JPEG bytes with same-origin no-store headers and obey live eligibility',async()=>{
+test('public images are JPEG bytes with same-origin revalidation headers and obey live eligibility',async()=>{
   const f=fixture();f.listing();f.sql.prepare('UPDATE listings SET photos=?').run(JSON.stringify(draftInput.photos));
   const path='/listings/'+lid(1)+'/photos/0';
-  const image=await f.request(path);assert.equal(image.status,200);assert.equal(image.headers.get('content-type'),'image/jpeg');assert.equal(image.headers.get('cache-control'),'private, no-store');assert.equal(image.headers.get('cross-origin-resource-policy'),'same-origin');assert.equal(image.headers.get('x-content-type-options'),'nosniff');assert.deepEqual(Buffer.from(image.data),Buffer.from(draftInput.photos[0].split(',')[1],'base64'));
+  const image=await f.request(path);assert.equal(image.status,200);assert.equal(image.headers.get('content-type'),'image/jpeg');assert.equal(image.headers.get('cache-control'),'private, no-cache');assert.equal(image.headers.get('cross-origin-resource-policy'),'same-origin');assert.equal(image.headers.get('x-content-type-options'),'nosniff');assert.deepEqual(Buffer.from(image.data),Buffer.from(draftInput.photos[0].split(',')[1],'base64'));
   for(const state of ['draft','pending','withdrawn','sold','rented','rejected']){f.sql.prepare('UPDATE listings SET status=?').run(state);assert.equal((await f.request(path)).status,404);}
   f.sql.prepare("UPDATE listings SET status='published',available_until=?").run(NOW);assert.equal((await f.request(path)).status,404);
   f.sql.prepare('UPDATE listings SET available_until=?').run(NOW+DAY);
@@ -701,4 +701,27 @@ test('re-verifying the same confirmed own phone does not call the provider or co
   const r=await f.request('/phone/start',{as:'buyer',method:'POST',data:{phone},sms:smsFixture,fetcher:async()=>{calls++;throw Error('No provider call is allowed.');}});
   assert.equal(r.status,409);assert.equal(r.data.code,'PHONE_ALREADY_VERIFIED');assert.equal(calls,0);
   assert.equal(f.sql.prepare('SELECT count(*) AS n FROM rate_limits').get().n,0);
+});
+
+
+test('conditional images recheck eligibility and ownership before returning 304',async()=>{
+  const f=fixture();f.listing();f.sql.prepare('UPDATE listings SET photos=?').run(JSON.stringify(draftInput.photos));
+  const path='/listings/'+lid(1)+'/photos/0',first=await f.request(path),etag=first.headers.get('etag');
+  assert.match(etag,/^"[a-f0-9]{64}"$/);
+  for(const value of [etag,'W/'+etag,'"stale", '+etag,'*'])assert.equal((await f.request(path,{headers:{'If-None-Match':value}})).status,304);
+  const other='data:image/jpeg;base64,'+Buffer.from(jpeg.encode({data:Buffer.from([1,2,3,255]),width:1,height:1},75).data).toString('base64');
+  f.sql.prepare('UPDATE listings SET photos=?').run(JSON.stringify([other]));
+  const changed=await f.request(path,{headers:{'If-None-Match':etag}});assert.equal(changed.status,200);assert.notEqual(changed.headers.get('etag'),etag);
+  const headers={'If-None-Match':changed.headers.get('etag')};
+  assert.equal((await f.request('/mine/'+lid(1)+'/photos/0',{as:'buyer',headers})).status,404);
+  for(const mutation of ["UPDATE listings SET status='withdrawn'","UPDATE listings SET status='published',available_until=0","UPDATE listings SET available_until=9999999999999; UPDATE users SET status='suspended' WHERE id='owner'"]){f.sql.exec(mutation);assert.equal((await f.request(path,{headers})).status,404);}
+});
+
+test('combined valid JPEG uploads leave room inside the D1 row limit',()=>{
+  let n=7;const width=520,height=420,data=Buffer.alloc(width*height*4);
+  for(let i=0;i<data.length;i++){n=(n*1664525+1013904223)>>>0;data[i]=i%4===3?255:n>>>24;}
+  const photo='data:image/jpeg;base64,'+Buffer.from(jpeg.encode({data,width,height},75).data).toString('base64');
+  assert.ok(photo.length<400000);assert.ok(photo.length*5>1800000);
+  assert.equal(validateListing({...draftInput,photos:[photo]}).photos.length,1);
+  assert.throws(()=>validateListing({...draftInput,photos:Array(5).fill(photo)}),/prea mult spațiu/);
 });

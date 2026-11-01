@@ -54,3 +54,11 @@ Axe în L1 este raportat, nu folosit încă drept criteriu de blocare. La 375 px
 Nicio problemă critical în aceste rapoarte. Desktop/tabletă au și ele probleme de contrast și nume accesibile pe acasă, anunț și editor. WebKit are rezultate similare (23 noduri de contrast pe acasă la 375 px). Numerele sunt noduri raportate pentru fiecare regulă, nu probleme juridice/WCAG distincte. L3 și L8 trebuie să remedieze aceste constatări și să reruleze auditul. Dialogul deschis de comparație exclude conținutul inert din spate; nu certifică întreaga pagină de favorite.
 
 Nu au fost verificate: SMS real, două conturi SIWC găzduite, iPhone fizic, Android, VoiceOver. Nu s-a făcut livrare Sites în această etapă. Nicio migrare sau scriere în D1 găzduit; SMS și audiența nu au fost modificate.
+
+## L2 — fotografii existente; variante oprite la decizia de arhitectură
+
+Fișiere: `lib/model.mjs` plafonează totalul fotografiilor pentru limita de rând D1; `lib/api.mjs` servește ETag după autorizare și permite revalidare 304; `public/app.js` rezervă dimensiuni pentru fotografii și încarcă imediat prima imagine din rezultate; `tests/security.test.mjs` verifică schimbarea conținutului, accesul condițional revocat și fotografii valide care împreună depășesc bugetul. Motivul opririi variantelor, propunerea și limitele sunt în `DECISIONS-PENDING.md`.
+
+Rulat: `pnpm test` — **96/96**; `pnpm run typecheck` — exit 0; `pnpm build` — exit 0; `pnpm run test:production-isolation` — exit 0. Datele de căutare rămân fără imagine inline. Nu s-a migrat nicio bază găzduită și nu s-a activat stocare cu facturare.
+
+Capturi înainte: artefactul L1. După și Lighthouse: suita browser din CI pentru această ramură (rezultatul se completează după execuție). Schimbarea nu produce un nou layout; comparația nu poate demonstra optimizarea variantelor, care nu este implementată. Pragul de ~100 KB pentru fotografii reale și migrarea variantelor rămân neverificate/blocate de decizia de stocare. Nu se confundă dimensiunea fotografiilor DEMO uniforme cu o medie de producție.
