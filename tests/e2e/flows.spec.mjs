@@ -4,7 +4,7 @@ import {mkdir,writeFile} from 'node:fs/promises';
 import {listingId,draftInput} from './seed.mjs';
 const origin='http://127.0.0.1:4180';
 const headers={origin};
-async function login(page,role){const r=await page.request.post('/__test/login',{headers,data:{role}});expect(r.ok()).toBeTruthy();}
+async function login(page,role){await page.evaluate(()=>{if(typeof S!=='undefined'){clearTimeout(S.messagePollTimer);S.messagePollGeneration=(S.messagePollGeneration||0)+1;}}).catch(()=>{});const r=await page.request.post('/__test/login',{headers,data:{role}});expect(r.ok()).toBeTruthy();}
 async function post(page,path,data={}){return page.request.post(path,{headers,data});}
 async function accepted(page){await login(page,'buyer');const r=await post(page,'/api/contact-requests',{listingId:listingId(1),purpose:'DEMO: Caut o locuință pentru mine și doresc o vizionare.',contactDeclaration:true,declarationVersion:draftInput.declarationVersion});expect(r.status()).toBe(201);const {id}=await r.json();await login(page,'owner');expect((await post(page,'/api/conversations/'+id+'/decision',{decision:'accepted'})).ok()).toBeTruthy();return id;}
 test.beforeEach(async({request})=>{const r=await request.post('/__test/reset',{headers});expect(r.status()).toBe(200);});
@@ -48,14 +48,14 @@ test('search filters, detail, favorites and comparison',async({page},info)=>{
   await expect(page.getByRole('dialog')).toBeVisible();await expect(page.getByRole('table')).toBeVisible();
 });
 
-test('request, acceptance, messages, viewing and explicit phone disclosure',async({page})=>{
+test('request, acceptance, messages, viewing and explicit phone disclosure',async({page},info)=>{
   await login(page,'buyer');await page.goto('/atelier?listing='+listingId(1));await page.locator('.detail-panel .property-contact-button').click();
   await page.locator('#modal textarea').fill('DEMO: Mă interesează această locuință pentru uz personal.');await page.locator('#modal input[type=checkbox]').check();await page.getByRole('button',{name:'Trimite solicitarea',exact:true}).click();
   await expect(page).toHaveURL(/conversation=/);const id=new URL(page.url()).searchParams.get('conversation');
   await login(page,'owner');await page.reload();await page.getByRole('button',{name:'Acceptă conversația',exact:true}).click();await expect(page.locator('.conversation-composer')).toBeVisible();
   await login(page,'buyer');await page.reload();await page.locator('textarea[name=body]').fill('DEMO: Putem stabili o vizionare?');await page.getByRole('button',{name:'Trimite mesajul ↗',exact:true}).click();await expect(page.locator('.message-bubble')).toContainText('DEMO: Putem stabili o vizionare?');
   await page.getByRole('button',{name:'Propune o vizionare →',exact:true}).click();const time=Date.now()+2*86400000;const value=new Intl.DateTimeFormat('sv-SE',{timeZone:'Europe/Bucharest',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}).format(time).replace(' ','T');await page.locator('[name=startsAt]').fill(value);await expect(page.locator('.viewing-time-preview')).toContainText('Europe/Bucharest');await page.getByRole('button',{name:'Trimite propunerea',exact:true}).click();await expect(page.locator('.viewing-card')).toContainText('Așteaptă confirmarea');
-  await login(page,'owner');await page.reload();await page.getByRole('button',{name:'Confirmă vizionarea',exact:true}).click();await expect(page.locator('.viewing-card')).toContainText('Confirmată');
+  await login(page,'owner');await page.goto('/atelier');await expect(page).toHaveTitle(/^\(1\)/);await expect(page.locator('[data-message-nav]:visible').first()).toContainText('(1)');await page.goto('/atelier?view=messages&conversation='+id);await expect(page.locator('.inbox-awaiting')).toBeVisible();await expect.poll(async()=>(await (await page.request.get('/api/notifications')).json()).unreadMessages).toBe(0);await page.getByRole('button',{name:'Confirmă vizionarea',exact:true}).click();await expect(page.locator('.viewing-card')).toContainText('Confirmată');const downloadPromise=page.waitForEvent('download');await page.getByRole('link',{name:'Descarcă în calendar (.ics)',exact:true}).click();const download=await downloadPromise;const folder='outputs/e2e/'+info.project.name+'/calendar';await mkdir(folder,{recursive:true});await download.saveAs(folder+'/vizionare.ics');await page.screenshot({path:folder+'/confirmed.png',fullPage:true});
   await page.locator('.conversation-safety summary').click();await page.getByRole('button',{name:'Oferă acces la numărul meu',exact:true}).click();await page.getByRole('button',{name:'Ofer acces acestei persoane',exact:true}).click();await expect(page.locator('.conversation-safety')).toContainText('Ai oferit acces la telefon');
   await login(page,'buyer');await page.reload();await expect(page.locator('.shared-phone a')).toHaveAttribute('href',/^tel:/);expect((await (await page.request.get('/api/conversations/'+id)).json()).phone).toBeTruthy();
 });

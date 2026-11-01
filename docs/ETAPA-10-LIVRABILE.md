@@ -108,3 +108,17 @@ Capturi înainte: L4; după: CI L5. Nu s-au rulat migrări găzduite. Nu s-au te
 ### Ajustări ale verificării L5
 
 Prima rulare CI L5, `41315264861`: toate cele 103 teste Node, TypeScript și build au trecut; browserul a avut 18 cazuri trecute și 1 eșec WebKit. Testul căuta titlul ciornei, care exista deja în rezumatul editorului, înainte de încheierea salvării în cont. Așteptarea este acum ancorată în URL-ul și inventarul contului. Verificarea runtime a producției a expirat după cinci minute la un fetch fără timeout propriu. Comenzile au fost corectate să indice pasul, să limiteze fiecare probă la 15 secunde și să includă diagnosticul Worker-ului dacă eșuează. Nu s-a relaxat nicio aserțiune de izolare.
+
+### Confirmare L5 pe CI
+
+[Run 41316015177](https://github.com/Rapunzel1999/nespus/actions/runs/41316015177), commit `698de5d4a266c3eb0c8310cb11cd37e14e594630`: workflow finalizat cu succes. [Artefact 13087058721](https://github.com/Rapunzel1999/nespus/actions/runs/41316015177/artifacts/13087058721); captura editorului WebKit la 375 px a fost inspectată. Aceasta verifică redarea browserului simulat, nu un dispozitiv fizic.
+
+## L6 — conversații actualizate și calendar privat
+
+Fișiere: `public/messages-live.js` separă indicatorii și polling-ul; `public/app.js` adaugă secțiunea «Așteaptă răspunsul tău», mesaje necitite în navigație/titlu, ghidul neutru și descărcarea calendarului. `lib/calendar.mjs` produce iCalendar privat; `lib/api.mjs`, schema și migrarea aditivă `0003_cheerful_the_professor.sql` stochează citirea fiecărui mesaj afișat. Testele verifică accesul, concurența, idempotenta, vizibilitatea filei și calendarul.
+
+Nu există notificări externe. Polling-ul pornește la afișarea filei, apoi așteaptă 10/20/40/60 secunde fără schimbări; o schimbare revine la 10 secunde. Fila ascunsă nu inițiază alte cereri; o cerere deja în zbor poate termina, dar rezultatul ei este ignorat. Estimare algoritmică, nu măsurare de facturare: aproximativ 62 cicluri/oră vizibilă inactivă, 62 GET în afara conversațiilor, până la 186 GET cu inbox și conversație selectată; la schimbări continue, până la aproximativ 1080 GET/oră în acel ecran. Confirmările de citire sunt POST suplimentare numai pentru mesaje afișate; niciun tarif nou nu a fost activat.
+
+Calendarul conține fusul `Europe/Bucharest`, doar ora de început confirmată și cartierul; nu inventează durata/adresa, participanți sau invitații. Ambele instanțe ale orei repetate la trecerea la ora de iarnă folosesc UTC pentru a păstra momentul exact între clienți. Parserul independent `ical.js` verifică iarna, vara și ambele instanțe. Surse: [RFC 5545](https://www.rfc-editor.org/rfc/rfc5545.html) și [IANA Europe](https://data.iana.org/time-zones/tzdb/europe). Importurile manuale în Apple/Google/Outlook rămân neefectuate; captura descărcării din aplicație nu le înlocuiește.
+
+Rulat: `pnpm test` — **109/109**; `pnpm typecheck`, `pnpm build`, `pnpm db:migrate`, `pnpm test:production-isolation` — exit 0. Migrare numai locală. Capturi înainte: L5; după: artefactul CI L6, inclusiv vizionarea confirmată și fișierul ICS. Rezultatul E2E al ramurii se consemnează după rulare. SMS rămâne oprit; fără email/push, conturi noi sau date găzduite modificate.
