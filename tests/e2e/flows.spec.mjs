@@ -14,7 +14,7 @@ test('draft, simulated phone, submission, independent moderation',async({page})=
   await page.goto('/atelier');await page.getByRole('button',{name:'Publică anunț +',exact:true}).click();await page.getByRole('button',{name:'Vreau să vând →',exact:true}).click();
   await page.locator('[name=district]').selectOption('Centru');await page.locator('[name=price]').fill('120000');await page.locator('[name=area]').fill('60');await page.locator('[name=rooms]').fill('2');
   await page.getByRole('button',{name:'Continuă →',exact:true}).click();
-  await page.locator('[name=title]').fill('DEMO Ciornă creată în browser');await page.locator('[name=description]').fill(draftInput.description);
+  await page.locator('[name=title]').fill('DEMO Ciornă creată în browser');await page.locator('textarea[name=description]').fill(draftInput.description);
   await page.getByLabel('Adaugă fotografii',{exact:true}).setInputFiles({name:'DEMO.jpg',mimeType:'image/jpeg',buffer:Buffer.from(draftInput.photos[0].split(',')[1],'base64')});
   await expect(page.locator('.editor-photo')).toHaveCount(1);await page.locator('[name=ownerDeclaration]').check();await page.getByRole('button',{name:'Salvează ciorna',exact:true}).click();
   await expect(page.getByText('DEMO Ciornă creată în browser',{exact:true})).toBeVisible();
@@ -36,8 +36,8 @@ test('search filters, detail, favorites and comparison',async({page})=>{
   await expect(page.locator('.property-card')).toHaveCount(2);await expect(page).toHaveURL(/district=Centru/);
   await page.locator('.card-photo-link').first().click();await expect(page.locator('h1')).toContainText('DEMO');await expect(page.locator('body')).not.toContainText('DEMO ADRESĂ PRIVATĂ');
   await page.getByRole('button',{name:'Adaugă în favorite',exact:true}).click();await expect(page.getByRole('button',{name:'Elimină din favorite',exact:true})).toBeVisible();
-  await page.goto('/atelier?listing='+listingId(2));await page.getByRole('button',{name:'Adaugă în favorite',exact:true}).click();
-  await page.goto('/atelier?view=favorites');await page.getByRole('button',{name:'Compară această proprietate',exact:true}).nth(0).click();await page.getByRole('button',{name:'Compară această proprietate',exact:true}).nth(0).click();await page.getByRole('button',{name:'Compară proprietățile ↗',exact:true}).click();
+  await page.goto('/atelier?listing='+listingId(2));await page.getByRole('button',{name:'Adaugă în favorite',exact:true}).click();await expect(page.getByRole('button',{name:'Elimină din favorite',exact:true})).toBeVisible();
+  await page.goto('/atelier?view=favorites');await page.locator('.favorite-compare-button[aria-pressed="false"]').first().click();await page.locator('.favorite-compare-button[aria-pressed="false"]').first().click();await page.getByRole('button',{name:'Compară proprietățile ↗',exact:true}).click();
   await expect(page.getByRole('dialog')).toBeVisible();await expect(page.getByRole('table')).toBeVisible();
 });
 
@@ -73,7 +73,7 @@ for(const viewport of [{width:375,height:812},{width:768,height:1024},{width:128
   const report=[];
   async function capture(name){await expect(page.locator('#main-content')).toBeVisible();await expect(page.locator('.loading')).toHaveCount(0);await page.screenshot({path:folder+'/'+name+'.png',fullPage:true});const result=await new AxeBuilder({page}).analyze();report.push({page:name,violations:result.violations.map(v=>({id:v.id,impact:v.impact,description:v.description,nodes:v.nodes.map(n=>({target:n.target,summary:n.failureSummary}))}))});}
   await page.goto('/atelier');await capture('home');await page.goto('/atelier?view=browse&transaction=sale&currency=EUR');await capture('results');await page.goto('/atelier?listing='+listingId(1));await capture('listing');
-  await page.goto('/atelier?view=favorites');for(let n=0;n<2;n++)await page.getByRole('button',{name:'Compară această proprietate',exact:true}).first().click();await page.getByRole('button',{name:'Compară proprietățile ↗',exact:true}).click();await capture('comparison');await page.keyboard.press('Escape');
+  await page.goto('/atelier?view=favorites');for(let n=0;n<2;n++)await page.locator('.favorite-compare-button[aria-pressed="false"]').first().click();await page.getByRole('button',{name:'Compară proprietățile ↗',exact:true}).click();await capture('comparison');await page.keyboard.press('Escape');
   await page.goto('/atelier?view=messages&conversation='+id);await capture('conversation');
   await login(page,'owner');await page.goto('/atelier');await page.getByRole('button',{name:'Publică anunț +',exact:true}).click();await page.getByRole('button',{name:'Vreau să vând →',exact:true}).click();await capture('editor');
   await writeFile(folder+'/axe.json',JSON.stringify(report,null,2));await info.attach('axe-report',{body:JSON.stringify(report),contentType:'application/json'});
