@@ -95,3 +95,5 @@ button{touch-action:manipulation}summary{padding-block:12px}label.check{min-heig
   .conversation-thread:has(.conversation-composer:focus-within){padding-bottom:260px}
   body:has(.conversation-composer:focus-within) #toast{bottom:calc(var(--keyboard-inset,0px) + 220px)}
 }
+.brand-search .search-tabs button,.search-tabs button,.brand-search .advanced-search summary,.advanced-search summary,.comparison-chip,.conversation-saved-draft summary,.mobile-navigation button,.filter-chip,.report-listing,.footer button{min-height:44px}
+.gallery-arrow,.icon-button{min-width:44px;min-height:44px}
