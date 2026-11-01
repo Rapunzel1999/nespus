@@ -6,7 +6,7 @@ Această secțiune descrie starea actuală a codului. Secțiunile datate octombr
 
 ### Verificat automat
 
-- `pnpm test`: **115/115** teste Node/SQLite/DOM și parser ICS. Nu sunt 115 teste E2E; fișierul DOM conține și aserțiuni grupate.
+- `pnpm test`: **118/118** teste Node/SQLite/DOM și parser ICS. Nu sunt 118 teste E2E; fișierul DOM conține și aserțiuni grupate.
 - `pnpm typecheck`, `pnpm build`: exit 0. `pnpm test:production-isolation`: CI L8 și L9 exit 0; ultima verificare locală L9 a avut un timeout bootstrap de 15 secunde, apoi a trecut la reluare neschimbată. Intermitența este consemnată în raport, fără retry automat sau relaxarea aserțiunilor. Build-ul nu include login-ul DEMO sau providerul simulat; runtime-ul de producție ignoră cookie-ul DEMO chiar cu variabilele de test injectate.
 - `pnpm db:migrate`: migrările 0000–0004 verificate în D1 local; migrările aditive 0001–0004 sunt aplicate ulterior prin livrarea privată Sites a versiunii 13. `pnpm db:generate`: fără diferențe de schemă. Niciun seed, backfill sau DELETE pe baza găzduită.
 - `pnpm exec playwright test server.spec.mjs --project=chromium`: **1/1**, traseu HTTP real prin Worker/D1 local, fără instalarea unui browser local.
@@ -23,6 +23,10 @@ O singură comandă de verificare, după instalarea dependențelor și bibliotec
 Testul `hiding or restarting the poll during inbox refresh never starts a stale thread request` reproducea o cerere suplimentară pornită după ascunderea filei. După revalidarea vizibilității/generației între etapele polling-ului: `node --test tests/messages-live.test.mjs` 4/4, `pnpm test` 115/115, TypeScript și build exit 0. Testele de browser ale commitului de corecție sunt legate în PR-ul următor; nu sunt confundate cu rularea istorică L9.
 
 ### Livrare privată și limite browser
+
+Versiunea 14 a fost livrată privat la 1 noiembrie 2026, 21:07:54 Europe/Bucharest, cu corecția de polling. CI `41339694779`: 115 Node, 23 Playwright trecute și 1 omis intenționat; zero încălcări axe în 36 de evaluări. [PR #20](https://github.com/Rapunzel1999/nespus/pull/20) păstrează proveniența exactă a sursei, arhivei și livrării. Aceasta nu reprezintă testarea interfeței găzduite autentificate.
+
+Corecția ulterioară pentru ciorne adaugă trei regresii Node: răspunsul întârziat după ieșirea din cont, starea modificărilor noi și invalidarea unei declarații vechi la recuperare. Înainte: 2/5 trecute; după: 5/5. `pnpm test` 118/118, `pnpm run typecheck`, `pnpm build`, `pnpm run test:production-isolation`, `git diff --check` exit 0. Scenariul browser nou și capturile sunt urmărite în PR #21 și jurnalul livrării; nu se deduc rezultate browser din testele DOM.
 
 La 1 noiembrie 2026, 20:53:57 Europe/Bucharest, `save_version_and_deploy_private` a întors `succeeded`. Build-ul din mecanismul sursei a trecut. Schema a fost inspectată înainte și după: 13 → 16 tabele; fără date DEMO. CI L9 `41321120157`: 114 Node, 23 Playwright trecute, 1 omis intenționat; 0 încălcări axe în 36 de evaluări. Cele șase repetări diagnostice locale ulterioare au trecut; intermitența anterioară nu este declarată rezolvată.
 

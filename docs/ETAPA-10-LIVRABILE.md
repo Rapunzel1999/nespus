@@ -212,3 +212,28 @@ SMS rămâne oprit, fără servicii plătite noi. GitHub main nu a fost modifica
 `public/messages-live.js`: după răspunsul asincron al inbox-ului, revalidează vizibilitatea și generația ciclului înainte de a cere conversația. `tests/messages-live.test.mjs`: răspuns întârziat, apoi filă ascunsă sau pornirea unui ciclu nou. Înainte de fix, `node --test tests/messages-live.test.mjs` a avut 3 trecute și 1 eșec (threadCalls 1 în loc de 0). După fix: **4/4**. `pnpm test`: **115/115**; `pnpm typecheck`, `pnpm build`, `git diff --check`: exit 0. Nu se modifică aspectul, schema, permisiunile sau cadența unui ciclu activ normal.
 
 Capturile înainte sunt cele ale L9; cele după sunt generate de CI pentru PR-ul corecției, cu aceleași pagini/dimensiuni. Rezultatele exacte CI și livrarea corecției sunt în descrierea acelui PR. Autentificarea găzduită și dispozitivele fizice rămân neverificate; problema separată a timeout-ului local nu este declarată rezolvată de această corecție.
+
+
+## După versiunea 14 — ciorne, PR #21
+
+Fișiere de produs: `public/draft-storage.js`. Răspunsul unei salvări începute înainte de ieșirea din cont nu mai poate reface copia sessionStorage eliminată la acea acțiune. Marcajul este verificat atât la succes, cât și la eroare. O editare deliberată după anularea navigării poate salva din nou în filă; nu se schimbă autentificarea sau ștergerea datelor din cont.
+
+Indicatorul de salvare compară textul, pasul și fotografiile cu copia efectiv confirmată. O declarație expirată invalidată la recuperare este de asemenea o modificare nesalvată. Comparația fotografiilor folosește referințele șirurilor, fără serializarea lor la fiecare secundă. Nu se promite sincronizare offline sau ștergerea unei cereri deja primite de server.
+
+Teste: `tests/draft-storage.test.mjs` reproduce trei regresii; `tests/e2e/flows.spec.mjs` adaugă un răspuns PUT întârziat controlat, editare în timpul salvării și recuperare după reîncărcare. Documentație: README, CHANGELOG, VERIFICATION și acest jurnal.
+
+| Comandă locală | Rezultat efectiv |
+| --- | --- |
+| `node --test tests/draft-storage.test.mjs` înaintea corecției | 2 trecute, 3 eșuate |
+| Aceeași comandă după corecție | 5/5 trecute |
+| `pnpm test` | 118/118 trecute |
+| `pnpm run typecheck` | Exit 0 |
+| `pnpm build` | Exit 0 |
+| `pnpm run test:production-isolation` | Exit 0, 55 fișiere scanate; test-login 404, cookie DEMO ignorat, telefon simulat oprit |
+| `git diff --check` | Exit 0 |
+
+Capturi înaintea acestui livrabil: [artefact PR #20](https://github.com/Rapunzel1999/nespus/actions/runs/41339694779/artifacts/13097196224), `chromium/375/editor.png` și echivalentele tabletă/desktop/WebKit. Scenariul nou produce suplimentar `draft-recovery/before-edit.png`, `saving-newer-edits.png` și `after-recovery.png` pentru ambele motoare: acestea sunt stările aceluiași build, nu capturi ale versiunii vechi.
+
+Nu au fost verificate UI găzduit autentificat, dispozitive fizice, VoiceOver, SMS real sau importuri umane ICS. Nu există migrare de schemă, seed găzduit, schimbare de audiență, serviciu plătit sau modificare main. SMS rămâne oprit, iar decizia L2 rămâne deschisă. Cauza timeout-ului intermitent istoric din Wrangler nu este stabilită de acest rezultat pozitiv.
+
+Prima execuție [CI 41352367132](https://github.com/Rapunzel1999/nespus/actions/runs/41352367132), sursă `07fc5908f4ca7334e56fa65beb5681e6cb2a840e`: verify trecut; browser **24 trecute, 1 eșuat, 1 omis**. Regresia nouă trece în WebKit. În Chromium, trace-ul arată `locator resolved to <button disabled ...>Publică anunț +</button>` înainte de Enter; testul nu a ajuns în editor. Testul adaugă așteptarea explicită `toBeEnabled()` înaintea tastei, la fel ca celelalte scenarii. Nu se modifică timeout-ul, numărul de retry-uri sau aserțiunile produsului. Artefactul inițial este [13102235830](https://github.com/Rapunzel1999/nespus/actions/runs/41352367132/artifacts/13102235830). Rezultatul rerulării sursei finale și proveniența versiunii private sunt păstrate în [PR #21](https://github.com/Rapunzel1999/nespus/pull/21). Nu se prezintă această primă execuție ca verde.

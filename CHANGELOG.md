@@ -1,6 +1,12 @@
 # Changelog
 
-## Corecție ulterioară Etapei 10 — pregătită pentru livrare privată
+## Ciorne — corecții după versiunea 14
+
+- Răspunsurile autosave întârziate nu mai refac copia din sessionStorage eliminată la ieșirea din cont, nici la succes, nici la eroare. Dacă navigarea este anulată, editarea deliberată poate crea o copie nouă.
+- „Salvat acum” apare numai cât textul, fotografiile, pasul și declarația corespund copiei confirmate. Modificările noi au o stare distinctă până la confirmare.
+- Regresii Node pentru cele trei cazuri și scenariu Chromium/WebKit cu răspuns lent, editare în timpul salvării și recuperare după reîncărcare. Rezultatele exacte sunt în jurnalul livrării.
+
+## Corecție ulterioară Etapei 10 — versiunea 14 livrată privat
 
 - Polling-ul verifică din nou vizibilitatea filei și identitatea ciclului după răspunsul inbox-ului, înainte de cererea conversației. Nu mai pornește o cerere suplimentară dacă fila se ascunde sau un ciclu nou îl înlocuiește pe cel vechi.
 - Test de regresie cu răspuns întârziat: eșua înaintea corecției, trece după; cele 115 teste Node trec. Layout-ul și permisiunile nu se schimbă.
