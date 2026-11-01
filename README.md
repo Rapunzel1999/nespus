@@ -44,6 +44,16 @@ Verificare la **27 octombrie 2026**: **93/93 teste locale**, TypeScript, sintax�
 
 ## Configurare
 
+### Etapa 10 · verificare locală reproductibilă
+
+După `pnpm install --frozen-lockfile`, rulează **`pnpm qa`**: teste Node/SQLite, TypeScript, build, verificarea absenței autentificării/SMS de test din build, instalarea browserelor și Playwright (Chromium + WebKit mobil), capturi și axe. Instalarea browserelor necesită acces la CDN-ul oficial Playwright și bibliotecile sistemului (`pnpm exec playwright install --with-deps chromium webkit` pe un runner Linux curat).
+
+Runnerul pornește singur un Worker **exclusiv local**, D1 în `.wrangler/e2e`, pe `127.0.0.1:4180`. Seed-ul conține opt anunțuri DEMO, imagini procedurale și conturi DEMO proprietar/căutător/moderator/neconfirmat. Nu folosește baza găzduită sau Twilio. Worker-ul de test este separat de intrarea de producție și refuză orice host care nu este localhost, orice HTTPS și lipsa ambelor marcaje de test. Nu publica această configurație.
+
+`pnpm exec playwright test server.spec.mjs --project=chromium` verifică API-ul pe D1 local fără browser. Capturile, rapoartele axe, Lighthouse și urmele erorilor sunt în `outputs/e2e/` (ignorate în Git); CI păstrează artefactul `local-d1-browser-evidence` timp de 14 zile. Profilul WebKit mobil **nu reprezintă testare pe iPhone fizic**, iar conturile DEMO nu verifică SIWC găzduit.
+
+Starea măsurătorilor și limitările sunt în [BASELINE-ETAPA-10.md](docs/BASELINE-ETAPA-10.md). Testele browser sunt pregătite; rezultatele se consemnează numai după rulare reușită.
+
 - Worker Vinext și bază Cloudflare D1 cu binding `DB`.
 - SIWC gestionat de infrastructura Sites; identitatea se citește numai pe server din contextul de încredere al găzduirii.
 - Twilio Verify: configurează `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN` și `TWILIO_VERIFY_SERVICE_SID`, numai în mediul de rulare. Activarea mai cere `TWILIO_VERIFY_ENABLED=true` și `TWILIO_VERIFY_TOTAL_SEND_LIMIT` autorizat (1–100 cereri cumulative). Implicit `false`/`0`; credențialele singure nu permit trimiterea. Nu introduce tokenuri în cod sau în browser. Vezi [runbook-ul SMS](docs/TWILIO_VERIFY.md).

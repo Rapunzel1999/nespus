@@ -61,3 +61,7 @@ next-env.d.ts
 # Wrangler runtime secrets
 .dev.vars
 .dev.vars.*
+
+# Isolated local test runtime
+**/.wrangler/
+**/outputs/
