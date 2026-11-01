@@ -70,3 +70,19 @@ Fișiere: `public/design.css` formalizează verde/crem, culori semantice, spați
 Rulat: `pnpm test` — **97/97**; `pnpm run typecheck` și `pnpm build` — exit 0. Caz nou: editarea anunțului nu falsifică data disponibilității. Selectorii E2E păstrează verificarea reală a salvării favoritelor și adaugă navigarea galeriei cu tastatura.
 
 Capturi înainte: L1. Capturi după, axe și Lighthouse: CI pentru ramura L3; rezultatul se consemnează după rulare. Nu s-au folosit imagini noi, statistici sau testimoniale. Fotografiile DEMO sunt numai în test. Comportamentul tactil este implementat, dar nu a fost verificat pe iPhone fizic. Contrastele sunt corectate pentru constatările L1; certificarea tuturor paginilor rămâne în L8.
+
+### Confirmare L3 pe CI
+
+[Run 41313386114](https://github.com/Rapunzel1999/nespus/actions/runs/41313386114), commit `7cbbf64a93547639fbdac055819c1302abfbcdde`: verificări de cod/build/izolare trecute; **19 teste E2E trecute, 1 omis** (Lighthouse WebKit). [Artefactul 13086388326](https://github.com/Rapunzel1999/nespus/actions/runs/41313386114/artifacts/13086388326) conține capturile după L3; au fost inspectate anunțul și rezultatele la 375 px și acasă la 1280 px. Comparabil cu artefactul L1, aceeași bază DEMO. Anunțul mobil afișează fotografia, prețul și datele esențiale în primul ecran, cu bara de contact fixă.
+
+Lighthouse mobil Chromium, o rulare: acasă 98 performanță / 97 accesibilitate; rezultate 99/100; anunț 100/100; CLS 0 pe toate. Trafic acasă rece înainte de scroll: 16 răspunsuri, 210746 octeți transferați, 205946 octeți codificați. Diferența față de baseline nu dovedește o optimizare a fotografiilor: nu există variante implementate și datele sunt sintetice. Axe: zero încălcări pe rezultate, anunț, comparație, conversație, editor, la toate cele trei viewport-uri în ambele motoare. Acasă: 1 nod contrast și 6 nume accesibile, rămase pentru L8. L3 nu este declarat complet din perspectiva contrastului tuturor ecranelor până la această corecție.
+
+## L4 — căutări și costuri pentru decizie
+
+Fișiere: `lib/search.mjs` centralizează validarea filtrelor și sortarea, inclusiv preț/m² în aceeași monedă; `lib/api.mjs` adaugă numărare fără încărcarea rezultatelor și căutări salvate private (maximum 10/cont); `lib/model.mjs` și `db/schema.ts` adaugă costurile lunare numerice opționale. `drizzle/0001_pale_sauron.sql` și metadata sunt aditive: tabel de căutări, coloană nullable și index de audit. `public/app.js`/`design.css` implementează panoul mobil cu debounce 300 ms, căutările din cont și totalul lunar declarat. Testele și inițializarea D1 local aplică toate migrările. E2E include panoul mobil, numărul live, salvarea și redeschiderea căutării.
+
+Noile anunțuri sunt numărate după evenimentele reale de publicare. Marcajul ultimei vizite este secvența evenimentelor, nu ceasul clientului: o publicare în aceeași milisecundă, după citirea listei, nu se pierde. Reconfirmarea sau simpla editare nu devin un anunț nou. Anunțurile retrase/expirate sunt excluse. Numărul se marchează citit numai după încărcarea cu succes a rezultatelor. Căutările și marcajele nu pot fi citite/modificate de alt cont.
+
+Rulat: `pnpm run db:generate` — migrare generată și inspectată; `pnpm test` — **99/99**; `pnpm run typecheck`, `pnpm build`, `pnpm run db:migrate`, `pnpm run test:production-isolation` — exit 0. `pnpm exec playwright test server.spec.mjs --project=chromium` — **1/1**, API real pe D1 local, fără browser. Migrarea este aplicată numai local; nu s-au modificat datele găzduite. Nu sunt trimise emailuri sau SMS.
+
+Capturi înainte: L3. Capturi după și panoul de filtre: CI L4, rezultat în așteptare. Totalul lunar nu este calculat din textul liber al costurilor; gol rămâne necunoscut, zero înseamnă explicit fără costuri suplimentare. Harta opțională nu a fost inventată: modelul conține nume de cartiere, nu geometrie verificată.

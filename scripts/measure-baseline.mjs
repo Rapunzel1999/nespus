@@ -6,7 +6,7 @@ import {handleApi} from '../lib/api.mjs';
 const files=['public/app.js',...readdirSync('public').filter(p=>p.endsWith('.css')).map(p=>'public/'+p)];
 const assets=files.map(path=>{const data=readFileSync(path);return {path,bytes:data.length,KB:data.length/1000,lines:data.toString().split('\n').length-1};});
 const sql=new DatabaseSync(':memory:');
-sql.exec(readFileSync('drizzle/0000_nervous_leader.sql','utf8'));
+for(const entry of JSON.parse(readFileSync('drizzle/meta/_journal.json','utf8')).entries)sql.exec(readFileSync('drizzle/'+entry.tag+'.sql','utf8'));
 const now=Date.UTC(2026,10,1),photo='data:image/jpeg;base64,'+jpeg.encode({data:Buffer.alloc(400*300*4,180),width:400,height:300},75).data.toString('base64');
 sql.prepare('INSERT INTO users(id,name,email,phone_verified_at,created_at) VALUES (?,?,?,?,?)').run('DEMO-owner','DEMO proprietar','demo@example.invalid',now,now);
 for(let i=1;i<=20;i++)sql.prepare('INSERT INTO listings(id,owner_id,title,"transaction",type,district,price,currency,area,rooms,description,photos,relationship,status,created_at,updated_at,available_until) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)').run(i.toString(16).padStart(32,'0'),'DEMO-owner','DEMO Apartament '+i,'sale','apartment','Centru',100000+i*1000,'EUR',50,2,'DEMO: date sintetice pentru măsurarea răspunsului API.',JSON.stringify([photo]),'owner','published',now,now,now+86400000);

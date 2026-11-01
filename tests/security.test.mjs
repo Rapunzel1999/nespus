@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {DatabaseSync} from 'node:sqlite';
-import {readFileSync} from 'node:fs';
+import {applySchema} from './helpers/schema.mjs';
 import jpeg from 'jpeg-js';
 import {handleApi} from '../lib/api.mjs';
 import {VERSION, DAY,validateListing,hash} from '../lib/model.mjs';
@@ -15,7 +15,7 @@ function fixture() {
   const sql = new DatabaseSync(':memory:');
   const hooks={beforeRun:null,beforeFirst:null};
   sql.exec('PRAGMA foreign_keys=ON;');
-  sql.exec(readFileSync(new URL('../drizzle/0000_nervous_leader.sql',import.meta.url),'utf8'));
+  applySchema(sql);
   function prepared(query,args=[]) { return {
     bind(...values){return prepared(query,values);},
     async first(){if(hooks.beforeFirst)await hooks.beforeFirst(query,args);return sql.prepare(query).get(...args)??null;},
@@ -735,4 +735,40 @@ test('availability dates come from audit events, never general edit timestamps',
   assert.equal((await f.request('/listings')).data.listings[0].availabilityConfirmedAt,NOW-2*DAY);
   await f.request('/listings/'+lid(1)+'/reconfirm',{as:'owner',method:'POST'});
   assert.equal((await f.request('/listings')).data.listings[0].availabilityConfirmedAt,NOW);
+});
+
+test('price per area sort stays in one currency and monthly totals require explicit numeric costs',async()=>{
+  const f=fixture();f.listing();f.listing(lid(2));f.listing(lid(3));
+  f.sql.prepare('UPDATE listings SET price=200000,area=100 WHERE id=?').run(lid(2));
+  f.sql.prepare("UPDATE listings SET currency='RON',price=100 WHERE id=?").run(lid(3));
+  assert.equal((await f.request('/listings?sort=price_m2_asc')).status,400);
+  const result=await f.request('/listings?currency=EUR&sort=price_m2_asc');assert.deepEqual(result.data.listings.map(l=>l.id),[lid(2),lid(1)]);
+  assert.deepEqual((await f.request('/listings?currency=EUR&countOnly=1')).data,{total:2});
+  for(const value of [-1,'100',Infinity])assert.throws(()=>validateListing({...draftInput,monthlyCosts:value}));
+  assert.equal(validateListing({...draftInput,monthlyCosts:0}).monthlyCosts,0);
+  assert.equal(validateListing({...draftInput,monthlyCosts:null}).monthlyCosts,null);
+  assert.equal(validateListing({...draftInput,transaction:'sale',monthlyCosts:100}).monthlyCosts,null);
+  const saved=await f.request('/listings',{as:'owner',method:'POST',data:{...draftInput,monthlyCosts:120}});assert.equal(saved.status,201);assert.equal(saved.data.listing.monthlyCosts,120);
+});
+
+test('saved searches are private, bounded and count actual publications with a stable event watermark',async()=>{
+  const f=fixture();f.listing();f.listing(lid(2),'pending');
+  assert.equal((await f.request('/saved-searches')).status,401);
+  const save=await f.request('/saved-searches',{as:'buyer',method:'POST',data:{filters:{transaction:'sale',currency:'EUR',district:'Centru'}}});assert.equal(save.status,201);const id=save.data.id;
+  const duplicate=await f.request('/saved-searches',{as:'buyer',method:'POST',data:{filters:{district:'Centru',currency:'EUR',transaction:'sale'}}});assert.equal(duplicate.data.id,id);
+  assert.deepEqual((await f.request('/saved-searches',{as:'other'})).data.searches,[]);
+  assert.equal((await f.request('/saved-searches/'+id,{as:'other',method:'DELETE'})).status,404);
+  const before=await f.request('/saved-searches',{as:'buyer'});assert.equal(before.data.searches[0].newCount,0);
+  await f.request('/moderation/listings/'+lid(2),{as:'mod',method:'POST',data:{decision:'published',reason:'Revizuire pentru testul căutării.'}});
+  let found=(await f.request('/saved-searches',{as:'buyer'})).data.searches[0];assert.equal(found.newCount,1);
+  await f.request('/saved-searches/'+id+'/seen',{as:'buyer',method:'POST',data:{through:found.viewedThrough}});
+  assert.equal((await f.request('/saved-searches',{as:'buyer'})).data.searches[0].newCount,0);
+  // A publication at the very same millisecond but after the response must not be lost.
+  f.listing(lid(3),'pending');await f.request('/moderation/listings/'+lid(3),{as:'mod',method:'POST',data:{decision:'published',reason:'A doua publicare în aceeași milisecundă.'}});
+  assert.equal((await f.request('/saved-searches',{as:'buyer'})).data.searches[0].newCount,1);
+  assert.equal((await f.request('/saved-searches/'+id+'/seen',{as:'buyer',method:'POST',data:{through:99999}})).status,400);
+  f.sql.prepare("UPDATE listings SET status='withdrawn' WHERE id=?").run(lid(3));assert.equal((await f.request('/saved-searches',{as:'buyer'})).data.searches[0].newCount,0);
+  for(let n=1;n<=9;n++)assert.equal((await f.request('/saved-searches',{as:'buyer',method:'POST',data:{filters:{transaction:'sale',currency:'EUR',minPrice:String(n)}}})).status,201);
+  assert.equal((await f.request('/saved-searches',{as:'buyer',method:'POST',data:{filters:{transaction:'sale',currency:'EUR',minPrice:'11'}}})).status,409);
+  assert.equal((await f.request('/saved-searches/'+id,{as:'buyer',method:'DELETE'})).status,200);
 });
