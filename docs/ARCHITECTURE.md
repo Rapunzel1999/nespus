@@ -1,6 +1,6 @@
 # Arhitectură și contracte de securitate
 
-Acest document descrie ținta MVP-ului. Codul și verificările executate sunt sursa pentru starea implementată; o cerință scrisă aici nu reprezintă dovada implementării.
+Stare implementată în codul Etapei 10, 1 noiembrie 2026. Găzduirea rămâne la versiunea 12 până la livrarea autorizată. Stack-ul, găzduirea, D1 și SIWC sunt păstrate. Verificările efective sunt în VERIFICATION.md; descrierea nu este dovadă de test uman.
 
 ## Componente
 
@@ -19,6 +19,9 @@ SIWC stabilește identitatea contului. Rutele protejate utilizează numai identi
 | --- | --- |
 | `users` | Cheie stabilă SIWC, profil minimal, stare cont, rol acordat pe server, telefon privat și stare confirmare |
 | `listings` | Proprietar, categorie, vânzare/închiriere, date imobil, cartier public, fără coordonate, date private separate logic, fotografii, stare și termen de reconfirmare |
+| `saved_searches` | Filtre canonice private, maximum 10/cont și marcaj monoton al evenimentelor de publicare |
+| `editor_drafts` | O ciornă incompletă privată per cont, revizie CAS monotonă și conținut de maximum 1.850.000 octeți |
+| `message_reads` | Confirmări unice utilizator–mesaj numai pentru mesajele afișate |
 | `favorites` | Asociere unică utilizator–anunț, citire doar pentru titular |
 | `contact_requests` | Anunț, solicitant, proprietar, scop, stare, decizie și permisiune individuală de dezvăluire telefon |
 | `viewings` | Solicitare legată de conversație, inițiator, moment și stare; numai proprietarul acceptă/refuză |
@@ -47,13 +50,13 @@ SIWC stabilește identitatea contului. Rutele protejate utilizează numai identi
 
 ## Fotografii și limite de stocare
 
-În pilot: maximum cinci imagini JPEG, fiecare de cel mult **400.000 de caractere pentru întregul data URL base64**, adică aproximativ 300 KB binari. Nu este o limită de 400 KB binari. Corpul JSON complet este limitat la 2.100.000 de octeți.
+În pilot: maximum cinci imagini JPEG, fiecare de cel mult **400.000 de caractere pentru întregul data URL base64**, adică aproximativ 300 KB binari. Nu este o limită de 400 KB binari. JSON-ul fotografiilor este limitat suplimentar la 1.800.000 caractere ASCII înainte și după recodare, rezervând spațiu în rândul D1. Corpul JSON complet este limitat la 2.100.000 de octeți.
 
 Serverul folosește `jpeg-js` pentru decodare și recodificarea pixelilor, eliminând metadatele. Limitele decodorului sunt 2 MP și 32 MB; fiecare dimensiune este de cel mult 1.200 px. Rezultatul recodificat este verificat din nou față de plafon. Comportamentul de eliminare a metadatelor are test de regresie.
 
-Feed-ul returnează cel mult 24 de rezumate cu prima fotografie; favoritele și lista proprie cel mult 50 de rezumate. `GET /api/mine/:id` încarcă galeria completă a unui anunț propriu. Coada moderatorului încarcă cel mult 10 anunțuri în așteptare cu galerii complete. Aceste limite reduc răspunsurile, fără a rezolva scalarea imaginilor în D1.
+Feed-ul returnează cel mult 24 de rezumate cu URL-ul primei fotografii; favoritele și lista proprie cel mult 50 de rezumate. `GET /api/mine/:id` încarcă galeria completă a unui anunț propriu. Coada moderatorului încarcă cel mult 10 anunțuri în așteptare cu galerii complete. Aceste limite reduc răspunsurile, fără a rezolva scalarea imaginilor în D1.
 
-Aceasta este o arhitectură temporară pentru pilot. Următoarea etapă mută imaginile în object storage, introduce miniaturi și politici de ștergere. Nu se acceptă acte KYC în câmpurile de fotografie.
+Aceasta este o arhitectură temporară pentru pilot. Mutarea în object storage și variantele de imagine sunt propuse, nu implementate sau autorizate; vezi DECISIONS-PENDING.md. Nu se acceptă acte KYC în câmpurile de fotografie.
 
 ## Vizionări și moderare implementate
 
@@ -80,13 +83,13 @@ Numele public al profilului este sanitizat pentru a limita scurgerile de date de
 Un anunț retras poate fi editat și retrimis spre moderare. Vândut/închiriat sunt stări terminale. Contul suspendat nu poate citi conversații, însă își poate consulta propriile anunțuri și contestații. Aceste excepții sunt deliberate și nu permit publicare sau contacte noi.
 
 
-## Contracte actualizate — 27 octombrie 2026
+## Contracte actualizate — 1 noiembrie 2026
 
 ### Fotografii la cerere
 
 Listele de anunțuri, favoritele și detaliul public returnează URL-uri în `photos`. `/api/listings/:id/photos/:index` acceptă indecși 0–4 și citește o singură fotografie, numai dacă anunțul trece filtrul public `LIVE`. `/api/mine/:id/photos/:index` cere contul proprietarului; citirea propriului istoric rămâne permisă și după restricționare, conform politicii existente. Nu permite citirea de către alte conturi sau anonim.
 
-Răspunsul este JPEG binar cu `Cache-Control: private, no-store`, `X-Content-Type-Options: nosniff` și `Cross-Origin-Resource-Policy: same-origin`. Fiecare cerere nouă verifică accesul; imaginile deja descărcate sau văzute nu pot fi retrase de pe dispozitive. SQL-ul de listare returnează doar existența copertei, iar detaliul public doar pozițiile fotografiilor. `/api/mine/:id` și fluxurile de editare/moderare păstrează datele complete, autorizate. Stocarea rămâne în D1, fără migrare; miniaturile și object storage rămân o etapă ulterioară.
+Răspunsul este JPEG binar cu `Cache-Control: private, no-cache` și ETag SHA-256, `X-Content-Type-Options: nosniff` și `Cross-Origin-Resource-Policy: same-origin`. Fiecare cerere nouă verifică accesul; imaginile deja descărcate sau văzute nu pot fi retrase de pe dispozitive. SQL-ul de listare returnează doar existența copertei, iar detaliul public doar pozițiile fotografiilor. `/api/mine/:id` și fluxurile de editare/moderare păstrează datele complete, autorizate. Stocarea rămâne în D1, fără migrare; miniaturile și object storage rămân o etapă ulterioară.
 
 ### Conversații paginate
 
@@ -105,3 +108,21 @@ Textul netrimis și cheia de retry se păstrează în memoria filei. Editarea te
 Pornirea verificării SMS returnează termenul real `expiresAt` păstrat pe server. Clientul folosește acest termen, o pauză de minimum 60 de secunde și cereri explicite; nu retrimite automat coduri. Codurile expirate și limitele de încercări sunt explicate fără a modifica starea în „confirmat”. Configurația pilotului rămâne oprită.
 
 Solicitarea unui SMS pentru același număr deja confirmat pe cont este refuzată înaintea cotelor și a furnizorului (`PHONE_ALREADY_VERIFIED`). Nu se verifică preventiv dacă numărul aparține altui cont; asocierea unică rămâne verificată după dovada accesului la număr.
+
+
+## Module și contracte Etapa 10
+
+- `public/app.js`: compunerea interfeței și fluxurile; `design.css`: valori vizuale comune peste stilurile existente. `gallery.js`, `draft-storage.js`, `messages-live.js` și `trust.js` separă galeria, autosalvarea, actualizarea conversațiilor și transparența. Scripturile sunt first-party, defer, fără framework nou.
+- `lib/search.mjs`: o singură validare pentru rezultate/numărare/căutări salvate; preț/m² se sortează numai într-o monedă selectată. `monthly_costs` nullable distinge costul necunoscut de zero, fără parsarea textului liber.
+- `PUT /api/editor-draft`: revizie așteptată obligatorie; conflictul nu suprascrie altă filă. Golirea păstrează un marcaj cu revizie crescută. Bufferul nu este anunț public și nu acceptă stări/declarații injectate. Salvarea anunțului trece prin validarea și recodarea normală.
+- Fotografiile au SHA-256 ETag și `private, no-cache`; autorizarea și eligibilitatea preced inclusiv 304. Nu se folosesc cache-uri publice. Numai URL-uri în căutare/detaliu/favorite; nu există variante WebP/srcset încă.
+- `/api/notifications`, `/api/conversations/:id/read`: participare verificată pe server, citire individuală/idempotentă, fără a marca mesaje sosite după citirea paginii. Polling vizibil 10→20→40→60 secunde; costul în cereri este estimat în raportul L6.
+- `/api/viewings/:id/calendar`: numai participanții, vizionare confirmată, calendar privat fără adresa exactă/telefon/invitați; Europe/Bucharest, UTC pentru ora locală ambiguă de toamnă. Nu se trimite nicio invitație.
+- `lib/moderation-signals.mjs`: indicii telefon >3 anunțuri, cuvinte-cheie și dHash calculat pe server. Comparație între conturi, maximum 1000 de anunțuri recente; lipsurile sunt afișate. Niciun semnal nu schimbă automat eligibilitatea.
+- `/api/moderation/audit`: numai rol de moderator; ultimele 50 de decizii persistente, nu acces global la conversații. Datele de încredere provin din declarații și evenimente efective, nu din `updated_at`.
+
+Migrările `0001`–`0004` sunt aditive: căutări salvate/costuri lunare/index audit, ciornă cu revizie, confirmări de citire/index participant, metadate foto nullable. Au fost aplicate numai în D1 local. Nu conțin seed, ștergeri sau backfill găzduit. `pnpm db:generate` nu mai produce diferențe între schema TS și metadata.
+
+## Izolarea testelor
+
+`tests/e2e/worker.mjs` este o intrare distinctă, exclusiv HTTP localhost și două marcaje explicite de test. Are D1 cu ID fictiv, nu un binding găzduit. Opt oferte și toate conturile sunt DEMO; banner vizibil. Providerul SMS este funcție locală și refuză orice URL neașteptat. Build-ul de producție este scanat și pornit cu marcajele injectate pentru a verifica ruta de login inexistentă, ignorarea cookie-ului DEMO și lipsa confirmării simulate. Nu se încarcă seed-ul în migrările de producție.

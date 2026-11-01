@@ -59,7 +59,7 @@ Un plafon de **cereri** nu este un plafon exact în USD: segmentele, taxele și 
 
 Aplicația stochează numărul și SID-ul provocării în D1, plus hashuri ale numerelor în limite. Acestea nu sunt date anonime. Curățarea ratelimit-urilor expirate este oportunistă; nu există încă un proces programat de ștergere pentru toate provocările abandonate. Politica de retenție, operatorul, acordurile cu furnizorii și ștergerea operațională rămân condiții de lansare, nu sunt validate prin testele tehnice.
 
-## Costuri de referință, verificate la 27.10.2026
+## Costuri de referință, reverificate la 01.11.2026
 
 Twilio afișează **0,05 USD/verificare reușită**, plus transportul. Pagina SMS România indică **0,0781 USD/segment outbound**, cu posibile taxe suplimentare și schimbări de tarif. Încercările SMS pot fi facturate și fără confirmare; verificarea nereușită nu atrage taxa de succes standard.
 
@@ -97,3 +97,8 @@ Evidențe încă lipsă: autorizare SMS, credențiale și serviciu real, livrare
 - [Verifications, identificatori și RiskCheck](https://www.twilio.com/docs/verify/api/verification)
 - [Service API](https://www.twilio.com/docs/verify/api/service)
 - [Prevenirea fraudei](https://www.twilio.com/docs/verify/preventing-toll-fraud)
+
+
+Reverificare documentație 1 noiembrie 2026: [Geo Permissions](https://www.twilio.com/docs/verify/preventing-toll-fraud/verify-geo-permissions) trebuie restrânse la România după autorizarea activării; safelist poate ocoli aceste restricții. [Fraud Guard](https://www.twilio.com/docs/verify/preventing-toll-fraud/sms-fraud-guard) se configurează pentru SMS; nu folosi RiskCheck pentru a-i ocoli controalele. Există filtrări și cerințe specifice operatorilor în [ghidul România](https://www.twilio.com/en-us/guidelines/ro/sms), de verificat pentru serviciul/șablonul ales. Nu s-a configurat un cont, nu s-a schimbat nicio permisiune Twilio și nu s-a efectuat nicio trimitere.
+
+Citirea configurației Sites din această sesiune arată că cele trei chei de credențiale Twilio lipsesc. Cheile de activare/plafon există ca valori secrete, deci API-ul de citire le maschează; nu se pretinde recitirea valorilor lor. Configurația stabilită anterior rămâne `false`/`0`, nemodificată în Etapa 10. Fără cele trei credențiale adaptorul nu poate activa SMS nici dacă un flag ar fi schimbat separat.

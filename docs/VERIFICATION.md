@@ -1,5 +1,36 @@
 # Criterii de acceptare și evidențe
 
+## Etapa 10 — 1 noiembrie 2026
+
+Această secțiune descrie starea actuală a codului. Secțiunile datate octombrie de mai jos sunt istorice; afirmațiile lor despre lipsa browserului, numărul testelor sau cache nu descriu Etapa 10.
+
+### Verificat automat
+
+- `pnpm test`: **114/114** teste Node/SQLite/DOM și parser ICS. Nu sunt 114 teste E2E; fișierul DOM conține și aserțiuni grupate.
+- `pnpm typecheck`, `pnpm build`: exit 0. `pnpm test:production-isolation`: CI L8 exit 0; ultima verificare locală L9 a avut un timeout bootstrap de 15 secunde, apoi a trecut la reluare neschimbată. Intermitența este consemnată în raport, fără retry automat sau relaxarea aserțiunilor. Build-ul nu include login-ul DEMO sau providerul simulat; runtime-ul de producție ignoră cookie-ul DEMO chiar cu variabilele de test injectate.
+- `pnpm db:migrate`: migrările aditive 0000–0004 aplicate numai în D1 local. `pnpm db:generate`: fără diferențe de schemă. Niciun seed, backfill sau DELETE pe baza găzduită.
+- `pnpm exec playwright test server.spec.mjs --project=chromium`: **1/1**, traseu HTTP real prin Worker/D1 local, fără instalarea unui browser local.
+- Playwright din CI: Chromium și WebKit mobil, conturi DEMO separate, fluxuri publicare/moderare, căutare/favorite/comparare, contact/mesaje/vizionare/telefon, blocare/raportare și refuzuri fără verificare. Capturi la 375×812, 768×1024 și 1280×800. Rezultatele exacte ale ultimei rulări, axe și Lighthouse sunt în ETAPA-10-LIVRABILE.md.
+- L8: **23 E2E trecute, 1 omis** (Lighthouse WebKit), axe **0 încălcări în 36 de evaluări**, controale 44 px și lipsa overflow-ului. Run `41320296222`; pentru commitul final L9 vezi verificările și artefactul legate în PR-ul de sinteză.
+- L6/L7: 19 E2E trecute, 1 omis explicit pentru Lighthouse pe WebKit; 36 capturi standard per livrabil, fișiere ICS și imagini suplimentare. Parserul independent verifică iarna/vara/ambele instanțe ale orei repetate de toamnă.
+- `node scripts/twilio-preflight.mjs`: exit **2**, `ready:false`, trei credențiale lipsă, `smsSendingEnabled:false`. Acesta este blocajul așteptat, nu un test SMS real. Testele unitare dovedesc că preflight-ul fără credențiale nu face cereri de rețea.
+- Citire Sites: versiunea 12 activă, acces custom numai proprietarul, zero vizitatori externi. Lipsesc cheile Twilio. Valorile secretelor de activare/plafon sunt mascate de API; nu au fost schimbate. Nu s-a reînnoit credențiala Sites expirată și nu s-a inițiat livrarea Etapei 10.
+
+O singură comandă de verificare, după instalarea dependențelor și bibliotecilor OS: `pnpm qa`. În mediul de lucru browserul local/preview-ul gestionat nu a fost disponibil; browser QA s-a executat pe GitHub Actions cu server și D1 locale runnerului. Aceasta nu este testarea site-ului găzduit.
+
+### De verificat uman / cu autorizare
+
+- iPhone fizic și Android: SIWC, tastatură virtuală, safe-area, upload foto, galerie, editor, compozitor; VoiceOver și navigare asistată. WebKit emulat nu le substituie.
+- Două conturi SIWC găzduite, cu acces privat explicit și telefoane reale; un cont terț și moderatori independenți pentru matricea completă de permisiuni.
+- Crearea/configurarea Twilio numai după autorizare, buget și numere aprobate; livrare și confirmare SMS reale, expirare, repetări și refuzul publicării/contactului fără verificare. Contul Twilio nu există încă.
+- Importul ICS în Apple Calendar, Google Calendar și Outlook, inclusiv ora ambiguă de toamnă. Captura descărcării și parserul nu dovedesc importul în aceste produse.
+- Variantele foto 400/800/1600, WebP, srcset și migrarea reversibilă, după aprobarea arhitecturii/stocării. Niciun serviciu plătit activat; pragul de 100 KB nu este certificat cu imagini DEMO uniforme.
+- Revizuire juridică a declarațiilor/regulilor/confidențialității, operator/retenție/ștergere, al doilea moderator, backup/restaurare, buget și proceduri de operare.
+- Livrarea privată Etapa 10: autorizarea reînnoirii accesului temporar Sites, apoi mecanismul existent de sincronizare sursă/build/livrare și reverificarea accesului. Promptul L9 cere oprire la credențială nouă; nu s-a ocolit această condiție.
+
+Issue #1 rămâne deschis. Rezultatele automate nu autorizează acces public, SMS sau servicii cu facturare. Textele juridice sunt **DE REVIZUIT JURIDIC**.
+
+
 
 ## Conversații, formulare, accesibilitate și performanță — 27 octombrie 2026
 

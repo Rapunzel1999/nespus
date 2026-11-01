@@ -4,7 +4,7 @@ Platformă în dezvoltare pentru vânzare și închiriere directă între propri
 
 Baza acestei direcții este organizată pe branch-ul `imobiliare-cluj` din [Rapunzel1999/nespus](https://github.com/Rapunzel1999/nespus). Proiectul Nespus de pe `main` este păstrat. „Între Noi” este un nume de lucru; disponibilitatea sa comercială și a domeniului nu este verificată.
 
-Etapa curentă este pe branch-ul `imobiliare-conversations-quality`, peste `imobiliare-favorites-comparison`. Modificările rămân în pull request-uri draft, iar versiunea Sites este publicată cu acces numai pentru proprietar.
+Etapa 10 este organizată în PR-uri succesive, începând cu [PR #10](https://github.com/Rapunzel1999/nespus/pull/10), peste PR #9. Ramura de sinteză este `imobiliare-cluj-etapa-10-l9`. Codul nou și dovezile sunt în GitHub; versiunea găzduită este încă 12, privată proprietarului. Livrarea Etapei 10 așteaptă autorizarea reînnoirii accesului temporar Sites, conform condiției L9. Niciun PR nu este îmbinat în `main`.
 
 ## Stadiu și limite
 
@@ -19,7 +19,7 @@ Accesul inițial al proiectului Sites este privat proprietarului. Publicarea cod
 Node.js 24 necesar și pnpm conform câmpului `packageManager` din `package.json`, când acesta este definit. Instalarea necesită acces la registrul de pachete.
 
 ```sh
-git clone --branch imobiliare-conversations-quality https://github.com/Rapunzel1999/nespus.git
+git clone --branch imobiliare-cluj-etapa-10-l9 https://github.com/Rapunzel1999/nespus.git
 cd nespus
 pnpm install --frozen-lockfile
 pnpm test
@@ -31,14 +31,15 @@ pnpm start
 
 `pnpm db:migrate` aplică migrările locale; datele din `.wrangler/state` sunt separate de baza găzduită. Nu adăuga această stare sau secretele în Git. Pentru dezvoltare folosește `pnpm dev`. Găzduirea prin Sites urmează fluxul de build și publicare al integrării, separat de pornirea locală.
 
-Verificare la **27 octombrie 2026**: **93/93 teste locale**, TypeScript, sintaxă JavaScript și build de producție trecute. Testele SMS folosesc răspunsuri simulate. În găzduire lipsesc cele trei credențiale Twilio; trimiterea este oprită explicit și plafonul total este zero. Accesul găsit public a fost corectat la **numai proprietarul**. Nu sunt confirmate livrare SMS reală, două conturi SIWC găzduite sau testarea pe iPhone fizic. Detalii în [VERIFICATION.md](docs/VERIFICATION.md) și [configurarea Twilio](docs/TWILIO_VERIFY.md).
+Verificare la **1 noiembrie 2026**: **114/114 teste Node**, TypeScript, build și izolarea producției trecute. Playwright rulează în CI pe Chromium și WebKit cu D1 local și conturi DEMO, nu pe site-ul găzduit. Rezultatele exacte pe livrabil, capturile, axe și Lighthouse sunt în [raportul Etapei 10](docs/ETAPA-10-LIVRABILE.md). SMS rămâne neconfigurat: nu există cont Twilio sau cele trei credențiale. Nu s-au efectuat SMS reale, testare cu două conturi SIWC găzduite, iPhone fizic sau VoiceOver.
 
 ## Experiența implementată
 
-- Căutare pe cartier, tranzacție, monedă și buget, cu paginare și linkuri care păstrează filtrele.
+- Căutare pe cartier, tranzacție, monedă și buget, filtre într-un panou mobil, sortare preț/m² și căutări salvate cu anunțuri noi la revenire. Fără conversii valutare.
 - Prezentare detaliată a proprietății, galerie, costuri declarate și comparație pentru 2–3 favorite din aceeași categorie de tranzacție.
-- Editor cu ciorne, ordonarea fotografiilor și recuperarea modificărilor în aceeași filă; spațiu separat pentru proprietar.
-- Conversații cu stări explicite, căutare în lista încărcată, paginare, texte netrimise păstrate în filă și vizionări afișate în ora Clujului. Reîmprospătare manuală; nu există notificări automate sau indicatori de citire.
+- Editor în opt pași, autosalvare privată în cont, copie de recuperare în filă, control de revizii, ordonarea fotografiilor și previzualizare mobil/desktop.
+- Conversații cu stări explicite, căutare în lista încărcată, paginare, texte netrimise păstrate în filă și vizionări afișate în ora Clujului. Indicatori de mesaje necitite, actualizare progresivă numai în fila vizibilă și calendar ICS privat pentru vizionări confirmate. Nu trimite email, SMS, push sau invitații de calendar.
+- Panou «Ce știm despre acest anunț», date din declarații și audit, semnale private pentru revizuire umană și jurnal de moderare. Telefonul nu dovedește identitatea sau proprietatea.
 - Fotografii încărcate individual prin rute care verifică accesul. Răspunsurile de căutare nu mai transportă imaginile base64. Editorul autorizat primește în continuare imaginile complete.
 - Formulare protejate împotriva trimiterilor simultane, feedback de eroare, focus pentru navigarea cu tastatura și adaptări pentru mișcare redusă. Aceste schimbări nu certifică accesibilitatea completă sau ergonomia pe dispozitive reale.
 
@@ -52,13 +53,13 @@ Runnerul pornește singur un Worker **exclusiv local**, D1 în `.wrangler/e2e`, 
 
 `pnpm exec playwright test server.spec.mjs --project=chromium` verifică API-ul pe D1 local fără browser. Capturile, rapoartele axe, Lighthouse și urmele erorilor sunt în `outputs/e2e/` (ignorate în Git); CI păstrează artefactul `local-d1-browser-evidence` timp de 14 zile. Profilul WebKit mobil **nu reprezintă testare pe iPhone fizic**, iar conturile DEMO nu verifică SIWC găzduit.
 
-Starea măsurătorilor și limitările sunt în [BASELINE-ETAPA-10.md](docs/BASELINE-ETAPA-10.md). Testele browser sunt pregătite; rezultatele se consemnează numai după rulare reușită.
+Starea măsurătorilor și limitările sunt în [BASELINE-ETAPA-10.md](docs/BASELINE-ETAPA-10.md). Rapoartele fiecărei rulări sunt legate în [ETAPA-10-LIVRABILE.md](docs/ETAPA-10-LIVRABILE.md); rezultatele istorice nu înlocuiesc CI pentru noul commit.
 
 - Worker Vinext și bază Cloudflare D1 cu binding `DB`.
 - SIWC gestionat de infrastructura Sites; identitatea se citește numai pe server din contextul de încredere al găzduirii.
 - Twilio Verify: configurează `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN` și `TWILIO_VERIFY_SERVICE_SID`, numai în mediul de rulare. Activarea mai cere `TWILIO_VERIFY_ENABLED=true` și `TWILIO_VERIFY_TOTAL_SEND_LIMIT` autorizat (1–100 cereri cumulative). Implicit `false`/`0`; credențialele singure nu permit trimiterea. Nu introduce tokenuri în cod sau în browser. Vezi [runbook-ul SMS](docs/TWILIO_VERIFY.md).
 - Acces moderator: `MODERATOR_EMAILS`, allowlist de e-mailuri furnizate de gateway-ul de încredere, verificată pe server; niciun utilizator nu poate alege acest rol din formular sau dintr-un parametru client.
-- Fotografiile pilotului sunt JPEG stocate în D1, maximum 5 imagini, fiecare de cel mult 400.000 de caractere pentru întregul data URL base64 (aproximativ 300 KB de date binare). Corpul cererii este limitat la 2.100.000 de octeți. Serverul decodează și recodifică pixelii, eliminând metadatele, cu limite de 2 MP, 32 MB pentru decodare și 1.200 px pe fiecare dimensiune. Aceasta este o limită temporară; migrarea la object storage este necesară înainte de creșterea volumului.
+- Fotografiile pilotului sunt JPEG stocate în D1, maximum 5 imagini, fiecare de cel mult 400.000 de caractere pentru întregul data URL base64 (aproximativ 300 KB de date binare). JSON-ul cumulat al fotografiilor este limitat la 1.800.000 de caractere ASCII pentru a lăsa loc în rândul D1. Corpul cererii este limitat la 2.100.000 de octeți. Serverul decodează și recodifică pixelii, eliminând metadatele, cu limite de 2 MP, 32 MB pentru decodare și 1.200 px pe fiecare dimensiune. Trei variante WebP și migrarea fotografiilor sunt oprite la decizia de stocare din [DECISIONS-PENDING.md](docs/DECISIONS-PENDING.md); R2 nu este activat.
 - Nu se colectează acte de identitate sau titluri de proprietate în acest MVP.
 
 ## Documentație
