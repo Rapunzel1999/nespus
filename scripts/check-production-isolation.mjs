@@ -19,8 +19,10 @@ try{
     if(ready)break;await new Promise(resolve=>setTimeout(resolve,250));
   }
   if(!ready)throw Error('Production test server unavailable: '+diagnostic);
-  assert.equal((await fetch(origin+'/__test/login',{method:'POST',headers:{origin,'Content-Type':'application/json'},body:JSON.stringify({role:'moderator'})})).status,404);
-  const bootstrap=await (await fetch(origin+'/api/bootstrap',{headers:{cookie:'DEMO-test-role=moderator'}})).json();
+  console.log('Production runtime: checking disabled test login route.');
+  assert.equal((await fetch(origin+'/__test/login',{signal:AbortSignal.timeout(15000),method:'POST',headers:{origin,'Content-Type':'application/json'},body:JSON.stringify({role:'moderator'})})).status,404);
+  console.log('Production runtime: checking anonymous bootstrap with DEMO cookie.');
+  const bootstrap=await (await fetch(origin+'/api/bootstrap',{signal:AbortSignal.timeout(15000),headers:{cookie:'DEMO-test-role=moderator'}})).json();
   assert.equal(bootstrap.user,null);assert.equal(bootstrap.capabilities.phoneVerification,false);
   console.log('Production runtime: test login 404; DEMO cookie ignored; simulated phone disabled, including with test flags.');
-}finally{if(child.exitCode===null){const closed=once(child,'exit');child.kill('SIGTERM');await closed;}}
+}catch(error){throw new Error('Production isolation runtime failed: '+error.message+'\n'+diagnostic,{cause:error});}finally{if(child.exitCode===null){const closed=once(child,'exit');child.kill('SIGTERM');await closed;}}

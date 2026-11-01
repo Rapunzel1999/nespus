@@ -66,3 +66,7 @@ export const savedSearches=sqliteTable('saved_searches',{
   id:text('id').primaryKey(),userId:text('user_id').notNull().references(()=>users.id),
   queryJson:text('query_json').notNull(),seenEvent:integer('seen_event').notNull(),createdAt:integer('created_at').notNull(),
 },t=>[uniqueIndex('saved_search_pair').on(t.userId,t.queryJson)]);
+export const editorDrafts=sqliteTable('editor_drafts',{
+  userId:text('user_id').primaryKey().references(()=>users.id),payload:text('payload').notNull(),
+  revision:integer('revision').notNull(),updatedAt:integer('updated_at').notNull(),
+});
