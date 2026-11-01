@@ -9,7 +9,7 @@ export const listings=sqliteTable('listings',{
   title:text('title').notNull(),transaction:text('transaction').notNull(),type:text('type').notNull(),
   city:text('city').notNull().default('Cluj-Napoca'),district:text('district').notNull(),
   price:real('price').notNull(),currency:text('currency').notNull(),area:real('area').notNull(),rooms:integer('rooms').notNull(),
-  description:text('description').notNull(),photos:text('photos').notNull(),exactAddress:text('exact_address').notNull().default(''),
+  description:text('description').notNull(),photos:text('photos').notNull(),photoHashes:text('photo_hashes'),exactAddress:text('exact_address').notNull().default(''),
   relationship:text('relationship').notNull(),rentDeposit:real('rent_deposit'),rentCosts:text('rent_costs').notNull().default(''),monthlyCosts:real('monthly_costs'),
   status:text('status').notNull().default('draft'),ownershipStatus:text('ownership_status').notNull().default('declared'),
   acceptsContacts:integer('accepts_contacts').notNull().default(1),contactHours:text('contact_hours').notNull().default(''),
