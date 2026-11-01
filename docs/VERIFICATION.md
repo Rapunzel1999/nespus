@@ -1,8 +1,16 @@
 # Criterii de acceptare și evidențe
 
+## 2 noiembrie 2026 — editor și accesibilitate
+
+Verificările locale ale suplimentului: `pnpm test` **127/127**; `pnpm run typecheck`, `pnpm build`, `pnpm run test:production-isolation`, `git diff --check` — exit 0. Sunt șase regresii noi pentru anunțurile de stare, avertismentul înainte de părăsire, copia în conflict, explicația renunțării, erorile/conflictele la eliminare și răspunsurile întârziate. Rezultatele browser/axe și livrarea sursei finale sunt în PR-ul suplimentului și jurnalul Etapei 10.
+
+Schimbarea DOM a regiunii aria-live este verificată automat; nu este o probă VoiceOver/NVDA sau pe iPhone fizic. Scenariul nou de browser folosește exclusiv D1 local și DEMO: eroare de eliminare simulată, copie locală păstrată, retry explicit și anunț salvat separat păstrat. Nu există operații de ștergere executate pe baza găzduită în această verificare.
+
+Versiunea anterioară confirmată, **15**, a fost livrată la 1 noiembrie 2026, 23:47:06 Europe/Bucharest; [PR #21](https://github.com/Rapunzel1999/nespus/pull/21) conține rezultatele și proveniența. CI `41353295825`: 121 Node, 25 Playwright trecute, un Lighthouse WebKit omis; 0 încălcări axe în 36 evaluări. Noile modificări nu sunt confundate cu acea rulare.
+
 ## Etapa 10 — 1 noiembrie 2026
 
-Această secțiune descrie starea actuală a codului. Secțiunile datate octombrie de mai jos sunt istorice; afirmațiile lor despre lipsa browserului, numărul testelor sau cache nu descriu Etapa 10.
+Această secțiune descrie livrările din 1 noiembrie 2026. Secțiunile datate octombrie de mai jos sunt istorice; afirmațiile lor despre lipsa browserului, numărul testelor sau cache nu descriu Etapa 10.
 
 ### Verificat automat
 
