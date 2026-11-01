@@ -14,6 +14,11 @@ async function markMessagesRead(conversationId,ids){
   catch{/* A failed receipt remains unread; the next visible refresh can retry. */}
   finally{for(const id of pending)S.readPending.delete(id);}
 }
+// Read receipts update navigation; they must not replace focused controls in the thread.
+function conversationDisplaySignature(data){
+  const {unreadMessageIds,...visible}=data;const {unreadCount,...conversation}=visible.conversation;
+  return JSON.stringify({...visible,conversation});
+}
 function startMessagePolling(){
   clearTimeout(S.messagePollTimer);S.messagePollGeneration=(S.messagePollGeneration||0)+1;
   if(!S.boot?.user||S.boot.user.status==='suspended'||document.visibilityState==='hidden')return;
@@ -32,3 +37,12 @@ function startMessagePolling(){
   };S.messagePollTimer=setTimeout(run,0);
 }
 document.addEventListener?.('visibilitychange',()=>{if(typeof S==='undefined')return;startMessagePolling();});
+// Layout viewport correction for a focused composer when the mobile keyboard reduces the visual viewport.
+function updateComposerViewport(){
+  const viewport=window.visualViewport;if(!viewport||!document.documentElement?.style)return;
+  const inset=Math.max(0,window.innerHeight-viewport.height-viewport.offsetTop);
+  document.documentElement.style.setProperty('--keyboard-inset',inset+'px');
+}
+window.visualViewport?.addEventListener('resize',updateComposerViewport);
+window.visualViewport?.addEventListener('scroll',updateComposerViewport);
+document.addEventListener?.('focusin',updateComposerViewport);
