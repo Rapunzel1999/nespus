@@ -149,10 +149,10 @@ const emptyGallery=run('photoGallery('+JSON.stringify({...sample,photos:[]})+')'
 
 // Public property information never exposes a private address or invents costs.
 const sale={...sample,transaction:'sale',price:180000,area:60,rooms:1,currency:'RON',exactAddress:'SECRET STREET 99'};
-run('renderDetail('+JSON.stringify(sale)+')');assert.match(doc.querySelector('.detail-unit-price').textContent,/3[.\s\u00a0]?000 lei \/ m²/);assert.match(doc.querySelector('.property-facts').textContent,/1 cameră/);assert.doesNotMatch(roots.get('#app').textContent,/SECRET STREET|Chirie \/ lună/);
+run('renderDetail('+JSON.stringify(sale)+')');assert.match(doc.querySelector('.detail-unit-price').textContent,/3[.\s\u00a0]?000 RON \/ m²/);assert.match(doc.querySelector('.property-facts').textContent,/1 cameră/);assert.doesNotMatch(roots.get('#app').textContent,/SECRET STREET|Chirie \/ lună/);
 for(const invalid of [{area:0},{area:null},{price:0},{price:'abc'},{transaction:'rent'}])assert.equal(run('pricePerSquareMeter('+JSON.stringify({...sale,...invalid})+')'),null);
 run('renderDetail('+JSON.stringify({...sample,rentDeposit:null,rentCosts:''})+')');assert.match(roots.get('#app').textContent,/Nespecificată/);assert.match(roots.get('#app').textContent,/Nespecificate/);assert.equal(doc.querySelector('.detail-unit-price'),null);
-let saleCards=run('cards('+JSON.stringify([sale])+')');assert.match(saleCards.textContent,/1 cameră/);assert.match(saleCards.textContent,/3[.\s\u00a0]?000 lei \/ m²/);
+let saleCards=run('cards('+JSON.stringify([sale])+')');assert.match(saleCards.textContent,/1 cameră/);assert.match(saleCards.textContent,/3[.\s\u00a0]?000 RON \/ m²/);
 const cardLink=all(saleCards).find(n=>n.className==='card-photo-link');let cardPrevented=false;const cardHistoryBefore=historyWrites.length;cardLink.listeners.click({ctrlKey:true,preventDefault(){cardPrevented=true}});assert.equal(cardPrevented,false);assert.equal(historyWrites.length,cardHistoryBefore);
 
 // Contact UI reflects server prerequisites, and passive viewing sends no mutations.
@@ -237,7 +237,7 @@ comparisonButton(sample.id).listeners.click();assert.equal(doc.querySelector('.c
 comparisonButton(favoriteListings[1].id).listeners.click();assert.equal(doc.querySelector('.comparison-open').disabled,false);
 let favoriteSearch=doc.querySelectorAll('input').find(n=>n.name==='favoriteSearch');favoriteSearch.value='MARASTI';favoriteSearch.listeners.input();assert.equal(doc.querySelectorAll('.property-card').length,1);assert.equal(run('S.comparisonIds.length'),2);
 doc.querySelector('.comparison-open').listeners.click();assert.equal(roots.get('#modal').className,'comparison-dialog');
-let comparison=roots.get('#modal-content').querySelector('.comparison-table');assert.match(comparison.textContent,/Chirie lunară/);assert.match(comparison.textContent,/EUR/);assert.match(comparison.textContent,/RON/);assert.match(comparison.textContent,/Nespecificată/);assert.match(comparison.textContent,/Nespecificate/);assert.match(comparison.textContent,/0 lei/);assert.match(comparison.textContent,/1 cameră/);assert.doesNotMatch(comparison.textContent,/PRIVATE STREET|40700111222|Preț aproximativ/);
+let comparison=roots.get('#modal-content').querySelector('.comparison-table');assert.match(comparison.textContent,/Chirie lunară/);assert.match(comparison.textContent,/EUR/);assert.match(comparison.textContent,/RON/);assert.match(comparison.textContent,/Nespecificată/);assert.match(comparison.textContent,/Nespecificate/);assert.match(comparison.textContent,/0 RON/);assert.match(comparison.textContent,/1 cameră/);assert.doesNotMatch(comparison.textContent,/PRIVATE STREET|40700111222|Preț aproximativ/);
 assert.match(roots.get('#modal-content').textContent,/Monede diferite/);assert.ok(all(comparison).some(n=>n.tag==='th'&&n.getAttribute('scope')==='row'));
 roots.get('#modal').close();favoriteSearch.value='';favoriteSearch.listeners.input();comparisonButton(favoriteListings[4].id).listeners.click();assert.equal(run('S.comparisonIds.length'),2);assert.match(doc.querySelector('.comparison-feedback').textContent,/Compară separat/);
 comparisonButton(favoriteListings[2].id).listeners.click();comparisonButton(favoriteListings[3].id).listeners.click();assert.equal(run('S.comparisonIds.length'),3);assert.match(doc.querySelector('.comparison-feedback').textContent,/maximum trei/);

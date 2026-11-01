@@ -35,14 +35,15 @@ test('search filters, detail, favorites and comparison',async({page})=>{
   await page.locator('[name=district]').selectOption('Centru');await page.getByRole('button',{name:/Caută anunțuri/}).click();
   await expect(page.locator('.property-card')).toHaveCount(2);await expect(page).toHaveURL(/district=Centru/);
   await page.locator('.card-photo-link').first().click();await expect(page.locator('h1')).toContainText('DEMO');await expect(page.locator('body')).not.toContainText('DEMO ADRESĂ PRIVATĂ');
-  await page.getByRole('button',{name:'Adaugă în favorite',exact:true}).click();await expect(page.getByRole('button',{name:'Elimină din favorite',exact:true})).toBeVisible();
-  await page.goto('/atelier?listing='+listingId(2));await page.getByRole('button',{name:'Adaugă în favorite',exact:true}).click();await expect(page.getByRole('button',{name:'Elimină din favorite',exact:true})).toBeVisible();
+  await page.locator('.property-gallery').focus();await page.keyboard.press('ArrowRight');await expect(page.locator('.photo-counter')).toHaveText('2 / 2');
+  await page.locator('.favorite-toggle:visible').first().click();await expect(page.locator('.favorite-toggle[aria-pressed="true"]:visible').first()).toBeVisible();
+  await page.goto('/atelier?listing='+listingId(2));await page.locator('.favorite-toggle:visible').first().click();await expect(page.locator('.favorite-toggle[aria-pressed="true"]:visible').first()).toBeVisible();
   await page.goto('/atelier?view=favorites');await page.locator('.favorite-compare-button[aria-pressed="false"]').first().click();await page.locator('.favorite-compare-button[aria-pressed="false"]').first().click();await page.getByRole('button',{name:'Compară proprietățile ↗',exact:true}).click();
   await expect(page.getByRole('dialog')).toBeVisible();await expect(page.getByRole('table')).toBeVisible();
 });
 
 test('request, acceptance, messages, viewing and explicit phone disclosure',async({page})=>{
-  await login(page,'buyer');await page.goto('/atelier?listing='+listingId(1));await page.locator('.property-contact-button').click();
+  await login(page,'buyer');await page.goto('/atelier?listing='+listingId(1));await page.locator('.detail-panel .property-contact-button').click();
   await page.locator('#modal textarea').fill('DEMO: Mă interesează această locuință pentru uz personal.');await page.locator('#modal input[type=checkbox]').check();await page.getByRole('button',{name:'Trimite solicitarea',exact:true}).click();
   await expect(page).toHaveURL(/conversation=/);const id=new URL(page.url()).searchParams.get('conversation');
   await login(page,'owner');await page.reload();await page.getByRole('button',{name:'Acceptă conversația',exact:true}).click();await expect(page.locator('.conversation-composer')).toBeVisible();

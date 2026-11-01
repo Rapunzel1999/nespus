@@ -6,7 +6,7 @@ const typeNames={apartment:'Apartament',house:'Casă',land:'Teren',commercial:'S
 const statuses={draft:'Ciornă',pending:'În moderare',published:'Publicat',rejected:'Respins',sold:'Vândut',rented:'Închiriat',withdrawn:'Retras',requested:'Solicitare nouă',accepted:'Acceptată',declined:'Refuzată'};
 function el(tag,attrs={},...children){const n=document.createElement(tag);for(const[k,v]of Object.entries(attrs)){if(k==='class')n.className=v;else if(k==='text')n.textContent=v;else if(k.startsWith('on'))n.addEventListener(k.slice(2),v);else if(k==='checked'||k==='disabled'||k==='required'||k==='selected')n[k]=!!v;else if(v!=null)n.setAttribute(k,String(v));}for(const child of children.flat(Infinity))if(child!=null)n.append(child instanceof Node?child:document.createTextNode(String(child)));return n;}
 const b=(text,fn,cls='button')=>el('button',{type:'button',class:cls,onclick:fn},text);
-const money=(v,c='EUR')=>new Intl.NumberFormat('ro-RO',{maximumFractionDigits:0}).format(Number(v)||0)+' '+(c==='EUR'?'€':'lei');
+const money=(v,c='EUR')=>new Intl.NumberFormat('ro-RO',{maximumFractionDigits:0}).format(Number(v)||0)+' '+(c==='EUR'?'EUR':'RON');
 const eye=t=>el('div',{class:'eyebrow'},el('span',{class:'dot'}),t);
 const note=(t,error=false)=>el('div',{class:'notice'+(error?' error':''),...(error?{role:'alert'}:{})},t);
 function toast(t){const n=document.querySelector('#toast');n.textContent=t;n.classList.add('show');clearTimeout(toast.timer);toast.timer=setTimeout(()=>n.classList.remove('show'),4500);}
@@ -92,7 +92,7 @@ function brandPrinciples(){
 }
 function neighborhoodSection(){
   const selected=['Centru','Gheorgheni','Grigorescu','Zorilor','Andrei Mureșanu','Bună Ziua'];
-  return el('section',{class:'brand-section neighborhood-section'},el('div',{class:'brand-section-heading'},el('div',{},eye('Același oraș. Atâtea începuturi.'),el('h2',{},'În ce parte din Cluj',el('br'),el('em',{},'te vezi acasă?'))),el('p',{class:'brand-section-intro'},'Începe de la un cartier. Vezi apoi ce proprietăți sunt disponibile pentru '+(S.transaction==='rent'?'închiriere.':'vânzare.'))),el('div',{class:'neighborhood-list'},...selected.map((name,index)=>el('button',{type:'button',onclick:()=>districtSearch(name),'aria-label':'Caută proprietăți în '+name},el('span',{class:'neighborhood-index'},'0'+(index+1)),el('span',{class:'neighborhood-name'},name),el('span',{class:'neighborhood-arrow','aria-hidden':'true'},'↗')))),b('Explorează toate cartierele →',()=>{S.filters={currency:'EUR'};go('browse');},'text-button neighborhood-all'));
+  return el('section',{class:'brand-section neighborhood-section'},el('div',{class:'brand-section-heading'},el('div',{},eye('Același oraș. Atâtea începuturi.'),el('h2',{},'În ce parte din Cluj',el('br'),el('em',{},'te vezi acasă?'))),el('p',{class:'brand-section-intro'},'Începe de la un cartier. Vezi apoi ce proprietăți sunt disponibile pentru '+(S.transaction==='rent'?'închiriere.':'vânzare.'))),el('div',{class:'neighborhood-list'},...selected.map((name,index)=>el('button',{type:'button',onclick:()=>districtSearch(name),'aria-label':'Caută proprietăți în '+name},el('span',{class:'neighborhood-index','aria-hidden':'true'},'0'+(index+1)),el('span',{class:'neighborhood-name'},name),el('span',{class:'neighborhood-arrow','aria-hidden':'true'},'↗')))),b('Explorează toate cartierele →',()=>{S.filters={currency:'EUR'};go('browse');},'text-button neighborhood-all'));
 }
 function ownerInvitation(){
   return el('section',{class:'brand-owner','aria-labelledby':'owner-invitation-title'},el('figure',{class:'brand-owner-photo'},el('img',{src:'/media/owner-atmosphere.webp',alt:'Cheie pe o tavă ceramică, în lumină caldă. Imagine de atmosferă generată cu AI.',width:800,height:1000,loading:'lazy',decoding:'async'}),el('figcaption',{},'Imagine de atmosferă · AI')),el('div',{class:'brand-owner-copy'},eye('Pentru proprietari'),el('h2',{id:'owner-invitation-title'},'Tu ai un loc.',el('br'),el('em',{},'Cineva îl caută.')),el('p',{},'Spune-i povestea. Arată lumina din camere, detaliile care contează și condițiile reale. Restul începe cu o conversație.'),el('ul',{},el('li',{},'Publicarea de bază este gratuită în beta.'),el('li',{},'Pregătești și previzualizezi anunțul în ritmul tău.'),el('li',{},'Tu alegi cui îi oferi numărul de telefon.')),b('Pregătește proprietatea ta ↗',()=>requireUser(publishingChoice),'button owner-cta'),el('p',{class:'owner-pilot-note'},'Poți începe cu o ciornă. Publicarea așteaptă îndeplinirea condițiilor pilotului.')));
@@ -132,7 +132,7 @@ async function browse(options={}){
     const {listings}=data,total=data.total??listings.length,page=data.page??S.browsePage,limit=data.limit??24;
     const sorter=select('sort',[['newest','Cele mai recente'],['price_asc','Preț crescător'],['price_desc','Preț descrescător'],['area_desc','Suprafață descrescătoare']],S.sort);
     sorter.addEventListener('change',()=>{S.sort=sorter.value;go('browse');});
-    const count=el('div',{},el('h2',{class:'results-count',role:'status','aria-live':'polite'},total+' '+(total===1?'anunț':'anunțuri')),
+    const count=el('div',{},el('h2',{class:'results-count','aria-live':'polite'},total+' '+(total===1?'anunț':'anunțuri')),
       el('p',{class:'subtle'},(listings.length?((page-1)*limit+1)+'–'+((page-1)*limit+listings.length)+' din '+total+' · ':'')+(S.filters.currency||'EUR')+' · Fără conversie valutară'));
     results.replaceChildren(...[activeFilters(),el('div',{class:'results-toolbar'},count,el('label',{class:'sort-control'},'Sortează după',sorter)),
       listings.length?cards(listings):searchEmpty(total),pagination(page,data.totalPages??1)].filter(Boolean));
@@ -162,15 +162,23 @@ function pricePerSquareMeter(l){
   return '≈ '+money(price/area,l.currency)+' / m²';
 }
 function roomLabel(rooms){return Number(rooms)===1?'1 cameră':rooms+' camere';}
+function availabilityLabel(l){
+  if(!l.availabilityConfirmedAt)return 'Data reconfirmării nu este disponibilă';
+  const days=Math.max(0,Math.floor((Date.now()-l.availabilityConfirmedAt)/86400000));
+  return 'Disponibilitate reconfirmată '+(days===0?'astăzi':days===1?'acum o zi':'acum '+days+' zile');
+}
 function cards(listings){
   return el('div',{class:'cards'},...listings.map((l,index)=>{
     const linkAttrs={href:'/atelier?listing='+encodeURIComponent(l.id),onclick:e=>{if(modifiedClick(e))return;e.preventDefault();detail(l.id);}};
     const metric=pricePerSquareMeter(l);
-    return el('article',{class:'card property-card'},el('div',{class:'card-image'},el('a',{...linkAttrs,class:'card-photo-link','aria-label':'Deschide '+l.title},l.photos?.[0]?el('img',{src:l.photos[0],alt:l.title,width:800,height:600,loading:index===0?'eager':'lazy',decoding:'async'}):el('div',{class:'photo-placeholder'},el('span',{'aria-hidden':'true'},'⌂'),el('span',{},'Fotografii indisponibile'))),el('span',{class:'pill'},l.transaction==='rent'?'DE ÎNCHIRIAT':'DE VÂNZARE'),favoriteButton(l.id,true)),
-      el('div',{class:'card-body'},el('p',{class:'card-location'},l.district+' · Cluj-Napoca'),el('h3',{},el('a',{...linkAttrs,class:'card-title'},l.title)),el('div',{class:'card-facts'},el('span',{},typeNames[l.type]||l.type),el('span',{},l.area+' m²'),l.rooms?el('span',{},roomLabel(l.rooms)):null),
-        el('div',{class:'card-footer'},el('div',{},el('div',{class:'price'},money(l.price,l.currency),l.transaction==='rent'?el('small',{},' / lună'):null),metric?el('p',{class:'card-unit-price'},metric):null),el('span',{class:'card-direct'},'Direct de la proprietar')),
+    return el('article',{class:'card property-card'},el('div',{class:'card-image'},el('a',{...linkAttrs,class:'card-photo-link','aria-label':'Deschide '+l.title},l.photos?.[0]?el('img',{src:l.photos[0],alt:l.title,width:800,height:600,loading:index===0?'eager':'lazy',decoding:'async'}):el('div',{class:'photo-placeholder'},el('span',{'aria-hidden':'true'},'⌂'),el('span',{},'Fotografii indisponibile')))),
+      el('div',{class:'card-body'},el('p',{class:'price'},money(l.price,l.currency),el('small',{},l.transaction==='rent'?' / lună · închiriere':' · vânzare')),
+        el('p',{class:'card-facts'},l.district+' · '+(typeNames[l.type]||l.type)+' · '+l.area+' m²'+(l.rooms?' · '+roomLabel(l.rooms):'')),
+        el('h3',{},el('a',{...linkAttrs,class:'card-title'},l.title)),metric?el('p',{class:'card-unit-price'},metric):null,
+        el('p',{class:'availability-age'},availabilityLabel(l)),
         l.transaction==='rent'?el('p',{class:'rental-card-note'},l.rentDeposit!=null?'Garanție: '+money(l.rentDeposit,l.currency):'Garanție nespecificată'):null,
-        l.acceptsContacts===false?el('p',{class:'card-contact-paused'},'Solicitările noi sunt oprite temporar.'):null));
+        l.acceptsContacts===false?el('p',{class:'card-contact-paused'},'Solicitările noi sunt oprite temporar.'):null,
+        el('div',{class:'card-footer'},el('span',{class:'card-direct'},'Direct de la proprietar'),favoriteButton(l.id))));
   }));
 }
 
@@ -182,16 +190,16 @@ function propertyFacts(l){
   facts.push(['Tranzacție',l.transaction==='rent'?'Închiriere':'Vânzare']);
   return el('dl',{class:'property-facts','aria-label':'Proprietatea pe scurt'},...facts.map(([name,value])=>el('div',{},el('dt',{},name),el('dd',{},value))));
 }
-function propertyContactControl(l){
+function propertyContactControl(l,suffix=''){
   const user=S.boot?.user,canVerify=S.boot?.capabilities.phoneVerification;
-  let label='Discută cu proprietarul ↗',help='Trimiți o solicitare. Conversația începe după acceptarea proprietarului.',disabled=false;
+  let label='Trimite o solicitare',help='Trimiți o solicitare. Conversația începe după acceptarea proprietarului.',disabled=false;
   let action=()=>requireUser(()=>contact(l));
   if(l.acceptsContacts===false){label='Solicitări oprite temporar';help='Proprietarul a oprit temporar solicitările noi. Poți păstra anunțul în favorite.';disabled=true;}
   else if(!user){label='Intră în cont pentru contact ↗';help='Autentificarea și telefonul confirmat sunt necesare pentru contactare.';}
   else if(!user.phoneVerified&&!canVerify){label='Contact indisponibil în pilot';help='Telefonul tău nu este confirmat, iar serviciul SMS nu este încă activ. Poți salva anunțul în favorite.';disabled=true;}
   else if(!user.phoneVerified){label='Confirmă telefonul pentru contact';help='Confirmarea telefonului este necesară înainte să trimiți o solicitare.';action=phoneSetup;}
-  const button=b(label,action,'button property-contact-button');button.disabled=disabled;button.setAttribute('aria-describedby','property-contact-help');
-  return el('div',{class:'property-contact-control'},button,el('p',{id:'property-contact-help',class:'contact-reassurance'},help));
+  const button=b(label,action,'button property-contact-button');button.disabled=disabled;button.setAttribute('aria-describedby','property-contact-help'+suffix);
+  return el('div',{class:'property-contact-control'},button,el('p',{id:'property-contact-help'+suffix,class:'contact-reassurance'},help));
 }
 function renderDetail(l,preview=false){
   if(preview)beginScreen('preview');else if(l.transaction!==S.transaction){changeTransaction(l.transaction);S.browsePage=1;}
@@ -199,7 +207,7 @@ function renderDetail(l,preview=false){
   const actions=el('div',{class:'property-top-actions'},b(preview?'← Înapoi la editare':S.detailReturnPage==='favorites'?'← Înapoi la favorite':S.detailReturnPage==='messages'?'← Înapoi la conversație':'← Înapoi la anunțuri',()=>preview?resumeDraft():S.detailReturnPage==='favorites'?go('favorites'):S.detailReturnPage==='messages'?go('messages',{conversationId:S.detailConversationId}):go('browse',{pageNumber:S.browsePage}),'text-button back'));
   if(!preview)actions.append(el('div',{class:'property-save-share'},favoriteButton(l.id),b('Copiază linkul',()=>copyListingLink(l.id),'button secondary share-listing')));
   const main=el('main',{class:'page listing-detail property-detail'},actions,eye(preview?'Previzualizare · nepublicat':l.district+' · Cluj-Napoca'),el('div',{class:'detail-heading'},el('h1',{class:'detail-title',tabindex:'-1'},l.title),el('span',{class:'pill'},l.transaction==='rent'?'DE ÎNCHIRIAT':'DE VÂNZARE')));
-  const visual=el('div',{class:'property-visual'},photoGallery(l),propertyFacts(l));
+  const visual=el('div',{class:'property-visual'},photoGallery(l),el('div',{class:'mobile-property-summary'},el('p',{class:'price'},money(l.price,l.currency),l.transaction==='rent'?el('small',{},' / lună'):null),el('p',{},l.district+' · '+(typeNames[l.type]||l.type)+' · '+l.area+' m²'+(l.rooms?' · '+roomLabel(l.rooms):'')),el('p',{class:'availability-age'},availabilityLabel(l))),propertyFacts(l));
   const body=el('div',{class:'detail-main property-story'},el('section',{class:'detail-section property-description'},eye('Un loc, în cuvintele proprietarului'),el('h2',{},'Despre proprietate'),el('p',{class:'detail-description'},l.description)),
     el('section',{class:'detail-section property-location'},el('div',{class:'location-monogram','aria-hidden':'true'},icon()),el('div',{},el('h2',{},l.district),el('p',{},'Cluj-Napoca'),el('p',{class:'subtle'},'Adresa exactă nu este publică. O poți discuta direct cu proprietarul.'))),
     el('section',{class:'detail-section property-next'},el('h2',{},'Înainte de prima conversație'),el('ul',{},el('li',{},'Clarifică disponibilitatea și condițiile declarate.'),el('li',{},'Întreabă despre costurile care nu apar în anunț.'),el('li',{},'Stabiliți împreună vizionarea; o propunere nu este o confirmare.'))));
@@ -207,11 +215,11 @@ function renderDetail(l,preview=false){
   const panel=el('aside',{class:'detail-panel','aria-label':'Preț și contact'},el('p',{class:'detail-price-label'},l.transaction==='rent'?'Chirie lunară':'Preț de vânzare'),el('p',{class:'price detail-price'},money(l.price,l.currency),l.transaction==='rent'?el('small',{},' / lună'):null),metric?el('p',{class:'detail-unit-price'},metric+' · calcul din prețul și suprafața declarate'):null,el('p',{class:'no-fee'},'Fără comision de agenție.'));
   if(l.transaction==='rent')panel.append(rentalCosts(l));
   const ownerName=l.ownerName||'Proprietar';
-  panel.append(el('div',{class:'property-owner'},el('div',{class:'owner-avatar','aria-hidden':'true'},ownerName.trim().charAt(0).toLocaleUpperCase('ro-RO')||'P'),el('div',{},el('p',{class:'owner-caption'},'Discuți direct cu'),el('h3',{},ownerName))),el('div',{class:'owner-checks'},el('p',{},l.phoneVerified?'Telefon confirmat':'Telefon neconfirmat'),el('p',{},l.ownershipStatus==='reviewed'?'Relație cu proprietatea revizuită de moderator':'Proprietar declarat · relația cu proprietatea nu este verificată')),el('p',{class:'owner-check-limit'},'Confirmarea telefonului nu dovedește identitatea sau dreptul de proprietate.'));
+  panel.append(el('div',{class:'property-owner'},el('div',{class:'owner-avatar','aria-hidden':'true'},ownerName.trim().charAt(0).toLocaleUpperCase('ro-RO')||'P'),el('div',{},el('p',{class:'owner-caption'},'Discuți direct cu'),el('strong',{class:'owner-name'},ownerName))),el('div',{class:'owner-checks'},el('p',{},l.phoneVerified?'Telefon confirmat':'Telefon neconfirmat'),el('p',{},l.ownershipStatus==='reviewed'?'Relație cu proprietatea revizuită de moderator':'Proprietar declarat · relația cu proprietatea nu este verificată')),el('p',{class:'owner-check-limit'},'Confirmarea telefonului nu dovedește identitatea sau dreptul de proprietate.'));
   if(l.contactHours)panel.append(el('p',{class:'property-contact-hours'},'Interval preferat: '+l.contactHours));
   if(preview)panel.append(b('Continuă editarea',resumeDraft),note('Aceasta este o previzualizare. Anunțul nu a fost publicat.'));
   else panel.append(propertyContactControl(l),el('p',{class:'property-privacy-note'},'Numărul proprietarului rămâne ascuns. El decide separat dacă ți-l oferă.'),b('Raportează anunțul',()=>requireUser(()=>report({listingId:l.id})),'text-button report-listing'));
-  main.append(el('div',{class:'detail-grid'},visual,panel,body));shell(main);window.scrollTo(0,0);main.querySelector?.('.detail-title')?.focus({preventScroll:true});
+  main.append(el('div',{class:'detail-grid'},visual,panel,body));if(!preview)main.append(el('div',{class:'mobile-contact-bar'},propertyContactControl(l,'-mobile'),favoriteButton(l.id)));shell(main);window.scrollTo(0,0);main.querySelector?.('.detail-title')?.focus({preventScroll:true});
 }
 
 function field(label,node,hint){return el('label',{class:'field'},label,node,hint?el('small',{},hint):null);}
@@ -840,7 +848,7 @@ window.addEventListener('popstate',()=>{if(S.boot)attempt(restoreLocation);});
 function copySearchLink(){copyLink(new URL(browseUrl(),window.location.origin).href,'Linkul căutării a fost copiat.','Trimite căutarea mai departe.');}
 function copyLink(url,success,title){attempt(async()=>{try{if(!navigator.clipboard?.writeText)throw Error('clipboard unavailable');await navigator.clipboard.writeText(url);toast(success);}catch{const input=el('input',{value:url,readonly:true,'aria-label':'Link de copiat'});openModal(el('div',{},el('h2',{class:'modal-title'},title),el('p',{class:'muted'},'Copiază linkul de mai jos. Accesul la pilot rămâne restrâns.'),input));input.select();}});}
 function favoriteButton(id,compact=false){const button=b('',()=>toggleFavorite(id),compact?'icon-button favorite-toggle':'button secondary favorite-toggle');button.setAttribute('data-favorite',id);button.setAttribute('data-compact',compact?'true':'false');paintFavoriteButton(button,id,compact);return button;}
-function paintFavoriteButton(button,id,compact){const saved=S.favorites.has(id);button.textContent=compact?(saved?'♥':'♡'):(saved?'♥ Salvată în favorite':'♡ Salvează locuința');button.setAttribute('aria-pressed',String(saved));button.setAttribute('aria-label',saved?'Elimină din favorite':'Adaugă în favorite');button.disabled=S.favoritePending.has(id);}
+function paintFavoriteButton(button,id,compact){const saved=S.favorites.has(id);button.textContent=compact?(saved?'♥':'♡'):(saved?'♥ Salvată în favorite':'♡ Salvează locuința');button.setAttribute('aria-pressed',String(saved));button.setAttribute('aria-label',compact?(saved?'Elimină din favorite':'Adaugă în favorite'):button.textContent);button.disabled=S.favoritePending.has(id);}
 function updateFavoriteButtons(id){for(const button of document.querySelectorAll('[data-favorite]'))if(button.getAttribute('data-favorite')===id)paintFavoriteButton(button,id,button.getAttribute('data-compact')==='true');}
 function activeFilters(){const names={district:'Cartier',type:'Tip',currency:'Monedă',maxPrice:'Buget maxim',minPrice:'Preț minim',minArea:'Suprafață minimă',rooms:'Camere',q:'Căutare'};const selected=Object.entries(S.filters).filter(([key,value])=>value&&names[key]&&key!=='currency');if(!selected.length)return el('div');return el('div',{class:'active-filters','aria-label':'Filtre active'},...selected.map(([key,value])=>{const label=names[key]+': '+(key==='type'?typeNames[value]:value)+(key==='maxPrice'||key==='minPrice'?' '+(S.filters.currency||'EUR'):key==='minArea'?' m²':key==='rooms'?'+':'');const button=b(label+' ×',()=>{delete S.filters[key];go('browse');},'filter-chip');button.setAttribute('aria-label','Elimină filtrul '+label);return button;}),b('Resetează tot',()=>{S.filters={};go('browse');},'text-button reset-filters'));}
 function rentalCosts(l){const row=(label,value)=>el('div',{class:'rental-cost-row'},el('dt',{},label),el('dd',{},value));return el('section',{class:'rental-costs','aria-label':'Detalii costuri închiriere'},el('dl',{},row('Chirie / lună',money(l.price,l.currency)),row('Garanție',l.rentDeposit!=null?money(l.rentDeposit,l.currency):'Nespecificată'),row('Alte costuri',l.rentCosts||'Nespecificate')),el('p',{class:'subtle'},'Sumele și condițiile sunt declarate de proprietar. Confirmă costurile înainte de a lua o decizie.'));}
@@ -865,6 +873,7 @@ function photoGallery(l){
   const stage=el('div',{class:'gallery-stage'},image,status,b('Mărește fotografiile ↗',()=>openPhotoViewer(l,selected,update),'gallery-expand'));
   if(photos.length>1){const prev=b('‹',()=>update(selected-1),'gallery-arrow previous'),next=b('›',()=>update(selected+1),'gallery-arrow next');prev.setAttribute('aria-label','Fotografia precedentă');next.setAttribute('aria-label','Fotografia următoare');stage.append(prev,next);}
   const container=el('div',{class:'property-gallery',tabindex:'0','aria-label':'Galerie fotografii. Folosește săgețile pentru a schimba fotografia.'},stage);
+  let touchStart=null;stage.addEventListener('touchstart',event=>{const t=event.changedTouches[0];touchStart={x:t.clientX,y:t.clientY};},{passive:true});stage.addEventListener('touchend',event=>{if(!touchStart)return;const t=event.changedTouches[0],dx=t.clientX-touchStart.x,dy=t.clientY-touchStart.y;if(Math.abs(dx)>50&&Math.abs(dx)>Math.abs(dy)*1.5)update(selected+(dx<0?1:-1));touchStart=null;},{passive:true});
   container.addEventListener('keydown',e=>{if(e.target!==container)return;if(e.key==='ArrowRight'){e.preventDefault();update(selected+1);}if(e.key==='ArrowLeft'){e.preventDefault();update(selected-1);}});
   if(photos.length>1){for(const[src,index]of photos.map((src,index)=>[src,index]))thumbnails.push(el('button',{type:'button',class:'gallery-thumbnail','aria-label':'Vezi fotografia '+(index+1),'aria-pressed':String(index===0),onclick:()=>update(index)},el('img',{src,alt:'',width:120,height:90,loading:'lazy'})));container.append(el('div',{class:'gallery-thumbnails','aria-label':'Alege fotografia'},...thumbnails));}
   return container;
