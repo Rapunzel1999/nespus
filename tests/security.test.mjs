@@ -827,3 +827,17 @@ test('waiting replies and calendar are participant scoped and require a confirme
   assert.equal((await f.request('/viewings/'+id+'/calendar',{as:'other'})).status,404);
   assert.equal((await f.request('/conversations',{as:'owner'})).data.conversations[0].awaitingReply,false);
 });
+
+test('moderator review signals never auto-restrict; decisions have a private persisted audit trail',async()=>{
+  const f=fixture();for(let n=1;n<=4;n++)f.listing(lid(n),n===1?'pending':'published');f.listing(lid(5),'published','other');
+  f.sql.prepare('UPDATE listings SET photo_hashes=? WHERE id=?').run('["0000000000000000"]',lid(1));f.sql.prepare('UPDATE listings SET photo_hashes=? WHERE id=?').run('["0000000000000001"]',lid(5));f.sql.prepare('UPDATE listings SET description=? WHERE id=?').run('Fără comision, fără agenție, fără exclusivitate.',lid(1));
+  const queue=await f.request('/moderation',{as:'mod'});const row=queue.data.listings[0];for(const signal of ['phone_many_listings','similar_photo_other_account','keyword_comision','keyword_agentie','keyword_exclusivitate'])assert.ok(row.riskSignals.includes(signal));assert.equal(row.photoReviewLimited,true);
+  assert.equal(f.sql.prepare('SELECT status FROM users WHERE id=?').get('owner').status,'active');
+  const approval=await f.request('/moderation/listings/'+lid(1),{as:'mod',method:'POST',data:{decision:'published',reason:'Am revizuit contextul indiciilor, fără verificarea proprietății.'}});assert.equal(approval.status,200);
+  assert.equal((await f.request('/moderation/audit',{as:'buyer'})).status,403);
+  const audit=(await f.request('/moderation/audit',{as:'mod2'})).data.events;assert.equal(audit[0].action,'listing_published');assert.equal(audit[0].actorId,'mod');assert.equal(audit[0].targetId,lid(1));assert.doesNotMatch(JSON.stringify(audit),/\+407/);
+  const detail=(await f.request('/listings/'+lid(1))).data.listing;assert.equal(detail.moderationApprovedAt,NOW);assert.equal(detail.ownerDeclaredAt,null);
+  f.sql.prepare('INSERT INTO declarations(id,user_id,kind,version,listing_id,accepted_at,text_snapshot) VALUES (?,?,?,?,?,?,?)').run(lid(8000),'owner','owner',VERSION,lid(1),NOW-2000,'DEMO declarație');
+  assert.equal((await f.request('/listings/'+lid(1))).data.listing.ownerDeclaredAt,NOW-2000);
+  assert.doesNotMatch(JSON.stringify((await f.request('/listings/'+lid(1))).data),/riskSignals|photo_hash|photoHashes/);
+});
