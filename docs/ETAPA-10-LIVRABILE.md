@@ -243,3 +243,18 @@ Inspecția capturii WebKit `draft-recovery/after-recovery.png` a identificat apo
 Copia locală reține numai momentul confirmării, fără duplicarea fotografiilor. Acesta este acceptat doar după recitirea aceleiași revizii și date din cont. Editările locale neconfirmate reiau salvarea întârziată cu verificarea reviziei; dacă citirea contului eșuează, textul rămâne în filă, apare explicația și nu pornește o scriere automată. Declarațiile vechi continuă să fie invalidate. E2E cere acum și starea salvată după reîncărcare. Arhiva intermediară pregătită anterior nu a fost livrată; se reconstruiește numai sursa finală.
 
 Pe aceeași sursă corectată, `pnpm run test:production-isolation` și `git diff --check` au trecut cu exit 0.
+
+
+## 2 noiembrie 2026 — editor accesibil și renunțare confirmată
+
+Fișiere: `public/draft-storage.js` separă textul vizibil al ceasului de anunțul stabil aria-live și adaugă păstrarea copiei locale până la confirmarea eliminării. `public/app.js` actualizează avertismentul beforeunload, dialogul explicativ și protecțiile operațiunii; un răspuns târziu nu închide un dialog nou și nu lasă un formular vechi reutilizabil după ștergerea autorizată. `public/accessibility.css` adaugă clasa pentru anunțul disponibil cititorului de ecran. `tests/draft-storage.test.mjs` și `tests/e2e/flows.spec.mjs` verifică noile cazuri. README, CHANGELOG și VERIFICATION consemnează rezultatele.
+
+Patru regresii au fost rulate înaintea corecției: 8 trecute / 4 eșuate în fișierul ciornelor. După implementare și cele două cazuri suplimentare de operațiuni asincrone: `node --test tests/draft-storage.test.mjs` **14/14**. `node --test tests/draft-storage.test.mjs tests/forms.test.mjs tests/frontend.test.mjs` a trecut la starea intermediară cu 23 teste. `pnpm test`: **127/127** în suita completă. TypeScript, build, izolarea producției și `git diff --check` sunt urmărite pe aceeași sursă finală.
+
+Interfața păstrează contorul vizibil, dar nu rescrie regiunea de anunț la fiecare secundă. Testul din browser urmărește mutațiile DOM în timp ce contorul avansează. Aceasta nu certifică redarea vocală a unui cititor de ecran real.
+
+La renunțare, request-ul DELETE existent este controlat prin revizia ciornei. Un răspuns 409/503 păstrează textul și copia sessionStorage, fără retry automat. Formularul nu poate trimite a doua cerere în paralel; editorul din spatele dialogului este dezactivat pe durata operațiunii. Dacă utilizatorul trece la alt dialog, finalizarea nu îl înlocuiește; dacă vechiul editor este încă afișat, formularul vechi este înlăturat. Anunțurile din tabela listings nu sunt șterse.
+
+Capturi înainte: [artefactul versiunii 15](https://github.com/Rapunzel1999/nespus/actions/runs/41353295825/artifacts/13102736191), editorul standard și `draft-recovery/after-recovery.png`. După: suita nouă produce cele 36 capturi standard, stările ciornei și `draft-discard/failure-preserves-copy.png` / `saved-listing-preserved.png` în Chromium și WebKit. Execuția și artefactul final sunt legate în PR.
+
+Nu au fost verificate VoiceOver/NVDA, dispozitive fizice, două conturi găzduite, UI găzduit autentificat, SMS real sau importuri umane ICS. Nu se schimbă schema, autentificarea, audiența sau politica SMS; nu se activează facturare și nu se modifică main. Variantele foto L2 și condițiile umane/juridice de lansare rămân deschise. Intermitența istorică Wrangler nu este declarată rezolvată de o singură verificare pozitivă.

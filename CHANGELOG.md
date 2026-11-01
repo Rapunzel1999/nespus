@@ -1,5 +1,12 @@
 # Changelog
 
+## Editor — 2026-11-02
+
+- Contorul de secunde rămâne vizibil, iar regiunea accesibilă anunță numai schimbările stării de salvare.
+- Părăsirea unei ciorne confirmate nu mai produce avertisment de pierdere; modificările nesalvate, operațiunile în curs și copiile locale în conflict rămân protejate.
+- Confirmarea renunțării explică și eliminarea ciornei de lucru din cont. Copia locală se șterge numai după confirmarea serverului; un refuz sau conflict păstrează textul și afișează eroarea.
+- Apăsările repetate, editorul din spatele dialogului și răspunsurile întârziate au protecții. Anunțurile salvate separat nu sunt șterse.
+
 ## Ciorne — corecții după versiunea 14
 
 - Răspunsurile autosave întârziate nu mai refac copia din sessionStorage eliminată la ieșirea din cont, nici la succes, nici la eroare. Dacă navigarea este anulată, editarea deliberată poate crea o copie nouă.

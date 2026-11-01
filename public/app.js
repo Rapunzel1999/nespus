@@ -234,12 +234,24 @@ function renderDetail(l,preview=false){
 
 function field(label,node,hint){return el('label',{class:'field'},label,node,hint?el('small',{},hint):null);}
 function editorActive(){return S.page==='create'||S.page==='preview';}
-function editorBusy(){return S.editorSaving||S.editorProcessing;}
-function clearEditor(){resetDraftBuffer().catch(()=>{});S.editorSession++;S.editorDirty=false;S.editorError='';S.draft={};S.photos=[];}
+function editorBusy(){return S.editorSaving||S.editorProcessing||S.formPending.has('editor-discard');}
+function clearEditorState(){S.editorSession++;S.editorDirty=false;S.editorError='';S.draft={};S.photos=[];}
+function clearEditor(){resetDraftBuffer().catch(()=>{});clearEditorState();}
+function confirmDraftDiscard(action){
+  const key='editor-discard',errorHost=el('div',{class:'form-feedback',role:'alert'});
+  const form=el('form',{},eye('Ciornă în lucru'),el('h2',{class:'modal-title'},action?'Păstrezi anunțul început?':'Renunți la ciorna de lucru?'),el('p',{class:'muted'},action?'Dacă începi alt anunț, modificările nesalvate se pierd, iar ciorna de lucru din cont este eliminată. Anunțurile salvate separat în cont rămân.':'Se elimină modificările din această filă și ciorna de lucru din cont, salvată automat. Anunțurile salvate separat în cont rămân.'));
+  const confirm=async()=>{let proceed=false;await modalSubmission(form,key,()=>resetDraftBuffer({preserveUntilConfirmed:true}),{errorHost,success:'Ciorna de lucru a fost eliminată.',onSaved:()=>{
+    clearEditorState();
+    if(S.page==='create'){S.draft={transaction:'sale',type:'apartment',currency:'EUR',relationship:'owner',district:''};S.step=0;renderCreate();}
+    else if(S.page==='preview')shell(el('main',{class:'page'},el('h1',{},'Ciorna de lucru a fost eliminată.'),b('Începe alt anunț',()=>create())));
+    else refreshDraftResume();
+  },onVisible:()=>{dialog.close();proceed=true;}});if(proceed)action?.();};
+  form.append(operationFields(key,el('div',{class:'publishing-options'},b(action?'Continuă editarea':'Păstrează modificările',()=>{dialog.close();if(action)resumeEditor();}),b(action?'Renunță și continuă':'Renunță la modificări',confirm,'button secondary'))),errorHost);form.addEventListener('submit',event=>{event.preventDefault();return confirm();});openModal(form);
+}
 function confirmEditorReplacement(action){
   if(editorBusy()){toast('Așteaptă încheierea salvării sau a procesării fotografiilor.');return true;}
   if(!S.editorDirty)return false;
-  openModal(el('div',{},eye('Modificări nesalvate'),el('h2',{class:'modal-title'},'Păstrezi anunțul început?'),el('p',{class:'muted'},'Ai modificări păstrate doar în această filă. Dacă începi alt anunț, modificările nesalvate se pierd.'),el('div',{class:'publishing-options'},b('Continuă editarea',()=>{dialog.close();resumeEditor();}),b('Renunță și continuă',()=>{clearEditor();dialog.close();action();},'button secondary'))));return true;
+  confirmDraftDiscard(action);return true;
 }
 function create(existing){
   if(confirmEditorReplacement(()=>create(existing)))return;
@@ -252,11 +264,11 @@ function draftResumeContent(){
   if(editorActive())return null;
   if(!S.editorDirty)return S.conflictingDraft?el('aside',{class:'draft-resume'},el('p',{},'Există o copie locală diferită de ciorna din cont.'),b('Recuperează copia locală',recoverConflictingDraft,'button secondary')):null;
   const busy=editorBusy(),resume=b(busy?'Se procesează…':'Continuă editarea',resumeEditor,'button small');resume.disabled=!!busy;
-  const discard=b('Renunță',()=>openModal(el('div',{},el('h2',{class:'modal-title'},'Renunți la modificările nesalvate?'),el('p',{class:'muted'},'Se elimină doar modificările din această filă. O ciornă salvată anterior în cont rămâne acolo.'),el('div',{class:'publishing-options'},b('Păstrează modificările',()=>dialog.close()),b('Renunță la modificări',()=>{clearEditor();dialog.close();refreshDraftResume();},'button secondary')))),'text-button');discard.disabled=!!busy;
-  return el('aside',{class:'draft-resume','aria-label':'Anunț nesalvat'},el('div',{},el('strong',{},'Anunțul început este încă aici.'),el('p',{},'Poți relua pasul la care ai rămas. '+draftSaveLabel())),el('div',{class:'item-actions'},resume,discard,S.conflictingDraft?b('Recuperează copia locală',recoverConflictingDraft,'button secondary'):null));
+  const discard=b('Renunță',()=>confirmDraftDiscard(),'text-button');discard.disabled=!!busy;
+  return el('aside',{class:'draft-resume','aria-label':'Anunț în lucru'},el('div',{},el('strong',{},'Anunțul început este încă aici.'),el('p',{},'Poți relua pasul la care ai rămas. '+draftSaveLabel())),el('div',{class:'item-actions'},resume,discard,S.conflictingDraft?b('Recuperează copia locală',recoverConflictingDraft,'button secondary'):null));
 }
 function refreshDraftResume(){const host=document.querySelector('#draft-resume');if(host){const content=draftResumeContent();host.replaceChildren(...(content?[content]:[]));}}
-window.addEventListener('beforeunload',event=>{if(S.editorDirty||editorBusy()||Object.values(S.messageDrafts).some(draft=>draft.body?.trim())||S.conversationPending.size||S.formPending.size){event.preventDefault();event.returnValue='';}});
+window.addEventListener('beforeunload',event=>{if((S.editorDirty&&(!draftMatchesConfirmed()||S.autosaveError))||S.conflictingDraft||S.autosaveBusy||editorBusy()||Object.values(S.messageDrafts).some(draft=>draft.body?.trim())||S.conversationPending.size||S.formPending.size){event.preventDefault();event.returnValue='';}});
 function draftReadiness(d,photos=S.photos){
   const number=(value,min,max)=>value!==''&&Number.isFinite(Number(value))&&Number(value)>=min&&Number(value)<=max;
   const roomsOk=number(d.rooms??0,['apartment','house'].includes(d.type)?1:0,30)&&Number.isInteger(Number(d.rooms??0));
@@ -283,11 +295,11 @@ function renderCreate(){
   const stepNames=['Tip și tranzacție','Locație','Detalii','Costuri','Fotografii','Descriere','Disponibilitate și contact','Previzualizare și declarație'];
   const group=(number,...children)=>el('fieldset',{class:'wizard-group wide',disabled:step!==number,hidden:step!==number?'':null},...children);
   const form=el('form',{class:'form-shell editor-form'}),fieldset=el('fieldset',{class:'editor-fields',disabled:editorBusy()});
-  const errorBox=el('div',{class:'editor-error',role:'alert',tabindex:'-1'}),saveState=el('p',{class:'editor-save-state',role:'status','aria-live':'polite'}),asideHost=el('div',{class:'editor-aside-host'});
+  const errorBox=el('div',{class:'editor-error',role:'alert',tabindex:'-1'}),saveState=el('p',{class:'editor-save-state','aria-live':'off'}),saveAnnouncement=el('p',{class:'editor-save-announcement visually-hidden',role:'status','aria-live':'polite','aria-atomic':'true'}),asideHost=el('div',{class:'editor-aside-host'});
   const numericLimits={price:[1,100000000],area:[1,10000000],rooms:[['apartment','house'].includes(d.type)?1:0,30],rentDeposit:[0,10000000],monthlyCosts:[0,10000000]};
   const input=(name,type='text',required=true)=>el('input',{name,type,value:d[name]??'',required,minlength:name==='title'?8:null,min:numericLimits[name]?.[0],max:numericLimits[name]?.[1],step:type==='number'?(name==='rooms'?1:'any'):null,inputmode:type==='number'?'decimal':null,maxlength:type==='text'?(name==='title'?120:name==='rentCosts'?300:250):null});
   const showError=message=>{S.editorError=message;errorBox.replaceChildren(...(message?[note(message,true)]:[]));if(message)errorBox.focus({preventScroll:false});};
-  const refresh=()=>{asideHost.replaceChildren(editorAside(d,asideHost.querySelector('.editor-cover')));saveState.textContent=S.editorSaving?'Salvăm ciorna în cont…':S.editorProcessing?'Pregătim fotografiile…':draftSaveLabel();refreshDraftResume();};
+  const refresh=()=>{asideHost.replaceChildren(editorAside(d,asideHost.querySelector('.editor-cover')));paintDraftSaveState();refreshDraftResume();};
   const readForm=()=>{
     if(d!==S.draft||session!==S.editorSession)return;
     const before=draftSnapshot(d);
@@ -352,7 +364,7 @@ function renderCreate(){
   form.addEventListener('input',()=>{if(!editorBusy()){readForm();updateCounters();}});form.addEventListener('change',()=>{if(!editorBusy()){readForm();updateCounters();}});
   const preview=mode=>{if(editorBusy()||!form.reportValidity())return;readForm();S.previewMode=mode;renderDetail({...d,ownerName:S.boot.user.name,phoneVerified:S.boot.user.phoneVerified},true);};
   const actions=el('div',{class:'form-actions'},step?b('← Pasul anterior',()=>{readForm();S.step--;renderCreate();scheduleDraftSave();},'button secondary'):b('Înapoi în cont',()=>{readForm();go('account');},'button secondary'),step===7?b('Previzualizează',()=>preview('desktop'),'button secondary'):null,step===7?b('Previzualizare mobil',()=>preview('mobile'),'button secondary'):null,el('button',{type:'submit',class:'button'},step===7?'Salvează ciorna':'Continuă →'));
-  fieldset.append(grid,actions);form.append(errorBox,fieldset,saveState,el('p',{class:'editor-save-help'},'Salvarea păstrează ciorna în cont. Nu publică anunțul și nu trimite solicitări sau SMS.'));
+  fieldset.append(grid,actions);form.append(errorBox,fieldset,saveState,saveAnnouncement,el('p',{class:'editor-save-help'},'Salvarea păstrează ciorna în cont. Nu publică anunțul și nu trimite solicitări sau SMS.'));
   form.addEventListener('submit',async event=>{
     event.preventDefault();if(editorBusy()||!form.reportValidity())return;readForm();showError('');
     if(step<7){S.step++;S.editorDirty=true;renderCreate();scheduleDraftSave();window.scrollTo({top:0,behavior:'instant'});return;}
@@ -472,7 +484,7 @@ function closeListing(listing){
 }
 
 function operationFields(key,...children){return el('fieldset',{class:'operation-fields','data-form-operation':key,disabled:S.formPending.has(key)},...children);}
-function operationBusy(key,busy){for(const fields of document.querySelectorAll('[data-form-operation]'))if(fields.getAttribute('data-form-operation')===key)fields.disabled=busy;}
+function operationBusy(key,busy){for(const fields of document.querySelectorAll('[data-form-operation]'))if(fields.getAttribute('data-form-operation')===key)fields.disabled=busy;if(key==='editor-discard'){const editor=document.querySelector('.editor-fields');if(editor)editor.disabled=busy||!!S.editorSaving||!!S.editorProcessing;}}
 async function modalSubmission(form,key,request,{errorHost,onSaved,onVisible,success='Modificarea a fost salvată.'}={}){
   if(S.formPending.has(key)||!form.reportValidity())return;
   const modalRevision=S.modalRevision,screenRevision=S.screenRevision;S.formPending.add(key);operationBusy(key,true);form.setAttribute('aria-busy','true');errorHost?.replaceChildren();
