@@ -154,3 +154,39 @@ A doua rulare strictă L8 (`41318102891`) a confirmat eliminarea problemelor axe
 Rularea L8 `41318519159`: 15 E2E trecute, 3 eșecuri, 1 omis și restul oprite la prag. Capturile Chromium 375/768 au trecut axe și dimensiunile; două capturi au apăsat Publică în timpul inițializării, iar testul Tab a detectat ieșirea focusului din dialog. Controalele inițiale sunt acum dezactivate până la încărcarea contului, iar dialogul păstrează explicit focusul la Tab/Shift+Tab. Verificarea runtime a avut din nou timeout la bootstrap după două răspunsuri HTTP neconsumate; probele consumă acum corpurile și închid conexiunile, fără retry și fără relaxarea aserțiunilor. După aceste corecții: `pnpm test` 113/113; TypeScript, build și izolarea producției exit 0.
 
 Rularea L8 `41319293947`: verify trecut, 22 E2E trecute, 1 eșec WebKit și 1 omis. Toate cele 36 de capturi au trecut axe serious/critical, ținte și overflow. Trace-ul arată că între focus și Enter un GET schimba doar `unreadCount`/`unreadMessageIds`, recreând butonul de confirmare a vizionării; niciun POST de confirmare nu era trimis. Polling-ul nu mai reconstruiește conversația pentru confirmări de citire și ignoră răspunsurile sosite în timpul unei mutații/dialog. Testul de regresie verifică identitatea DOM și focusul butonului, apoi o schimbare reală a vizionării.
+
+### Confirmare finală L8
+
+[Run 41320296222](https://github.com/Rapunzel1999/nespus/actions/runs/41320296222), commit `4746c22dc4ac0b21a3c23032254833b549a7f830`: verify și browser trecute. `pnpm test`: **114/114**; `pnpm typecheck`, `pnpm build`, `pnpm test:production-isolation`: exit 0. `pnpm run test:e2e`: **23 trecute, 1 omis** (Lighthouse pe WebKit). [Artefact 13088907215](https://github.com/Rapunzel1999/nespus/actions/runs/41320296222/artifacts/13088907215).
+
+Axe: **0 încălcări de orice severitate în 36 de evaluări** (6 pagini × 3 dimensiuni × 2 motoare). Pragurile serious/critical, 44 px și lipsa overflow-ului sunt aserțiuni blocante. Capturile acasă/editor și compozitorul la 375×500 au fost inspectate în rularea anterioară cu aceleași stiluri; ultima rulare confirmă și fluxul de confirmare a vizionării după corecția confirmărilor de citire.
+
+| Pagină | Performanță | Accesibilitate | LCP ms | CLS | TBT ms |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| home | 98 | 100 | 2435.2485 | 0 | 0 |
+| results | 99 | 100 | 1885.3095 | 0.004956926884903783 | 0 |
+| listing | 99 | 100 | 2009.12175 | 0 | 0 |
+
+Acasă rece, înainte de scroll: 20 răspunsuri, 221388 octeți transferați, 215388 codificați. O singură rulare Lighthouse 13.5.0, Chromium cu D1 local/DEMO, fără gateway-ul găzduit. Față de baseline, accesibilitatea automată crește de la 97/95/94 la 100/100/100; performanța variază, iar funcțiile/modulele noi cresc traficul. Nu se afirmă că variantele foto sunt optimizate sau că aceste scoruri reprezintă telefoane fizice.
+
+### Confirmări ulterioare L2 și L7
+
+L2 [run 41313026295](https://github.com/Rapunzel1999/nespus/actions/runs/41313026295) este acum reușit: jobul verify cu timeout tranzitoriu a fost reluat și a trecut; browserul trecuse deja 19 cazuri, cu Lighthouse WebKit omis. [Artefact 13085874572](https://github.com/Rapunzel1999/nespus/actions/runs/41313026295/artifacts/13085874572): Lighthouse acasă 98/97, rezultate 100/95, anunț 99/94 (performanță/accesibilitate), CLS 0; 15 răspunsuri, 208162 octeți transferați, 203662 codificați. Sunt imagini DEMO și o singură execuție; nu certifică optimizarea unor variante inexistente.
+
+L7 [run 41317287944](https://github.com/Rapunzel1999/nespus/actions/runs/41317287944), commit `97bbca7f7481ebc7297f1bed65c5ca97442392c5`: verify și browser trecute, 19 E2E trecute și 1 omis. [Artefact 13088350671](https://github.com/Rapunzel1999/nespus/actions/runs/41317287944/artifacts/13088350671). Panoul de încredere din anunțul mobil a fost inspectat. Lighthouse acasă 98/97, rezultate 99/100, anunț 99/100; problema de contrast/nume accesibile de pe acasă a fost corectată în L8.
+
+## L9 — documentație, dovezi și limita livrării private
+
+Fișiere: README descrie starea actuală și comanda QA; PRODUCT explică fluxurile și limitele; ARCHITECTURE documentează tabelele, modulele și contractele implementate; VERIFICATION separă automat de uman; TWILIO_VERIFY consemnează reverificarea configurației/documentației fără trimiteri; CHANGELOG și DECISIONS-PENDING consemnează schimbările și condițiile rămase. Scriptul de măsurare indică acum commitul efectiv și dacă arborele are modificări, în loc de eticheta fixă PR #9, și inventariază toate modulele JS/CSS.
+
+Nu există modificări de interfață în L9. Capturile înainte/după sunt cele din L8, plus rularea finală de verificare a ramurii L9. Capturile CI și rapoartele au retenție 14 zile; cifrele și legăturile către run/commit sunt păstrate în Git. Nu se inventează capturi ale găzduirii.
+
+Citirea Sites în această sesiune: versiunea 12 activă, acces custom exclusiv proprietarul, fără grupuri, zero vizitatori externi. Cele trei chei Twilio lipsesc. Flagurile SMS/cap există ca secrete mascate; nu au fost modificate și nu se pretinde o recitire în clar. `node scripts/twilio-preflight.mjs`: exit 2, ready false și trei credențiale lipsă, fără trimitere sau apel de provider. Nicio migrare și nicio dată DEMO în găzduire.
+
+**Livrarea Etapei 10 este oprită:** accesul temporar la sursa Sites a expirat la 2026-11-01 13:18:21 UTC. Condiția L9 cere oprire dacă trebuie o credențială nouă. Nu s-a emis alta, nu s-a ocolit mecanismul de sincronizare și nu s-a făcut site-ul public. Continuarea necesită autorizarea reînnoirii accesului temporar pentru același proiect și livrare exclusiv privată. Fotografiile cu variante necesită separat decizia de arhitectură L2; condițiile reale de lansare rămân deschise.
+
+Verificări locale finale L9: `pnpm test` **114/114**, `pnpm typecheck`, `pnpm build`, `node scripts/measure-baseline.mjs` și `git diff --check` — exit 0. `pnpm test:production-isolation` — exit 0, scanare și probe runtime. Sursa produsului este identică cu L8; diferențele L9 sunt documentație și scriptul de măsurare. CI exact L9 și artefactul final sunt legate în descrierea PR-ului de sinteză după execuție.
+
+Măsurare finală a sursei: `public/app.js` **956 linii / 152684 octeți (152,684 KB)**, CSS total **131842 octeți**, galerie **4382**, draft-storage **5272**, messages-live **3558**, trust **2241** octeți. Răspunsul sintetic pentru 20 de rezultate: **13167 octeți UTF-8**, status 200, fără date base64. KB = 1000 octeți. Acestea sunt măsurători pe disc/API sintetic, nu trafic real găzduit.
+
+La închiderea L9, prima rulare locală `pnpm test:production-isolation` a eșuat după 15 secunde la bootstrap, după health 200 și login de test 404. Reluarea aceleiași comenzi, fără modificarea codului sau aserțiunilor, a trecut. Nu este considerată o cauză rezolvată: consumarea răspunsurilor/conexiunile închise nu elimină complet intermitența runtime-ului local. Testul rămâne blocant, fără retry automat; CI L8 exact a trecut, iar CI L9 trebuie evaluat separat. Nu există dovezi că acest timeout local reprezintă starea găzduirii.
