@@ -1,5 +1,10 @@
 # Changelog
 
+## Căutare literală — 2026-11-02
+
+- `%`, `_` și `\` sunt căutate ca text, fără a deveni operatori SQL LIKE. Căutările salvate păstrează textul original. Nicio schimbare de interfață sau schemă.
+- Regresie API/SQLite reprodusă înainte de corecție; rezultate și limite în `docs/ETAPA-10-SEARCH-LITERAL.md`.
+
 ## Portofoliul proprietarului — 2026-11-02
 
 - Filtrele de stare se așează pe rânduri, cu etichete de 13 px și fără comprimarea butoanelor peste text. Toate cele șase opțiuni rămân accesibile fără derulare orizontală.
