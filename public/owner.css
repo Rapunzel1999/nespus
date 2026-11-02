@@ -61,7 +61,7 @@
 .owner-empty{background:#eef2e7;border:1px solid #dce5d1;border-radius:12px;padding:40px;max-width:none;text-align:left}
 .owner-empty-mark{font-size:41px;line-height:1;color:#8c9f78;display:block;margin-bottom:20px}
 .owner-empty h3{font:400 30px/1.2 Georgia,serif;letter-spacing:-.8px;margin-bottom:17px}
-.owner-empty p{font-size:13px;color:#627358;line-height:1.9;max-width:650px}
+.owner-empty p{font-size:13px;color:var(--muted);line-height:1.9;max-width:650px}
 .owner-empty .button{font-size:12px;min-height:46px;margin-top:23px}
 .owner-limit-note{font-size:11px;line-height:1.9;color:#6c775f;margin:18px 0 0}
 .owner-hub .account-readiness{margin:42px 0 0;padding:30px;background:transparent;border-radius:12px}

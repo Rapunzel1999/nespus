@@ -1,5 +1,11 @@
 # Changelog
 
+## Rezumatele căutărilor salvate — 2026-11-02
+
+- Căutările afișează toate filtrele salvate, inclusiv tipul locuinței, prețul minim, suprafața și camerele. Limitele de preț au monedă explicită.
+- Contrast corectat în explicația contului fără anunțuri, identificat de noul scenariu axe.
+- Dovezi: `docs/ETAPA-10-SEARCH-LABELS.md`.
+
 ## Navigarea căutărilor salvate — 2026-11-02
 
 - O căutare nouă nu preia marcajul de citire al unei căutări întrerupte/eșuate. Reîncercarea explicită păstrează contextul corect.

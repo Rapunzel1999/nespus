@@ -965,11 +965,17 @@ function openMobileFilters(){
   openModal(form,{className:'filter-dialog',label:'Filtrează rezultatele'});refresh();
 }
 function saveCurrentSearch(){requireUser(()=>attempt(async()=>{await api('/api/saved-searches','POST',{filters:{transaction:S.transaction,currency:'EUR',...S.filters}});toast('Căutarea este salvată în cont. Vezi anunțurile noi când revii.');}));}
+function savedSearchLabel(f){
+  const has=key=>f[key]!==undefined&&f[key]!==null&&f[key]!=='';
+  return [f.transaction==='rent'?'Închiriere':'Cumpărare',f.district||'Toate cartierele',f.type?typeNames[f.type]:null,f.currency,
+    has('minPrice')?'de la '+f.minPrice+' '+f.currency:null,has('maxPrice')?'până la '+f.maxPrice+' '+f.currency:null,
+    has('minArea')?'minimum '+f.minArea+' m²':null,has('rooms')?f.rooms+'+ camere':null,f.q?'Cuvinte-cheie: '+f.q:null].filter(Boolean).join(' · ');
+}
 async function loadSavedSearches(host,revision){
   try{const data=await api('/api/saved-searches');if(revision!==S.screenRevision)return;
     host.replaceChildren(el('h2',{},'Căutările tale'),el('p',{class:'subtle'},'Anunțurile noi apar aici când revii. Fără notificări prin email sau SMS.'));
     if(!data.searches?.length){host.append(el('p',{},'Nu ai încă o căutare salvată.'),b('Găsește o locuință',()=>go('browse'),'button secondary'));return;}
-    for(const search of data.searches){const f=search.filters,label=[f.transaction==='rent'?'Închiriere':'Cumpărare',f.district||'Toate cartierele',f.currency,f.maxPrice?'până la '+f.maxPrice:null,f.q].filter(Boolean).join(' · ');
+    for(const search of data.searches){const f=search.filters,label=savedSearchLabel(f);
       host.append(el('article',{class:'saved-search-row'},el('div',{},el('h3',{},label),el('p',{class:'saved-search-count'},search.newCount+' anunțuri noi de la ultima vizită')),
         b('Vezi rezultatele',()=>{S.transaction=f.transaction;S.filters={...f};delete S.filters.transaction;S.sort='newest';S.savedSearchOpening={id:search.id,viewedThrough:search.viewedThrough};go('browse');},'button secondary'),
         b('Șterge',()=>attempt(async()=>{await api('/api/saved-searches/'+search.id,'DELETE');await loadSavedSearches(host,revision);}), 'text-button')));

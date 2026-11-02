@@ -31,3 +31,18 @@ test('failed saved search does not leak acknowledgement into a fresh browse',asy
  let loads=0;const f=frontend({user:{id:'buyer'},fetcher:path=>path.startsWith('/api/listings?')?(++loads===1?Response.json({error:'temporar'},{status:503}):{listings:[listing],total:1}):undefined});
  f.run("S.savedSearchOpening={id:'saved',viewedThrough:5}");await f.run('browse()');f.run("S.filters={district:'Zorilor'}");await f.run('browse()');assert.equal(f.requests.filter(r=>r.path.endsWith('/seen')).length,0);
 });
+
+test('saved search headings distinguish type, minimum price, area and rooms',async()=>{
+ const filters={transaction:'sale',currency:'RON',district:'Centru',type:'apartment',minPrice:'100000',maxPrice:'200000',minArea:'50',rooms:'2',q:'balcon'};
+ const f=frontend({user:{id:'buyer'},fetcher:path=>path==='/api/saved-searches'?{searches:[{id:'one',filters,newCount:0},{id:'two',filters:{...filters,type:'house',minPrice:'120000',minArea:'80',rooms:'3'},newCount:1}]}:undefined});
+ await f.run("loadSavedSearches(document.querySelector('#app'),S.screenRevision)");
+ const root=f.roots.get('#app'),headings=root.children.filter(n=>n.tag==='article').map(n=>n.querySelector('h3').textContent);
+ assert.equal(headings.length,2);assert.notEqual(headings[0],headings[1]);
+ for(const text of ['Apartament','de la 100000 RON','până la 200000 RON','minimum 50 m²','2+ camere','balcon'])assert.ok(headings[0].includes(text),text);
+ assert.ok(headings[1].includes('minimum 80 m²'));assert.ok(headings[1].includes('3+ camere'));
+});
+test('saved search headings retain an explicit zero budget without inventing filters',async()=>{
+ const f=frontend({user:{id:'buyer'},fetcher:()=>({searches:[{id:'zero',filters:{transaction:'rent',currency:'EUR',minPrice:'0',maxPrice:'0'},newCount:0}]})});
+ await f.run("loadSavedSearches(document.querySelector('#app'),S.screenRevision)");const text=f.roots.get('#app').querySelector('h3').textContent;
+ assert.match(text,/de la 0 EUR/);assert.match(text,/până la 0 EUR/);assert.doesNotMatch(text,/m²|camere|undefined/);
+});
