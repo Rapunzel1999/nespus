@@ -1026,3 +1026,26 @@ test('phone disclosure preserves newer activity and a late block leaves no conse
     assert.equal(f.sql.prepare('SELECT phone_shared FROM contact_requests WHERE id=?').get(c).phone_shared,blocked?0:1);
   }
 });
+
+test('moderation publication rechecks owner eligibility at the write and records no false approval',async()=>{
+  for(const mutation of ["status='restricted'","status='suspended'","phone_verified_at=NULL"]){
+    const f=fixture(),listingId=f.listing(lid(1),'pending');
+    f.hooks.beforeRun=async query=>{if(query.startsWith('UPDATE listings SET status=?,moderation_reason=')){f.hooks.beforeRun=null;f.sql.exec("UPDATE users SET "+mutation+" WHERE id='owner'");}};
+    const r=await f.request('/moderation/listings/'+listingId,{as:'mod',method:'POST',data:{decision:'published',reason:'Revizuire editorială de test.'}});
+    assert.equal(r.status,409,mutation);
+    assert.equal(f.sql.prepare('SELECT status FROM listings WHERE id=?').get(listingId).status,'pending');
+    assert.equal(f.sql.prepare("SELECT COUNT(*) AS n FROM audit_events WHERE action='listing_published'").get().n,0);
+    f.sql.exec("UPDATE users SET status='active',phone_verified_at="+NOW+" WHERE id='owner'");
+    assert.equal((await f.request('/listings/'+listingId)).status,404,'restoring eligibility must not publish an unapproved listing');
+    assert.equal((await f.request('/moderation/listings/'+listingId,{as:'mod',method:'POST',data:{decision:'published',reason:'Eligibilitate reanalizată explicit.'}})).status,200);
+    assert.equal(f.sql.prepare("SELECT COUNT(*) AS n FROM audit_events WHERE action='listing_published'").get().n,1);
+  }
+});
+
+test('moderation rejection remains possible when owner eligibility changes before the write',async()=>{
+  const f=fixture(),listingId=f.listing(lid(1),'pending');
+  f.hooks.beforeRun=async query=>{if(query.startsWith('UPDATE listings SET status=?,moderation_reason=')){f.hooks.beforeRun=null;f.sql.exec("UPDATE users SET status='restricted',phone_verified_at=NULL WHERE id='owner'");}};
+  const r=await f.request('/moderation/listings/'+listingId,{as:'mod',method:'POST',data:{decision:'rejected',reason:'Detalii insuficiente pentru publicare.'}});
+  assert.equal(r.status,200);assert.equal(f.sql.prepare('SELECT status FROM listings WHERE id=?').get(listingId).status,'rejected');
+  assert.equal(f.sql.prepare("SELECT COUNT(*) AS n FROM audit_events WHERE action='listing_rejected'").get().n,1);
+});

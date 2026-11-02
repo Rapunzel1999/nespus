@@ -1,5 +1,10 @@
 # Changelog
 
+## Eligibilitate la moderare — 2026-11-02
+
+- Aprobarea este refuzată dacă proprietarul devine neeligibil înainte de salvarea deciziei; anunțul rămâne în așteptare, fără audit fals de publicare. Respingerea rămâne disponibilă.
+- Dovezi: `docs/ETAPA-10-PUBLICATION-GATE.md`.
+
 ## Editarea anunțului — 2026-11-02
 
 - Modificările și declarația de proprietar se salvează împreună; o eroare păstrează integral anunțul anterior, inclusiv motivul respingerii. Conflictele nu înregistrează declarații.
