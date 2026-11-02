@@ -1,5 +1,10 @@
 # Changelog
 
+## Editarea anunțului — 2026-11-02
+
+- Modificările și declarația de proprietar se salvează împreună; o eroare păstrează integral anunțul anterior, inclusiv motivul respingerii. Conflictele nu înregistrează declarații.
+- Regresii și flux D1: `docs/ETAPA-10-LISTING-ATOMIC.md`.
+
 ## Telefon și jurnal — 2026-11-02
 
 - Dezvăluirea telefonului și auditul sunt salvate împreună. La eroare, numărul rămâne ascuns. Reîncercarea nu dublează auditul și nu reduce recența conversației.
