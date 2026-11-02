@@ -1049,3 +1049,24 @@ test('moderation rejection remains possible when owner eligibility changes befor
   assert.equal(r.status,200);assert.equal(f.sql.prepare('SELECT status FROM listings WHERE id=?').get(listingId).status,'rejected');
   assert.equal(f.sql.prepare("SELECT COUNT(*) AS n FROM audit_events WHERE action='listing_rejected'").get().n,1);
 });
+
+test('owner submit and reconfirm recheck eligibility at the write without false audit',async()=>{
+  for(const action of ['submit','reconfirm'])for(const mutation of ["status='restricted'","status='suspended'","phone_verified_at=NULL"]){
+    const f=fixture();const c=await f.request('/listings',{as:'owner',method:'POST',data:draftInput});assert.equal(c.status,201);const listingId=c.data.listing.id;
+    if(action==='reconfirm')f.sql.prepare("UPDATE listings SET status='published',available_until=? WHERE id=?").run(NOW+DAY,listingId);
+    const before=f.sql.prepare('SELECT status,available_until,updated_at FROM listings WHERE id=?').get(listingId);
+    f.hooks.beforeRun=async query=>{if(query.startsWith(action==='submit'?"UPDATE listings SET status='pending'":'UPDATE listings SET available_until=')){f.hooks.beforeRun=null;f.sql.exec("UPDATE users SET "+mutation+" WHERE id='owner'");}};
+    const r=await f.request('/listings/'+listingId+'/'+action,{as:'owner',method:'POST',now:NOW+1000});
+    assert.equal(r.status,409,action+' '+mutation);
+    assert.deepEqual(f.sql.prepare('SELECT status,available_until,updated_at FROM listings WHERE id=?').get(listingId),before);
+    assert.equal(f.sql.prepare("SELECT COUNT(*) AS n FROM audit_events WHERE action IN ('listing_submitted','listing_reconfirmed')").get().n,0);
+  }
+});
+
+test('submission rechecks photos after a concurrent draft edit',async()=>{
+  const f=fixture();const c=await f.request('/listings',{as:'owner',method:'POST',data:draftInput});assert.equal(c.status,201);const listingId=c.data.listing.id;
+  f.hooks.beforeRun=async query=>{if(query.startsWith("UPDATE listings SET status='pending'")){f.hooks.beforeRun=null;f.sql.prepare("UPDATE listings SET photos='[]' WHERE id=?").run(listingId);}};
+  assert.equal((await f.request('/listings/'+listingId+'/submit',{as:'owner',method:'POST'})).status,409);
+  assert.equal(f.sql.prepare('SELECT status FROM listings WHERE id=?').get(listingId).status,'draft');
+  assert.equal(f.sql.prepare("SELECT COUNT(*) AS n FROM audit_events WHERE action='listing_submitted'").get().n,0);
+});
