@@ -63,3 +63,7 @@ README pornește din ramura suplimentului de documentație, nu din filtrele vers
 ## 2 noiembrie 2026 — filtre salvate validate
 
 API-ul refuză structurile JSON invalide ale filtrelor cu HTTP 400 înainte de salvare, fără conversia implicită a obiectelor/listelor. Filtrele scalare valide și deduplicarea rămân compatibile. Două regresii și raport în ETAPA-10-SAVED-SEARCH-VALIDATION.md.
+
+## 2 noiembrie 2026 — recența conversațiilor
+
+La trimiteri finalizate în ordine inversă, actualizarea activității de după mesaj păstrează cel mai nou timestamp. Regresie API/SQLite cu două cereri intercalate; fără migrare sau schimbare de UI.

@@ -887,3 +887,21 @@ test('saved search accepts scalar filters and preserves normalized duplicate det
   assert.equal(second.status,200);assert.equal(second.data.id,first.data.id);
   assert.equal(f.sql.prepare('SELECT COUNT(*) AS n FROM saved_searches').get().n,1);
 });
+
+
+test('a delayed message cannot move conversation activity behind a newer message',async()=>{
+  const f=fixture(),conversationId=await f.accepted();
+  f.hooks.beforeRun=async(query)=>{
+    if(!query.startsWith('UPDATE contact_requests SET updated_at='))return;
+    f.hooks.beforeRun=null;
+    const newer=await f.request('/conversations/'+conversationId+'/messages',{as:'owner',method:'POST',now:NOW+1000,data:{body:'Putem discuta detaliile vizionării.',requestId:lid(902)}});
+    assert.equal(newer.status,201);
+  };
+  const older=await f.request('/conversations/'+conversationId+'/messages',{as:'buyer',method:'POST',now:NOW,data:{body:'Aș dori să stabilim o vizionare.',requestId:lid(901)}});
+  assert.equal(older.status,201);
+  assert.equal(f.sql.prepare('SELECT updated_at FROM contact_requests WHERE id=?').get(conversationId).updated_at,NOW+1000);
+  const inbox=await f.request('/conversations',{as:'buyer',now:NOW+1000});
+  assert.equal(inbox.data.conversations[0].updatedAt,NOW+1000);
+  const thread=await f.request('/conversations/'+conversationId,{as:'buyer',now:NOW+1000});
+  assert.deepEqual(thread.data.messages.map(m=>m.id),[lid(901),lid(902)]);
+});

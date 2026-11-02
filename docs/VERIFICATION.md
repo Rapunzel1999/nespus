@@ -1,5 +1,9 @@
 # Criterii de acceptare și evidențe
 
+## Mesaje finalizate în ordine inversă
+
+[Raport](ETAPA-10-MESSAGE-ORDER.md): o trimitere întârziată nu mai înlocuiește ora unei activități mai noi. Regresie SQLite 0/1 înainte, 1/1 după; suita locală 133/133, TypeScript, build și izolare trecute. Nu este test de concurență distribuită găzduită. CI și livrarea sunt urmărite în PR.
+
 ## Validarea căutărilor salvate
 
 [Raport](ETAPA-10-SAVED-SEARCH-VALIDATION.md): structurile de filtre invalide sunt refuzate cu 400 în locul erorii interne 503 reproduse. Două teste țintite trecute după corecție; suita locală 132/132, TypeScript, build și izolare trecute. CI și livrarea exactă sunt în PR-ul suplimentului.
