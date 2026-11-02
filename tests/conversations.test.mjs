@@ -90,3 +90,15 @@ test('a blocked conversation retains a readable unsent draft that can be discard
   assert.equal(f.doc.querySelector('.conversation-saved-draft').querySelector('textarea').value,'Text de păstrat');assert.equal(f.doc.querySelector('.conversation-composer'),null);
   await f.button(f.roots.get('#app'),'Renunță la textul netrimis').fire('click');assert.equal(f.run('S.messageDrafts['+JSON.stringify(a.id)+']'),undefined);assert.equal(f.doc.querySelector('.conversation-saved-draft'),null);assert.equal(f.requests.filter(r=>r.options.method==='POST').length,0);
 });
+
+
+test('inbox refresh preserves the focused conversation without taking focus from search',async()=>{
+  const a=c(),b=c(2);let rows=[a,b];
+  const f=frontend({fetcher:path=>path==='/api/conversations'?{conversations:rows}:data(a)});
+  await f.run('messages()');f.doc.querySelector('.inbox-rows').children[1].focus();
+  rows=[{...b,updatedAt:b.updatedAt+1000,unreadCount:1},a];await f.run('S.pollInbox()');
+  assert.ok(f.doc.activeElement===f.doc.querySelector('.inbox-rows').children[0],'focus must follow the same conversation after refresh');
+  assert.equal(f.doc.activeElement.getAttribute('data-conversation-id'),b.id);
+  const query=f.doc.querySelector('.inbox-sidebar').querySelector('input');query.focus();
+  rows=[{...b,updatedAt:b.updatedAt+2000,unreadCount:2},a];await f.run('S.pollInbox()');assert.equal(f.doc.activeElement,query);
+});

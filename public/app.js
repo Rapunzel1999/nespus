@@ -764,14 +764,16 @@ async function messages(selected,options={}){
     const aside=el('aside',{class:'inbox-sidebar','aria-label':'Conversațiile tale'},el('h2',{},'Conversațiile tale'),query,filter,count,waiting,list,moreHost);
     const refresh=async()=>{const id=S.conversationId;await selectConversation(id,{historyMode:'none'});};
     const renderList=()=>{
+      const focusedConversation=document.activeElement?.getAttribute?.('data-conversation-id');
       const key=(S.inboxQuery||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
       const filtered=conversations.filter(c=>(!key||(c.listingTitle+' '+c.otherName).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().includes(key))&&(!S.inboxFilter||S.inboxFilter==='all'||conversationState(c).key===S.inboxFilter));
       count.textContent=filtered.length+' afișate din '+conversations.length+' încărcate'+(nextCursor?' · mai sunt conversații':'');
       const rows=filtered.map(c=>{
         const state=conversationState(c),button=b('',()=>selectConversation(c.id,{focus:true}),'inbox-row'+(S.conversationId===c.id?' is-selected':''));
-        button.setAttribute('aria-pressed',String(S.conversationId===c.id));button.append(el('span',{class:'inbox-row-top'},el('strong',{},c.otherName||'Participant'),el('span',{},clujDate(c.updatedAt||c.createdAt,true))),el('span',{class:'inbox-row-title'},c.listingTitle||'Proprietate'),el('span',{class:'conversation-badge '+state.key},state.label));if(c.unreadCount)button.append(el('span',{class:'unread-count'},c.unreadCount+' mesaje necitite'));return {c,button};
+        button.setAttribute('data-conversation-id',c.id);button.setAttribute('aria-pressed',String(S.conversationId===c.id));button.append(el('span',{class:'inbox-row-top'},el('strong',{},c.otherName||'Participant'),el('span',{},clujDate(c.updatedAt||c.createdAt,true))),el('span',{class:'inbox-row-title'},c.listingTitle||'Proprietate'),el('span',{class:'conversation-badge '+state.key},state.label));if(c.unreadCount)button.append(el('span',{class:'unread-count'},c.unreadCount+' mesaje necitite'));return {c,button};
       });
       const pending=rows.filter(row=>row.c.awaitingReply);waiting.hidden=!pending.length;waiting.replaceChildren(el('h3',{},'Așteaptă răspunsul tău'),...pending.map(row=>row.button));list.replaceChildren(...rows.filter(row=>!row.c.awaitingReply).map(row=>row.button));
+      if(focusedConversation)rows.find(row=>row.c.id===focusedConversation)?.button.focus({preventScroll:true});
       if(!filtered.length)list.append(el('p',{class:'inbox-filter-empty'},'Nicio potrivire în conversațiile încărcate. Schimbă filtrul sau încarcă mai multe.'));
       moreHost.replaceChildren();
       if(nextCursor){const more=b('Încarcă alte conversații',async()=>{

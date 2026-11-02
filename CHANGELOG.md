@@ -71,3 +71,7 @@ La trimiteri finalizate în ordine inversă, actualizarea activității de după
 ## 2 noiembrie 2026 — activitatea vizionărilor
 
 Propunerile și răspunsurile reușite la vizionări actualizează recența conversației. Scrierile sunt grupate în batch; erorile și repetările nu schimbă recența. Teste SQLite și verificări API pe D1 local, fără migrare.
+
+## 2 noiembrie 2026 — focus stabil în inbox
+
+Actualizarea automată a listei păstrează focusul pe aceeași conversație, inclusiv când aceasta își schimbă poziția. Câmpul de căutare nu pierde focusul. Regresie DOM și scenariu browser cu mesaj primit.

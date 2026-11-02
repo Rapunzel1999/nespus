@@ -157,3 +157,16 @@ test('incoming live message preserves focused unsent text across two local conte
     await expect.poll(async()=>(await (await page.request.get('/api/notifications')).json()).unreadMessages).toBe(0);
   }finally{await owner.close();}
 });
+
+test('live inbox refresh preserves keyboard focus on the conversation row',async({page,browser},info)=>{
+  const id=await accepted(page);await login(page,'buyer');await page.goto('/atelier?view=messages&conversation='+id);
+  const row=page.locator('.inbox-row').first();await row.focus();await expect(row).toBeFocused();
+  const folder='outputs/e2e/'+info.project.name+'/inbox-focus';await mkdir(folder,{recursive:true});await page.screenshot({path:folder+'/before-refresh.png',fullPage:true});
+  const owner=await browser.newContext({baseURL:origin});try{
+    expect((await owner.request.post('/__test/login',{headers,data:{role:'owner'}})).ok()).toBeTruthy();
+    expect((await owner.request.post('/api/conversations/'+id+'/messages',{headers,data:{body:'DEMO mesaj pentru verificarea focusului'}})).ok()).toBeTruthy();
+    await expect(page.locator('.message-bubble')).toContainText('DEMO mesaj pentru verificarea focusului',{timeout:20000});
+    await expect(row).toBeFocused();await expect(row).toHaveAttribute('data-conversation-id',id);
+    await page.screenshot({path:folder+'/after-refresh.png',fullPage:true});
+  }finally{await owner.close();}
+});
