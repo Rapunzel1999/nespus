@@ -20,3 +20,9 @@ CI/capturi/axe după și proveniența livrării se completează în PR. [Referin
 ## Limite
 
 Nu sunt verificate UI autentificat găzduit, două conturi SIWC găzduite, dispozitive fizice, VoiceOver, SMS real ori import uman ICS. DEMO numai local/CI. Fără conversie valutară sau modificare API, schemă, autentificare. Pilot owner-only, SMS off/cap zero; main neatins. Fără secrete, servicii plătite, migrări sau seed găzduit. L2, juridic, operare și timeout-ul istoric rămân deschise.
+
+## Contrast descoperit în scenariul nou
+
+Prima rulare CI 41517246587: 155 teste Node reușite; browser 35 reușite, 2 eșuate, 1 omis. Ambele motoare au identificat contrast 4,49:1 pentru `.owner-empty > p` (#627358 pe #eef2e7), în contul căutătorului fără anunțuri. `public/owner.css` folosește acum tokenul existent `--muted` (#52634f). Aserțiunea axe rămâne strictă. [Capturi înainte de corecția contrastului](https://github.com/Rapunzel1999/nespus/actions/runs/41517246587/artifacts/13177225097), în `<engine>/saved-search-labels/distinct-searches.png`. Rezultatul rerulării și livrarea sunt consemnate în PR.
+
+După corecția CSS: `pnpm test` 155/155; `pnpm run typecheck`, `pnpm build`, `pnpm run test:production-isolation`, `git diff --check` exit 0.
