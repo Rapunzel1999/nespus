@@ -1,5 +1,9 @@
 # Criterii de acceptare și evidențe
 
+## Editarea anunțului fără salvare parțială
+
+[Raport](ETAPA-10-LISTING-ATOMIC.md): eroarea declarației anulează editarea integrală; conflictul de stare nu adaugă declarație. Regresie demonstrată înainte, 4/4 țintite după; 144 Node, TypeScript/build/izolare și 1/1 flux API pe D1 local trecute. CI, capturi și livrare în PR. Fără injecție de erori în găzduire.
+
 ## Dezvăluirea telefonului fără salvare parțială
 
 [Raport](ETAPA-10-PHONE-AUDIT.md): eșecul jurnalului anulează și dezvăluirea telefonului. Regresie 0/1 înainte, 4/4 țintite după, 142 Node, TypeScript/build/izolare trecute. CI, capturi și proveniență în PR. Fără injecție de erori în găzduire.

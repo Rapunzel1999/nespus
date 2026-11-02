@@ -174,6 +174,29 @@ test('disabled SMS cannot falsely confirm a phone through body flags',async()=>{
 });
 
 const draftInput={title:'Apartament liniștit în Cluj',transaction:'rent',type:'apartment',district:'Zorilor',price:650,currency:'EUR',area:55,rooms:2,description:'Apartament luminos cu balcon și spații de depozitare generoase.',photos:['data:image/jpeg;base64,'+Buffer.from(jpeg.encode({data:Buffer.from([200,100,60,255]),width:1,height:1},80).data).toString('base64')],exactAddress:'Strada privată 3',relationship:'owner',ownerDeclaration:true,declarationVersion:VERSION};
+test('listing edit and owner declaration roll back together and allow an explicit retry',async()=>{
+  const f=fixture(),listingId=f.listing(lid(1),'rejected');
+  f.sql.prepare('UPDATE listings SET moderation_reason=? WHERE id=?').run('Completează detaliile.',listingId);
+  const before=f.sql.prepare('SELECT * FROM listings WHERE id=?').get(listingId);
+  f.sql.exec("CREATE TEMP TRIGGER fail_owner_declaration BEFORE INSERT ON declarations WHEN NEW.kind='owner' BEGIN SELECT RAISE(ABORT,'simulated declaration failure'); END");
+  const edit=now=>f.request('/listings/'+listingId,{as:'owner',method:'PATCH',now,data:{...draftInput,price:700}});
+  assert.equal((await edit(NOW+1000)).status,503);
+  assert.deepEqual(f.sql.prepare('SELECT * FROM listings WHERE id=?').get(listingId),before,'failed edit must preserve every stored field');
+  assert.equal(f.sql.prepare('SELECT COUNT(*) AS n FROM declarations').get().n,0);
+  f.sql.exec('DROP TRIGGER fail_owner_declaration');
+  const retried=await edit(NOW+2000);assert.equal(retried.status,200);assert.equal(retried.data.listing.price,700);assert.equal(retried.data.listing.status,'draft');
+  const declarations=f.sql.prepare('SELECT user_id,kind,version,listing_id,accepted_at,text_snapshot FROM declarations').all();
+  assert.equal(declarations.length,1);assert.equal(declarations[0].user_id,'owner');assert.equal(declarations[0].kind,'owner');assert.equal(declarations[0].version,VERSION);assert.equal(declarations[0].listing_id,listingId);assert.equal(declarations[0].accepted_at,NOW+2000);assert.ok(declarations[0].text_snapshot.length>0);
+});
+
+test('listing edit losing a status race records no owner declaration',async()=>{
+  const f=fixture(),listingId=f.listing(lid(1),'draft');
+  f.hooks.beforeRun=async query=>{if(query.startsWith('UPDATE listings SET title=')){f.hooks.beforeRun=null;f.sql.prepare("UPDATE listings SET status='pending' WHERE id=?").run(listingId);}};
+  const r=await f.request('/listings/'+listingId,{as:'owner',method:'PATCH',data:draftInput});
+  assert.equal(r.status,409);assert.equal(f.sql.prepare('SELECT COUNT(*) AS n FROM declarations').get().n,0);
+  const listing=f.sql.prepare('SELECT status,title,price FROM listings WHERE id=?').get(listingId);assert.equal(listing.status,'pending');assert.equal(listing.title,'Apartament luminos');assert.equal(listing.price,120000);
+});
+
 test('actual listing creation, editing and submit execute production SQL and require owner declaration',async()=>{
   const f=fixture();
   assert.equal((await f.request('/listings',{as:'owner',method:'POST',data:{...draftInput,ownerDeclaration:false}})).status,400);

@@ -10,14 +10,16 @@ test('local D1 exercises real API with isolated DEMO identities and simulated Ve
   const post=(path,data={})=>request.post(path,{headers,data});
   const feed=await (await request.get('/api/listings')).json();expect(feed.listings).toHaveLength(8);expect(JSON.stringify(feed)).not.toContain('base64');
   await login('unverified');const draft=await post('/api/listings',draftInput);expect(draft.status()).toBe(201);const {listing}=await draft.json();
+  const edited=await request.patch('/api/listings/'+listing.id,{headers,data:{...draftInput,price:710}});expect(edited.status()).toBe(200);expect((await edited.json()).listing.price).toBe(710);
   expect((await post('/api/listings/'+listing.id+'/submit')).status()).toBe(403);
   expect((await post('/api/phone/start',{phone:'+40700000009'})).status()).toBe(200);
   expect((await post('/api/phone/start',{phone:'+40700000009'})).status()).toBe(429);
   expect((await post('/api/phone/check',{code:'111111'})).status()).toBe(400);
   const check=await post('/api/phone/check',{code:'123456'});expect(check.status(),await check.text()).toBe(200);
   expect((await post('/api/listings/'+listing.id+'/submit')).status()).toBe(200);
+  expect((await request.patch('/api/listings/'+listing.id,{headers,data:{...draftInput,price:720}})).status()).toBe(409);
   await login('moderator');expect((await post('/api/moderation/listings/'+listing.id,{decision:'published',reason:'DEMO analiză editorială de test.'})).status()).toBe(200);
-  expect((await request.get('/api/listings/'+listing.id)).status()).toBe(200);
+  const published=await request.get('/api/listings/'+listing.id);expect(published.status()).toBe(200);expect((await published.json()).listing.price).toBe(710);
   await login('buyer');const c=await post('/api/contact-requests',{listingId:listingId(1),purpose:'DEMO: Interes personal pentru această proprietate.',contactDeclaration:true,declarationVersion:draftInput.declarationVersion});expect(c.status()).toBe(201);const {id}=await c.json();
   await login('owner');expect((await post('/api/conversations/'+id+'/decision',{decision:'accepted'})).status()).toBe(200);expect((await post('/api/conversations/'+id+'/share-phone')).status()).toBe(200);
   await login('buyer');expect((await (await request.get('/api/conversations/'+id)).json()).phone).toBeTruthy();
