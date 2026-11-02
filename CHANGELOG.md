@@ -1,5 +1,10 @@
 # Changelog
 
+## Căutări salvate — 2026-11-02
+
+- Rezultatele rămân utilizabile dacă actualizarea numărului de anunțuri noi eșuează. Mesajul explică precis problema, fără eroare falsă de căutare.
+- Dovezi: `docs/ETAPA-10-SEARCH-SEEN.md`.
+
 ## Trimitere și reconfirmare — 2026-11-02
 
 - Schimbarea eligibilității înainte de salvare refuză trimiterea și reconfirmarea. O ciornă rămasă fără fotografii nu intră în moderare. Fără audit fals.

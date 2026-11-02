@@ -144,7 +144,11 @@ async function browse(options={}){
       el('p',{class:'subtle'},(listings.length?((page-1)*limit+1)+'–'+((page-1)*limit+listings.length)+' din '+total+' · ':'')+(S.filters.currency||'EUR')+' · Fără conversie valutară'));
     results.replaceChildren(...[activeFilters(),el('div',{class:'results-toolbar'},count,el('label',{class:'sort-control'},'Sortează după',sorter)),
       listings.length?cards(listings):searchEmpty(total),pagination(page,data.totalPages??1)].filter(Boolean));
-    if(S.savedSearchOpening){const opening=S.savedSearchOpening;S.savedSearchOpening=null;await api('/api/saved-searches/'+opening.id+'/seen','POST',{through:opening.viewedThrough});}
+    if(S.savedSearchOpening){
+      const opening=S.savedSearchOpening;S.savedSearchOpening=null;
+      try{await api('/api/saved-searches/'+opening.id+'/seen','POST',{through:opening.viewedThrough});}
+      catch{if(revision===S.screenRevision)results.append(el('p',{class:'notice saved-search-sync-warning',role:'status'},'Rezultatele sunt încărcate. Nu am putut actualiza numărul de anunțuri noi din căutarea salvată. Acesta poate rămâne neschimbat când revii în cont.'));}
+    }
   }catch(e){
     if(revision!==S.screenRevision)return;
     results.replaceChildren(el('div',{class:'search-error',role:'alert'},el('h2',{},'Căutarea nu s-a putut încărca.'),el('p',{class:'muted'},e.message),b('Reîncearcă',()=>go('browse',{pageNumber:S.browsePage}),'button secondary')));
