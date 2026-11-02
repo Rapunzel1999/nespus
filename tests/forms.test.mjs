@@ -55,6 +55,27 @@ test('viewing proposal previews Cluj time, rejects past input and sends once',as
   const send=form.fire('submit');await form.fire('submit');assert.equal(calls,1);f.run('rules()');pending.resolve({id:'v1'});await send;assert.match(f.roots.get('#modal-content').textContent,/O piață pentru contact direct/);
 });
 
+test('viewing proposal rejects nonexistent device times without silently moving the appointment',async()=>{
+  const previousZone=process.env.TZ;
+  try{
+    for(const [zone,now,gap,valid,expected] of [
+      ['Europe/Bucharest','2027-03-25T12:00:00Z','2027-03-28T03:30','2027-03-28T04:30','2027-03-28T01:30:00Z'],
+      ['America/New_York','2027-03-12T12:00:00Z','2027-03-14T02:30','2027-03-14T03:30','2027-03-14T07:30:00Z'],
+    ]){
+      process.env.TZ=zone;
+      const f=frontend();f.run('Date.now=()=>'+Date.parse(now));
+      f.run("S.page='messages';S.conversationId='"+property.id+"';viewingProposal('"+property.id+"',()=>{})");
+      const form=f.roots.get('#modal-content').querySelector('form'),input=form.elements.startsAt;
+      input.value=gap;await input.fire('input');await form.fire('submit');
+      assert.equal(f.requests.length,0,zone+': nonexistent time must not be submitted');
+      assert.match(input.validationMessage,/nu există/);assert.equal(input.value,gap);
+      assert.match(form.querySelector('.viewing-time-preview').textContent,/nu există/);
+      input.value=valid;await input.fire('input');assert.equal(input.validationMessage,'');await form.fire('submit');
+      assert.equal(f.requests.length,1);assert.equal(JSON.parse(f.requests[0].options.body).startsAt,Date.parse(expected));
+    }
+  }finally{if(previousZone===undefined)delete process.env.TZ;else process.env.TZ=previousZone;}
+});
+
 test('dialogs focus their heading, restore the opener and warn before losing message drafts',async()=>{
   const f=frontend();f.run("beginScreen('home');shell(el('main',{},el('h1',{},'Acasă'),b('Deschide',rules)))");const opener=f.button(f.roots.get('#app'),'Deschide');opener.focus();await opener.fire('click');assert.equal(f.doc.activeElement.tag,'h2');f.roots.get('#modal').close();assert.equal(f.doc.activeElement,opener);
   f.run("S.messageDrafts={example:{body:'Text netrimis',requestId:null}}");let prevented=false;f.windowEvents.beforeunload({preventDefault(){prevented=true}});assert.equal(prevented,true);

@@ -1,5 +1,10 @@
 # Changelog
 
+## Ora vizionării — 2026-11-02
+
+- Orele inexistente la trecerea la ora de vară sunt refuzate, fără mutarea tacită a vizionării. Valoarea rămâne în formular pentru corectare.
+- Teste pentru București/New York și scenariu browser cu salvarea instantului exact în D1 local. Raport: `docs/ETAPA-10-VIEWING-TIME.md`.
+
 ## Diagnostic CI — 2026-11-02
 
 - Proba izolării producției raportează separat așteptarea răspunsului, verificarea statusului, citirea corpului și aserțiunile, cu durate și starea procesului la eșec.

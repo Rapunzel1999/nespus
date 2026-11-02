@@ -92,6 +92,35 @@ test('request, acceptance, messages, viewing and explicit phone disclosure',asyn
   await login(page,'buyer');await page.reload();await expect(page.locator('.shared-phone a')).toHaveAttribute('href',/^tel:/);expect((await (await page.request.get('/api/conversations/'+id)).json()).phone).toBeTruthy();
 });
 
+test('viewings from another device zone preserve the instant and reject the DST gap',async({page,browser},info)=>{
+  const id=await accepted(page);
+  const context=await browser.newContext({baseURL:origin,timezoneId:'America/New_York',viewport:{width:375,height:812}});
+  try{
+    const foreign=await context.newPage();await login(foreign,'buyer');await foreign.goto('/atelier?view=messages&conversation='+id);
+    await foreign.getByRole('button',{name:'Propune o vizionare →',exact:true}).press('Enter');
+    const target=new Date(Date.now()+2*86400000);target.setUTCHours(12,0,0,0);const expected=target.getTime();
+    const value=new Intl.DateTimeFormat('sv-SE',{timeZone:'America/New_York',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}).format(expected).replace(' ','T');
+    const input=foreign.locator('[name=startsAt]');await input.fill(value);
+    await expect(foreign.locator('#modal')).toContainText('Fusul dispozitivului: America/New_York');
+    await expect(foreign.locator('.viewing-time-preview')).toHaveText('În Cluj-Napoca: '+new Intl.DateTimeFormat('ro-RO',{timeZone:'Europe/Bucharest',dateStyle:'long',timeStyle:'short'}).format(expected)+' · Europe/Bucharest');
+    const folder='outputs/e2e/'+info.project.name+'/viewing-time';await mkdir(folder,{recursive:true});
+    await foreign.screenshot({path:folder+'/foreign-zone.png'});
+    await foreign.getByRole('button',{name:'Trimite propunerea',exact:true}).press('Enter');await expect(foreign.locator('#modal')).not.toBeVisible();
+    const saved=await (await foreign.request.get('/api/conversations/'+id)).json();expect(saved.viewings).toHaveLength(1);expect(saved.viewings[0].startsAt).toBe(expected);
+    // Only the browser clock moves. No simulated date is submitted to local D1.
+    await foreign.clock.setFixedTime(new Date('2027-03-12T12:00:00Z'));
+    await foreign.getByRole('button',{name:'Propune o vizionare →',exact:true}).press('Enter');
+    let writes=0;foreign.on('request',request=>{if(request.method()==='POST'&&request.url().endsWith('/viewings'))writes++;});
+    await input.fill('2027-03-14T02:30');await expect(foreign.locator('.viewing-time-preview')).toContainText('Ora aleasă nu există');
+    await foreign.getByRole('button',{name:'Trimite propunerea',exact:true}).press('Enter');
+    expect(await input.evaluate(node=>node.validity.customError)).toBe(true);await expect(input).toHaveValue('2027-03-14T02:30');await expect(foreign.locator('#modal')).toBeVisible();expect(writes).toBe(0);
+    await foreign.screenshot({path:folder+'/nonexistent-time.png'});
+    await input.fill('2027-03-14T03:30');expect(await input.evaluate(node=>node.validationMessage)).toBe('');
+    await expect(foreign.locator('.viewing-time-preview')).toContainText('09:30');
+    await foreign.screenshot({path:folder+'/corrected-time.png'});
+  }finally{await context.close();}
+});
+
 test('report and block revoke phone and prevent further messages',async({page})=>{
   const id=await accepted(page);await post(page,'/api/conversations/'+id+'/share-phone');await login(page,'buyer');await page.goto('/atelier?view=messages&conversation='+id);
   await page.locator('.conversation-safety summary').press('Enter');await page.getByRole('button',{name:'Raportează o problemă',exact:true}).press('Enter');await page.locator('#modal textarea').fill('DEMO: raport local pentru verificarea fluxului de moderare.');await page.getByRole('button',{name:'Trimite raportarea',exact:true}).press('Enter');await expect(page.getByRole('dialog')).not.toBeVisible();
