@@ -1,5 +1,9 @@
 # Criterii de acceptare și evidențe
 
+## Ora vizionării la schimbarea fusului
+
+[Raport](ETAPA-10-VIEWING-TIME.md): ora inexistentă la saltul de primăvară este refuzată înainte de trimitere. Regresie 0/1 înainte, 2/2 teste țintite după; 138 teste Node, TypeScript și build trecute. Conversia din New York și validarea DST sunt acoperite de noul scenariu Chromium/WebKit; rezultate CI și capturi în PR. Nu este testare pe dispozitiv fizic.
+
 ## Focus la actualizarea listei de conversații
 
 [Raport](ETAPA-10-INBOX-FOCUS.md): regresie DOM 0/1 înainte, 1/1 după; suita locală 137/137, TypeScript, build și izolare trecute. Scenariul nou verifică focusul la mesaj primit în Chromium/WebKit; rezultate și capturi în PR după CI. Nu este test VoiceOver sau pe telefon fizic.
