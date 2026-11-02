@@ -1,5 +1,9 @@
 # Criterii de acceptare și evidențe
 
+## Rezumate complete pentru căutările salvate
+
+[Raport](ETAPA-10-SEARCH-LABELS.md): filtrele de tip, preț minim, suprafață și camere apar în rezumat. Regresii noi 0/2 înainte, suita dedicată 7/7 după; 155 Node, TypeScript/build/izolare trecute. Scenariu mobil, capturi și axe în PR.
+
 ## Căutări salvate și navigare întreruptă
 
 [Raport](ETAPA-10-SEARCH-NAVIGATION.md): o navigare nouă nu mai marchează drept văzute rezultatele căutării abandonate. DOM 3/5 înainte, 5/5 după; 153 Node, TypeScript/build/izolare trecute. Scenariu mobil nou și dovezi CI în PR.

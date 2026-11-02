@@ -222,3 +222,15 @@ test('failed saved search does not mark unseen results through a different searc
   const folder='outputs/e2e/'+info.project.name+'/saved-search-navigation';await mkdir(folder,{recursive:true});await page.screenshot({path:folder+'/independent-search.png',fullPage:true});
   await page.getByRole('button',{name:'Contul meu',exact:true}).first().press('Enter');await page.getByRole('button',{name:'Vezi rezultatele',exact:true}).press('Enter');await expect(page.locator('.property-card')).toHaveCount(2);await expect(page.locator('.search-results')).toHaveAttribute('aria-busy','false');expect(seenRequests).toBe(1);
 });
+
+test('saved search summaries distinguish all saved filters on mobile',async({page},info)=>{
+ await page.setViewportSize({width:375,height:812});await login(page,'buyer');
+ const filters={transaction:'sale',currency:'RON',district:'Centru',type:'apartment',minPrice:'100000',maxPrice:'200000',minArea:'50',rooms:'2',q:'balcon'};
+ for(const f of [filters,{...filters,type:'house',minPrice:'120000',minArea:'80',rooms:'3'}])expect((await post(page,'/api/saved-searches',{filters:f})).status()).toBe(201);
+ await page.goto('/atelier?view=account');const rows=page.locator('.saved-search-row');await expect(rows).toHaveCount(2);
+ const apartment=rows.filter({has:page.getByRole('heading',{name:/Apartament/})});const house=rows.filter({has:page.getByRole('heading',{name:/Casă/})});
+ await expect(apartment).toContainText('de la 100000 RON');await expect(apartment).toContainText('până la 200000 RON');await expect(apartment).toContainText('minimum 50 m²');await expect(apartment).toContainText('2+ camere');await expect(house).toContainText('minimum 80 m²');await expect(house).toContainText('3+ camere');
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true);
+ const folder='outputs/e2e/'+info.project.name+'/saved-search-labels';await mkdir(folder,{recursive:true});await page.screenshot({path:folder+'/distinct-searches.png',fullPage:true});const axe=await new AxeBuilder({page}).analyze();await writeFile(folder+'/axe.json',JSON.stringify(axe.violations,null,2));expect(axe.violations.filter(v=>['serious','critical'].includes(v.impact))).toEqual([]);
+ await apartment.getByRole('button',{name:'Vezi rezultatele',exact:true}).press('Enter');await expect(page).toHaveURL(/type=apartment/);await expect(page).toHaveURL(/minArea=50/);await expect(page).toHaveURL(/rooms=2/);await expect(page).toHaveURL(/currency=RON/);
+});
