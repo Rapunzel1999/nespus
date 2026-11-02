@@ -210,3 +210,15 @@ test('saved search seen failure preserves usable results',async({page},info)=>{
   const axe=await new AxeBuilder({page}).analyze();await writeFile(folder+'/axe.json',JSON.stringify(axe.violations,null,2));expect(axe.violations.filter(v=>['serious','critical'].includes(v.impact))).toEqual([]);
   await page.locator('.card-photo-link').first().press('Enter');await expect(page.locator('h1')).toContainText('DEMO');
 });
+
+test('failed saved search does not mark unseen results through a different search',async({page},info)=>{
+  await page.setViewportSize({width:375,height:812});await login(page,'buyer');
+  expect((await post(page,'/api/saved-searches',{filters:{transaction:'sale',currency:'EUR',district:'Centru'}})).status()).toBe(201);
+  let seenRequests=0;page.on('request',request=>{if(request.url().includes('/saved-searches/')&&request.url().endsWith('/seen'))seenRequests++;});
+  let failNext=true;await page.route('**/api/listings?*',async route=>{if(failNext){failNext=false;await route.fulfill({status:503,contentType:'application/json',body:JSON.stringify({error:'DEMO: căutare indisponibilă.'})});}else await route.continue();});
+  await page.goto('/atelier?view=account');await page.getByRole('button',{name:'Vezi rezultatele',exact:true}).press('Enter');await expect(page.locator('.search-error')).toBeVisible();
+  await page.getByRole('button',{name:'Filtrează rezultatele',exact:true}).press('Enter');await page.locator('#modal [name=district]').selectOption('Zorilor');await expect(page.locator('#modal button[type=submit]')).toContainText('Arată');await page.locator('#modal button[type=submit]').press('Enter');
+  await expect(page.locator('.search-results')).toHaveAttribute('aria-busy','false');await expect(page.locator('.search-error')).toHaveCount(0);await expect(page).toHaveURL(/district=Zorilor/);expect(seenRequests).toBe(0);
+  const folder='outputs/e2e/'+info.project.name+'/saved-search-navigation';await mkdir(folder,{recursive:true});await page.screenshot({path:folder+'/independent-search.png',fullPage:true});
+  await page.getByRole('button',{name:'Contul meu',exact:true}).first().press('Enter');await page.getByRole('button',{name:'Vezi rezultatele',exact:true}).press('Enter');await expect(page.locator('.property-card')).toHaveCount(2);await expect(page.locator('.search-results')).toHaveAttribute('aria-busy','false');expect(seenRequests).toBe(1);
+});

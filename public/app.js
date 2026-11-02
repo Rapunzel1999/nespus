@@ -127,6 +127,7 @@ async function home(options={}){
   finally{if(revision===S.screenRevision)feed.setAttribute('aria-busy','false');}
 }
 async function browse(options={}){
+  const opening=options.savedSearchOpening||S.savedSearchOpening;S.savedSearchOpening=null;
   const revision=beginScreen('browse',options);
   const main=el('main',{class:'page browse-page'},el('div',{class:'browse-heading'},
     el('div',{},eye('Persoane fizice · contact direct'),el('h1',{class:'page-title'},S.transaction==='rent'?'De închiriat în Cluj-Napoca.':'De vânzare în Cluj-Napoca.'),el('p',{class:'muted'},'Alege ce contează pentru tine. Discută direct cu proprietarul.')),
@@ -144,14 +145,13 @@ async function browse(options={}){
       el('p',{class:'subtle'},(listings.length?((page-1)*limit+1)+'–'+((page-1)*limit+listings.length)+' din '+total+' · ':'')+(S.filters.currency||'EUR')+' · Fără conversie valutară'));
     results.replaceChildren(...[activeFilters(),el('div',{class:'results-toolbar'},count,el('label',{class:'sort-control'},'Sortează după',sorter)),
       listings.length?cards(listings):searchEmpty(total),pagination(page,data.totalPages??1)].filter(Boolean));
-    if(S.savedSearchOpening){
-      const opening=S.savedSearchOpening;S.savedSearchOpening=null;
+    if(opening){
       try{await api('/api/saved-searches/'+opening.id+'/seen','POST',{through:opening.viewedThrough});}
       catch{if(revision===S.screenRevision)results.append(el('p',{class:'notice saved-search-sync-warning',role:'status'},'Rezultatele sunt încărcate. Nu am putut actualiza numărul de anunțuri noi din căutarea salvată. Acesta poate rămâne neschimbat când revii în cont.'));}
     }
   }catch(e){
     if(revision!==S.screenRevision)return;
-    results.replaceChildren(el('div',{class:'search-error',role:'alert'},el('h2',{},'Căutarea nu s-a putut încărca.'),el('p',{class:'muted'},e.message),b('Reîncearcă',()=>go('browse',{pageNumber:S.browsePage}),'button secondary')));
+    results.replaceChildren(el('div',{class:'search-error',role:'alert'},el('h2',{},'Căutarea nu s-a putut încărca.'),el('p',{class:'muted'},e.message),b('Reîncearcă',()=>go('browse',{pageNumber:S.browsePage,savedSearchOpening:opening}),'button secondary')));
   }finally{if(revision===S.screenRevision)results.setAttribute('aria-busy','false');}
 }
 function loadingResults(){return el('div',{},el('p',{class:'loading',role:'status'},'Căutăm proprietăți…'),el('div',{class:'cards skeletons','aria-hidden':'true'},...[1,2,3].map(()=>el('div',{class:'skeleton-card'},el('div'),el('span'),el('span')))));}
