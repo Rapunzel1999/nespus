@@ -59,3 +59,7 @@ Nu este o lansare publică. Prima livrare Etapa 10 este versiunea 13, privată p
 ## 2 noiembrie 2026 — puncte de reluare
 
 README pornește din ramura suplimentului de documentație, nu din filtrele versiunii 17. Indexul de livrări leagă versiunile 16–20 și identifică sursa exactă, CI și limitele. VERIFICATION separă referința curentă de istoricul păstrat. Fără schimbare de produs sau configurație.
+
+## 2 noiembrie 2026 — filtre salvate validate
+
+API-ul refuză structurile JSON invalide ale filtrelor cu HTTP 400 înainte de salvare, fără conversia implicită a obiectelor/listelor. Filtrele scalare valide și deduplicarea rămân compatibile. Două regresii și raport în ETAPA-10-SAVED-SEARCH-VALIDATION.md.

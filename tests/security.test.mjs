@@ -869,3 +869,21 @@ test('moderator review signals never auto-restrict; decisions have a private per
   assert.equal((await f.request('/listings/'+lid(1))).data.listing.ownerDeclaredAt,NOW-2000);
   assert.doesNotMatch(JSON.stringify((await f.request('/listings/'+lid(1))).data),/riskSignals|photo_hash|photoHashes/);
 });
+
+
+test('saved search rejects malformed filter structures without storing them',async()=>{
+  const f=fixture();
+  for(const filters of [[['transaction']], 'transaction=sale&currency=EUR', {transaction:['sale'],currency:'EUR'}, {transaction:'sale',currency:'EUR',q:{toString:null}}]){
+    const result=await f.request('/saved-searches',{as:'buyer',method:'POST',data:{filters}});
+    assert.equal(result.status,400,JSON.stringify(filters));
+    assert.equal(f.sql.prepare('SELECT COUNT(*) AS n FROM saved_searches').get().n,0);
+  }
+});
+test('saved search accepts scalar filters and preserves normalized duplicate detection',async()=>{
+  const f=fixture();
+  const first=await f.request('/saved-searches',{as:'buyer',method:'POST',data:{filters:{transaction:'sale',currency:'EUR',minPrice:100,q:'Mărăști'}}});
+  assert.equal(first.status,201);
+  const second=await f.request('/saved-searches',{as:'buyer',method:'POST',data:{filters:{q:'Mărăști',minPrice:'100',currency:'EUR',transaction:'sale'}}});
+  assert.equal(second.status,200);assert.equal(second.data.id,first.data.id);
+  assert.equal(f.sql.prepare('SELECT COUNT(*) AS n FROM saved_searches').get().n,1);
+});

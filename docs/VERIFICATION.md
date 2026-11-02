@@ -1,5 +1,9 @@
 # Criterii de acceptare și evidențe
 
+## Validarea căutărilor salvate
+
+[Raport](ETAPA-10-SAVED-SEARCH-VALIDATION.md): structurile de filtre invalide sunt refuzate cu 400 în locul erorii interne 503 reproduse. Două teste țintite trecute după corecție; suita locală 132/132, TypeScript, build și izolare trecute. CI și livrarea exactă sunt în PR-ul suplimentului.
+
 ## Referința de reluare — versiunea 20
 
 [Indexul actualizat](ETAPA-10-LIVRABILE.md#reluare-după-versiunea-20) leagă versiunile 16–20 de PR-urile și rapoartele exacte. CI #26: 130 Node, 27 Playwright trecute / 1 omis, zero axe în 42 evaluări. Rezultatele sunt istorice pentru sursa identificată acolo. Suplimentul de documentație nu revendică testarea unui nou comportament; comenzile lui sunt în PR. Secțiunile de mai jos păstrează evoluția, inclusiv numerele vechi.
