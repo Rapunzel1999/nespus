@@ -4,7 +4,7 @@ Platformă în dezvoltare pentru vânzare și închiriere directă între propri
 
 Baza acestei direcții este organizată pe branch-ul `imobiliare-cluj` din [Rapunzel1999/nespus](https://github.com/Rapunzel1999/nespus). Proiectul Nespus de pe `main` este păstrat. „Între Noi” este un nume de lucru; disponibilitatea sa comercială și a domeniului nu este verificată.
 
-Etapa 10 este organizată în PR-uri succesive, începând cu [PR #10](https://github.com/Rapunzel1999/nespus/pull/10), peste PR #9. Ramura de sinteză este `imobiliare-cluj-etapa-10-l9`. Codul nou și dovezile sunt în GitHub. Etapa 10 este livrată începând cu **versiunea 13**, privată proprietarului, la [Între noi](https://imobiliare-cluj-direct.verdant11.chatgpt.site). Accesul temporar Sites a fost reînnoit după autorizarea continuării; accesul privat a fost reverificat după livrare. Niciun PR nu este îmbinat în `main`.
+Etapa 10 este organizată în PR-uri succesive, începând cu [PR #10](https://github.com/Rapunzel1999/nespus/pull/10), peste PR #9. Ramura `imobiliare-cluj-etapa-10-l9` este reperul istoric al L9; pentru reluare folosește punctul de control datat de mai jos și verifică ultimul PR al lanțului. Codul nou și dovezile sunt în GitHub. Etapa 10 este livrată începând cu **versiunea 13**, privată proprietarului, la [Între noi](https://imobiliare-cluj-direct.verdant11.chatgpt.site). Accesul temporar Sites a fost reînnoit după autorizarea continuării; accesul privat a fost reverificat după livrare. Niciun PR nu este îmbinat în `main`.
 
 ## Stadiu și limite
 
@@ -19,7 +19,7 @@ Accesul inițial al proiectului Sites este privat proprietarului. Publicarea cod
 Node.js 24 necesar și pnpm conform câmpului `packageManager` din `package.json`, când acesta este definit. Instalarea necesită acces la registrul de pachete.
 
 ```sh
-git clone --branch imobiliare-cluj-etapa-10-handoff https://github.com/Rapunzel1999/nespus.git
+git clone --branch imobiliare-cluj-etapa-10-handoff-v34 https://github.com/Rapunzel1999/nespus.git
 cd nespus
 pnpm install --frozen-lockfile
 pnpm test
@@ -31,11 +31,13 @@ pnpm start
 
 `pnpm db:migrate` aplică migrările locale; datele din `.wrangler/state` sunt separate de baza găzduită. Nu adăuga această stare sau secretele în Git. Pentru dezvoltare folosește `pnpm dev`. Găzduirea prin Sites urmează fluxul de build și publicare al integrării, separat de pornirea locală.
 
-Referință verificată la **2 noiembrie 2026**: **versiunea privată 20 / PR #26**, cu **130/130 teste Node**, TypeScript, build și izolarea producției trecute în [CI 41376289019](https://github.com/Rapunzel1999/nespus/actions/runs/41376289019). Chromium/WebKit: **27 trecute, 1 omis** (Lighthouse WebKit), zero încălcări axe în 42 evaluări. Aceste rezultate aparțin sursei PR #26; pentru modificări ulterioare se verifică rularea exactă din PR. Playwright rulează în CI pe Chromium și WebKit cu D1 local și conturi DEMO, nu pe site-ul găzduit. Rezultatele exacte pe livrabil, capturile, axe și Lighthouse sunt în [raportul Etapei 10](docs/ETAPA-10-LIVRABILE.md). SMS rămâne neconfigurat: nu există cont Twilio sau cele trei credențiale. Nu s-au efectuat SMS reale, testare cu două conturi SIWC găzduite, iPhone fizic sau VoiceOver.
+Referință recitită la **3 noiembrie 2026**: **versiunea privată 34 / PR #40**, sursa produsului `imobiliare-cluj-etapa-10-search-labels`. [CI 41518604850](https://github.com/Rapunzel1999/nespus/actions/runs/41518604850): **155/155 teste Node**, TypeScript, build și izolarea producției trecute; **37 Playwright trecute, 1 omis** (Lighthouse WebKit), zero încălcări axe în **46 evaluări**. Aceste rezultate aparțin PR #40, nu oricărui commit ulterior. Ramura din comanda de clonare adaugă numai documentația de reluare peste această sursă; pentru continuare verifică dacă există un PR mai nou.
+
+[Începe cu indexul actualizat](docs/ETAPA-10-LIVRABILE.md#reluare-după-versiunea-34): corecții PR #27–#40, proveniență, capturi și audituri suplimentare. Playwright folosește Chromium/WebKit și D1 local cu DEMO, nu site-ul găzduit. SMS rămâne neconfigurat/oprit, plafon zero. SMS real, două conturi SIWC găzduite, iPhone/Android fizic, VoiceOver și importul uman ICS rămân neverificate; condițiile complete sunt în [DECISIONS-PENDING](docs/DECISIONS-PENDING.md).
 
 ## Experiența implementată
 
-Continuarea după L9 este organizată în PR-uri succesive draft, fără merge în `main`. [Indexul de reluare](docs/ETAPA-10-LIVRABILE.md#reluare-după-versiunea-20) leagă corecțiile editorului, filtrelor, căutării, JSON și diagnosticului izolării de dovezile lor. Ramura acestui supliment actualizează numai documentația de reluare; nu introduce funcții noi în produs.
+Continuarea după L9 este organizată în PR-uri succesive draft, fără merge în `main`. [Indexul de reluare](docs/ETAPA-10-LIVRABILE.md#reluare-după-versiunea-34) leagă corecțiile și rapoartele actuale. Suplimentul de reluare v34 schimbă numai documentația; nu introduce funcții în produs.
 
 - Căutare pe cartier, tranzacție, monedă și buget, filtre într-un panou mobil, sortare preț/m² și căutări salvate cu anunțuri noi la revenire. Fără conversii valutare.
 - Prezentare detaliată a proprietății, galerie, costuri declarate și comparație pentru 2–3 favorite din aceeași categorie de tranzacție.
