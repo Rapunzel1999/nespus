@@ -905,3 +905,45 @@ test('a delayed message cannot move conversation activity behind a newer message
   const thread=await f.request('/conversations/'+conversationId,{as:'buyer',now:NOW+1000});
   assert.deepEqual(thread.data.messages.map(m=>m.id),[lid(901),lid(902)]);
 });
+
+
+test('viewing proposals and decisions refresh conversation activity only on success',async()=>{
+  for(const decision of ['accepted','declined']){
+    const f=fixture(),c=await f.accepted();
+    const proposed=await f.request('/conversations/'+c+'/viewings',{as:'buyer',method:'POST',now:NOW+1000,data:{startsAt:NOW+2*3600000}});
+    assert.equal(proposed.status,201);
+    assert.equal((await f.request('/conversations',{as:'owner'})).data.conversations[0].updatedAt,NOW+1000);
+    assert.equal((await f.request('/viewings/'+proposed.data.id,{as:'other',method:'POST',now:NOW+2000,data:{decision}})).status,404);
+    assert.equal(f.sql.prepare('SELECT updated_at FROM contact_requests WHERE id=?').get(c).updated_at,NOW+1000);
+    assert.equal((await f.request('/viewings/'+proposed.data.id,{as:'owner',method:'POST',now:NOW+3000,data:{decision}})).status,200);
+    assert.equal((await f.request('/conversations',{as:'buyer'})).data.conversations[0].updatedAt,NOW+3000);
+    assert.equal((await f.request('/viewings/'+proposed.data.id,{as:'owner',method:'POST',now:NOW+4000,data:{decision}})).status,409);
+    assert.equal(f.sql.prepare('SELECT updated_at FROM contact_requests WHERE id=?').get(c).updated_at,NOW+3000);
+  }
+});
+test('viewing activity preserves newer timestamps and failed writes do not bump the inbox',async()=>{
+  const f=fixture(),c=await f.accepted();
+  f.sql.prepare('UPDATE contact_requests SET updated_at=? WHERE id=?').run(NOW+5000,c);
+  const proposed=await f.request('/conversations/'+c+'/viewings',{as:'buyer',method:'POST',now:NOW+1000,data:{startsAt:NOW+2*3600000}});assert.equal(proposed.status,201);
+  assert.equal((await f.request('/viewings/'+proposed.data.id,{as:'owner',method:'POST',now:NOW+2000,data:{decision:'accepted'}})).status,200);
+  assert.equal(f.sql.prepare('SELECT updated_at FROM contact_requests WHERE id=?').get(c).updated_at,NOW+5000);
+  f.hooks.beforeRun=async query=>{if(query.startsWith('INSERT INTO viewings ')){f.hooks.beforeRun=null;f.sql.prepare('INSERT INTO blocks(blocker_id,blocked_id,created_at) VALUES (?,?,?)').run('owner','buyer',NOW+6000);}};
+  assert.equal((await f.request('/conversations/'+c+'/viewings',{as:'buyer',method:'POST',now:NOW+6000,data:{startsAt:NOW+2*3600000}})).status,403);
+  assert.equal(f.sql.prepare('SELECT updated_at FROM contact_requests WHERE id=?').get(c).updated_at,NOW+5000);
+  assert.equal(f.sql.prepare('SELECT COUNT(*) AS n FROM viewings').get().n,1);
+});
+
+
+test('viewing and activity writes roll back together when activity update fails',async()=>{
+  const f=fixture(),c=await f.accepted();
+  const failActivity=async query=>{if(query.startsWith('UPDATE contact_requests SET updated_at=MAX'))throw Error('simulated local activity write failure');};
+  f.hooks.beforeRun=failActivity;
+  assert.equal((await f.request('/conversations/'+c+'/viewings',{as:'buyer',method:'POST',now:NOW+1000,data:{startsAt:NOW+2*3600000}})).status,503);
+  assert.equal(f.sql.prepare('SELECT COUNT(*) AS n FROM viewings').get().n,0);
+  f.hooks.beforeRun=null;
+  const visit=await f.request('/conversations/'+c+'/viewings',{as:'buyer',method:'POST',now:NOW+2000,data:{startsAt:NOW+2*3600000}});assert.equal(visit.status,201);
+  f.hooks.beforeRun=failActivity;
+  assert.equal((await f.request('/viewings/'+visit.data.id,{as:'owner',method:'POST',now:NOW+3000,data:{decision:'accepted'}})).status,503);
+  assert.equal(f.sql.prepare('SELECT status FROM viewings WHERE id=?').get(visit.data.id).status,'requested');
+  assert.equal(f.sql.prepare('SELECT updated_at FROM contact_requests WHERE id=?').get(c).updated_at,NOW+2000);
+});
