@@ -1,5 +1,11 @@
 # Changelog
 
+## Integritatea datelor JSON — 2026-11-02
+
+- API-ul verifică exact tipul `application/json`, fără diferențiere între majuscule și minuscule; respinge prefixe precum `application/jsonp`.
+- UTF-8 invalid este refuzat înainte de salvare, fără înlocuirea tacită a caracterelor și fără modificarea ciornei existente. Diacriticele și emoji valide sunt păstrate.
+- Două regresii reproduse înainte de corecție; raport în `docs/ETAPA-10-JSON-INPUT.md`.
+
 ## Căutare literală — 2026-11-02
 
 - `%`, `_` și `\` sunt căutate ca text, fără a deveni operatori SQL LIKE. Căutările salvate păstrează textul original. Nicio schimbare de interfață sau schemă.

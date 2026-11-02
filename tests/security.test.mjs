@@ -39,6 +39,22 @@ function fixture() {
   return {sql,db,user,listing,request,contact,accepted,hooks};
 }
 
+test('JSON input requires the exact media type, case insensitively',async()=>{
+  const f=fixture(),payload={revision:0,step:0,draft:{title:'Ciornă în Mărăști',photos:[]}};
+  const send=(body,type)=>handleApi(new Request('https://test.invalid/api/editor-draft',{method:'PUT',headers:{origin:'https://test.invalid','content-type':type},body}),f.db,{principal:identity('unverified'),now:NOW});
+  for(const type of ['application/jsonp','application/json-evil','text/plain'])assert.equal((await send(JSON.stringify(payload),type)).status,415,type);
+  assert.equal((await send(JSON.stringify(payload),'Application/JSON; charset=utf-8')).status,200);
+});
+test('JSON input rejects corrupt UTF-8 without changing a draft',async()=>{
+  const f=fixture(),payload={revision:0,step:0,draft:{title:'Ciornă în Mărăști',photos:[]}};
+  const send=(body,type)=>handleApi(new Request('https://test.invalid/api/editor-draft',{method:'PUT',headers:{origin:'https://test.invalid','content-type':type},body}),f.db,{principal:identity('unverified'),now:NOW});
+  assert.equal((await send(JSON.stringify(payload),'application/json')).status,200);
+  const corrupt=new Uint8Array([...new TextEncoder().encode('{"revision":1,"step":0,"draft":{"title":"'),0xc3,0x28,...new TextEncoder().encode('","photos":[]}}')]);
+  assert.equal((await send(corrupt,'application/json')).status,400);
+  const draft=await f.request('/editor-draft',{as:'unverified'});assert.equal(draft.data.revision,1);assert.equal(draft.data.draft.title,'Ciornă în Mărăști');
+  assert.equal((await send(JSON.stringify({...payload,revision:1,draft:{title:'Ciornă 🏡 actualizată',photos:[]}}),'application/json')).status,200);
+});
+
 test('search treats percent, underscore and backslash as literal text',async()=>{
   const f=fixture();
   for(const [n,title] of [[1,'Locuință cu reducere 5%'],[2,'Locuință cod A_B'],[3,'Locuință cod A\\B'],[4,'Locuință cod AXB']]){f.listing(lid(n));f.sql.prepare('UPDATE listings SET title=? WHERE id=?').run(title,lid(n));}
