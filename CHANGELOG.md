@@ -1,5 +1,10 @@
 # Changelog
 
+## Telefon și jurnal — 2026-11-02
+
+- Dezvăluirea telefonului și auditul sunt salvate împreună. La eroare, numărul rămâne ascuns. Reîncercarea nu dublează auditul și nu reduce recența conversației.
+- Raport și teste: `docs/ETAPA-10-PHONE-AUDIT.md`.
+
 ## Mesaje fără salvare parțială — 2026-11-02
 
 - Mesajul și activitatea conversației se salvează în același batch. O eroare nu mai lasă mesajul salvat cu inboxul neactualizat.

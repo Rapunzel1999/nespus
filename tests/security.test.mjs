@@ -975,3 +975,31 @@ test('a message denied at insertion cannot bump inbox activity',async()=>{
   assert.equal(result.status,403);assert.equal(f.sql.prepare('SELECT COUNT(*) AS n FROM messages').get().n,0);
   assert.equal(f.sql.prepare('SELECT updated_at FROM contact_requests WHERE id=?').get(c).updated_at,NOW);
 });
+
+test('phone disclosure and audit roll back together and retry records one consent',async()=>{
+  const f=fixture(),c=await f.accepted();
+  f.sql.exec("CREATE TEMP TRIGGER fail_phone_audit BEFORE INSERT ON audit_events WHEN NEW.action='phone_shared' BEGIN SELECT RAISE(ABORT,'simulated audit failure'); END");
+  const share=now=>f.request('/conversations/'+c+'/share-phone',{as:'owner',method:'POST',now});
+  assert.equal((await share(NOW+1000)).status,503);
+  assert.equal((await f.request('/conversations/'+c,{as:'buyer'})).data.phone,null,'failed disclosure must remain private');
+  assert.equal(f.sql.prepare('SELECT updated_at FROM contact_requests WHERE id=?').get(c).updated_at,NOW);
+  f.sql.exec('DROP TRIGGER fail_phone_audit');
+  assert.equal((await share(NOW+2000)).status,200);
+  assert.match((await f.request('/conversations/'+c,{as:'buyer'})).data.phone,/^\+407/);
+  assert.equal((await share(NOW+3000)).status,200);
+  assert.equal(f.sql.prepare("SELECT COUNT(*) AS n FROM audit_events WHERE action='phone_shared'").get().n,1);
+  assert.equal(f.sql.prepare('SELECT updated_at FROM contact_requests WHERE id=?').get(c).updated_at,NOW+2000);
+});
+
+
+test('phone disclosure preserves newer activity and a late block leaves no consent audit',async()=>{
+  for(const blocked of [false,true]){
+    const f=fixture(),c=await f.accepted();f.sql.prepare('UPDATE contact_requests SET updated_at=? WHERE id=?').run(NOW+5000,c);
+    if(blocked)f.hooks.beforeRun=async query=>{if(query.startsWith('UPDATE contact_requests SET phone_shared=1')){f.hooks.beforeRun=null;f.sql.prepare('INSERT INTO blocks(blocker_id,blocked_id,created_at) VALUES (?,?,?)').run('buyer','owner',NOW);}};
+    const r=await f.request('/conversations/'+c+'/share-phone',{as:'owner',method:'POST',now:NOW+1000});
+    assert.equal(r.status,blocked?409:200);
+    assert.equal(f.sql.prepare('SELECT updated_at FROM contact_requests WHERE id=?').get(c).updated_at,NOW+5000);
+    assert.equal(f.sql.prepare("SELECT COUNT(*) AS n FROM audit_events WHERE action='phone_shared'").get().n,blocked?0:1);
+    assert.equal(f.sql.prepare('SELECT phone_shared FROM contact_requests WHERE id=?').get(c).phone_shared,blocked?0:1);
+  }
+});
