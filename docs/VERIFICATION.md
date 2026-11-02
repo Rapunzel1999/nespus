@@ -1,5 +1,9 @@
 # Criterii de acceptare și evidențe
 
+## Căutări salvate și navigare întreruptă
+
+[Raport](ETAPA-10-SEARCH-NAVIGATION.md): o navigare nouă nu mai marchează drept văzute rezultatele căutării abandonate. DOM 3/5 înainte, 5/5 după; 153 Node, TypeScript/build/izolare trecute. Scenariu mobil nou și dovezi CI în PR.
+
 ## Rezultate păstrate la eroarea marcajului de citire
 
 [Raport](ETAPA-10-SEARCH-SEEN.md): un eșec seen nu mai șterge cardurile încărcate. Regresii DOM 1/2 înainte, 2/2 după; 150 Node, TypeScript/build/izolare trecute. Scenariu nou Chromium/WebKit, capturi și axe în PR după CI.

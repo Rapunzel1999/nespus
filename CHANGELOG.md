@@ -1,5 +1,10 @@
 # Changelog
 
+## Navigarea căutărilor salvate — 2026-11-02
+
+- O căutare nouă nu preia marcajul de citire al unei căutări întrerupte/eșuate. Reîncercarea explicită păstrează contextul corect.
+- Dovezi: `docs/ETAPA-10-SEARCH-NAVIGATION.md`.
+
 ## Căutări salvate — 2026-11-02
 
 - Rezultatele rămân utilizabile dacă actualizarea numărului de anunțuri noi eșuează. Mesajul explică precis problema, fără eroare falsă de căutare.
