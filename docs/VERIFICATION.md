@@ -1,5 +1,9 @@
 # Criterii de acceptare și evidențe
 
+## Focus la actualizarea listei de conversații
+
+[Raport](ETAPA-10-INBOX-FOCUS.md): regresie DOM 0/1 înainte, 1/1 după; suita locală 137/137, TypeScript, build și izolare trecute. Scenariul nou verifică focusul la mesaj primit în Chromium/WebKit; rezultate și capturi în PR după CI. Nu este test VoiceOver sau pe telefon fizic.
+
 ## Activitatea vizionărilor
 
 [Raport](ETAPA-10-VIEWING-ACTIVITY.md): propunerea și decizia reușite actualizează recența conversației în același batch. 3 teste țintite și 136 teste Node trecute; TypeScript, build și izolare trecute. Scenariul D1 local verifică timestamp-ul; CI și livrarea sunt în PR. Nu se revendică testare găzduită multiutilizator.
