@@ -1,5 +1,9 @@
 # Criterii de acceptare și evidențe
 
+## Salvarea mesajului și activității împreună
+
+[Raport](ETAPA-10-MESSAGE-ATOMIC.md): eroarea actualizării inboxului anulează și inserarea mesajului. Regresie 0/1 înainte, 9/9 teste țintite după; 140 Node, TypeScript, build și izolare trecute. Scenariul D1 local verifică timestamp-ul și replay-ul; CI, capturi și livrare în PR. Fără schimbare vizuală sau test de concurență distribuită găzduită.
+
 ## Ora vizionării la schimbarea fusului
 
 [Raport](ETAPA-10-VIEWING-TIME.md): ora inexistentă la saltul de primăvară este refuzată înainte de trimitere. Regresie 0/1 înainte, 2/2 teste țintite după; 138 teste Node, TypeScript și build trecute. Conversia din New York și validarea DST sunt acoperite de noul scenariu Chromium/WebKit; rezultate CI și capturi în PR. Nu este testare pe dispozitiv fizic.
