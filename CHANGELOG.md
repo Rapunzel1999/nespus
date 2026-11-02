@@ -1,5 +1,10 @@
 # Changelog
 
+## Diagnostic CI — 2026-11-02
+
+- Proba izolării producției raportează separat așteptarea răspunsului, verificarea statusului, citirea corpului și aserțiunile, cu durate și starea procesului la eșec.
+- Bootstrap trebuie să răspundă explicit cu HTTP 200. Fără retry, fără schimbarea timeout-urilor și fără modificări ale aplicației. Timeout-ul intermitent rămâne neelucidat.
+
 ## Integritatea datelor JSON — 2026-11-02
 
 - API-ul verifică exact tipul `application/json`, fără diferențiere între majuscule și minuscule; respinge prefixe precum `application/jsonp`.

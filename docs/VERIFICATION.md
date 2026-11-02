@@ -1,5 +1,9 @@
 # Criterii de acceptare și evidențe
 
+## 2 noiembrie 2026 — diagnostic al izolării producției
+
+Continuarea după versiunea 19 adaugă etape și durate în diagnosticul scriptului de verificare, plus aserțiunea HTTP 200 pentru bootstrap. `pnpm test` 130/130, TypeScript, build și proba locală a izolării trecute. O copie temporară care cere deliberat ruta 404 a ieșit cu cod 1 și a raportat etapa `bootstrap status`; nu este o reproducere a timeout-ului. Nu există retry nou sau relaxarea timpului-limită. Raport complet: [ETAPA-10-ISOLATION-DIAGNOSTICS.md](ETAPA-10-ISOLATION-DIAGNOSTICS.md). CI și proveniența livrării sunt consemnate în PR după execuție.
+
 ## 2 noiembrie 2026 — editor și accesibilitate
 
 Verificările locale ale suplimentului: `pnpm test` **127/127**; `pnpm run typecheck`, `pnpm build`, `pnpm run test:production-isolation`, `git diff --check` — exit 0. Sunt șase regresii noi pentru anunțurile de stare, avertismentul înainte de părăsire, copia în conflict, explicația renunțării, erorile/conflictele la eliminare și răspunsurile întârziate. Rezultatele browser/axe și livrarea sursei finale sunt în PR-ul suplimentului și jurnalul Etapei 10.
