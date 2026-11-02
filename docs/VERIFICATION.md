@@ -1,5 +1,11 @@
 # Criterii de acceptare și evidențe
 
+## Referința de reluare — versiunea 20
+
+[Indexul actualizat](ETAPA-10-LIVRABILE.md#reluare-după-versiunea-20) leagă versiunile 16–20 de PR-urile și rapoartele exacte. CI #26: 130 Node, 27 Playwright trecute / 1 omis, zero axe în 42 evaluări. Rezultatele sunt istorice pentru sursa identificată acolo. Suplimentul de documentație nu revendică testarea unui nou comportament; comenzile lui sunt în PR. Secțiunile de mai jos păstrează evoluția, inclusiv numerele vechi.
+
+Neefectuate: UI găzduit autentificat, două conturi SIWC găzduite, iPhone/Android fizic, VoiceOver/NVDA, SMS real și import uman ICS. Deciziile foto, juridice și operaționale rămân deschise.
+
 ## 2 noiembrie 2026 — diagnostic al izolării producției
 
 Continuarea după versiunea 19 adaugă etape și durate în diagnosticul scriptului de verificare, plus aserțiunea HTTP 200 pentru bootstrap. `pnpm test` 130/130, TypeScript, build și proba locală a izolării trecute. O copie temporară care cere deliberat ruta 404 a ieșit cu cod 1 și a raportat etapa `bootstrap status`; nu este o reproducere a timeout-ului. Nu există retry nou sau relaxarea timpului-limită. Raport complet: [ETAPA-10-ISOLATION-DIAGNOSTICS.md](ETAPA-10-ISOLATION-DIAGNOSTICS.md). CI și proveniența livrării sunt consemnate în PR după execuție.

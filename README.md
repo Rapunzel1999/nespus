@@ -19,7 +19,7 @@ Accesul inițial al proiectului Sites este privat proprietarului. Publicarea cod
 Node.js 24 necesar și pnpm conform câmpului `packageManager` din `package.json`, când acesta este definit. Instalarea necesită acces la registrul de pachete.
 
 ```sh
-git clone --branch imobiliare-cluj-etapa-10-filters https://github.com/Rapunzel1999/nespus.git
+git clone --branch imobiliare-cluj-etapa-10-handoff https://github.com/Rapunzel1999/nespus.git
 cd nespus
 pnpm install --frozen-lockfile
 pnpm test
@@ -31,11 +31,11 @@ pnpm start
 
 `pnpm db:migrate` aplică migrările locale; datele din `.wrangler/state` sunt separate de baza găzduită. Nu adăuga această stare sau secretele în Git. Pentru dezvoltare folosește `pnpm dev`. Găzduirea prin Sites urmează fluxul de build și publicare al integrării, separat de pornirea locală.
 
-Verificare la **2 noiembrie 2026**: **127/127 teste Node**, TypeScript, build și izolarea producției trecute. Playwright rulează în CI pe Chromium și WebKit cu D1 local și conturi DEMO, nu pe site-ul găzduit. Rezultatele exacte pe livrabil, capturile, axe și Lighthouse sunt în [raportul Etapei 10](docs/ETAPA-10-LIVRABILE.md). SMS rămâne neconfigurat: nu există cont Twilio sau cele trei credențiale. Nu s-au efectuat SMS reale, testare cu două conturi SIWC găzduite, iPhone fizic sau VoiceOver.
+Referință verificată la **2 noiembrie 2026**: **versiunea privată 20 / PR #26**, cu **130/130 teste Node**, TypeScript, build și izolarea producției trecute în [CI 41376289019](https://github.com/Rapunzel1999/nespus/actions/runs/41376289019). Chromium/WebKit: **27 trecute, 1 omis** (Lighthouse WebKit), zero încălcări axe în 42 evaluări. Aceste rezultate aparțin sursei PR #26; pentru modificări ulterioare se verifică rularea exactă din PR. Playwright rulează în CI pe Chromium și WebKit cu D1 local și conturi DEMO, nu pe site-ul găzduit. Rezultatele exacte pe livrabil, capturile, axe și Lighthouse sunt în [raportul Etapei 10](docs/ETAPA-10-LIVRABILE.md). SMS rămâne neconfigurat: nu există cont Twilio sau cele trei credențiale. Nu s-au efectuat SMS reale, testare cu două conturi SIWC găzduite, iPhone fizic sau VoiceOver.
 
 ## Experiența implementată
 
-Continuarea după L9 este organizată în PR-uri succesive. Versiunea privată 16 și probele editorului sunt documentate în [PR #22](https://github.com/Rapunzel1999/nespus/pull/22). Ramura de lucru curentă corectează filtrele mobile din cont; verificările și limitele acestui livrabil sunt în [raportul filtrelor](docs/ETAPA-10-OWNER-FILTERS.md).
+Continuarea după L9 este organizată în PR-uri succesive draft, fără merge în `main`. [Indexul de reluare](docs/ETAPA-10-LIVRABILE.md#reluare-după-versiunea-20) leagă corecțiile editorului, filtrelor, căutării, JSON și diagnosticului izolării de dovezile lor. Ramura acestui supliment actualizează numai documentația de reluare; nu introduce funcții noi în produs.
 
 - Căutare pe cartier, tranzacție, monedă și buget, filtre într-un panou mobil, sortare preț/m² și căutări salvate cu anunțuri noi la revenire. Fără conversii valutare.
 - Prezentare detaliată a proprietății, galerie, costuri declarate și comparație pentru 2–3 favorite din aceeași categorie de tranzacție.
