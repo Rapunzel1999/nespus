@@ -1,5 +1,34 @@
 # Etapa 10 · jurnal de livrare
 
+## Reluare după versiunea 20
+
+Referință recitită la 2 noiembrie 2026: Site activ, versiunea 20, acces custom cu un singur owner, fără editori/grupuri/vizitatori externi. Ultimul PR de produs/infrastructură este [#26](https://github.com/Rapunzel1999/nespus/pull/26), ramura `imobiliare-cluj-etapa-10-isolation-diagnostics`. Suplimentul `imobiliare-cluj-etapa-10-handoff` schimbă numai documentația. La o reluare ulterioară se recitesc Site și cele mai recente PR-uri; acest index este o referință datată, nu o garanție că nu există o livrare mai nouă.
+
+| Versiune privată | PR | Livrabil și raport |
+| --- | --- | --- |
+| 16 | [#22](https://github.com/Rapunzel1999/nespus/pull/22) | Renunțare la ciornă confirmată de server și aria-live stabil; jurnal mai jos |
+| 17 | [#23](https://github.com/Rapunzel1999/nespus/pull/23) | [Filtre mobile din cont și contrast](ETAPA-10-OWNER-FILTERS.md) |
+| 18 | [#24](https://github.com/Rapunzel1999/nespus/pull/24) | [Căutare literală pentru %, _ și backslash](ETAPA-10-SEARCH-LITERAL.md) |
+| 19 | [#25](https://github.com/Rapunzel1999/nespus/pull/25) | [Validare JSON și UTF-8](ETAPA-10-JSON-INPUT.md) |
+| 20 | [#26](https://github.com/Rapunzel1999/nespus/pull/26) | [Etape de diagnostic pentru izolarea producției](ETAPA-10-ISOLATION-DIAGNOSTICS.md) |
+
+### Punct de control verificat
+
+- [CI 41376289019](https://github.com/Rapunzel1999/nespus/actions/runs/41376289019), PR #26: 130 Node, 27 Playwright trecute / 1 omis, zero încălcări axe în 42 evaluări; TypeScript, build și izolarea producției trecute.
+- [Capturi și rapoarte](https://github.com/Rapunzel1999/nespus/actions/runs/41376289019/artifacts/13111312086), păstrate temporar de GitHub (14 zile). Lighthouse mobil local: acasă 97/100, rezultate 99/100, anunț 99/100 (performanță/accesibilitate). Acestea nu sunt măsurători ale găzduirii.
+- GitHub `605747b4778c7645fedb4bf9742cdb93676901d1`, sursa Sites `b6763d67913c47447f422f1bdd34bea1d5ac0898`, arbore comun `e1b60e9493a6e9d070fe8faa5b2f6122db490f60`. Proveniența arhivelor este în PR #26.
+- Timeout-ul istoric Wrangler nu este rezolvat: în această sursă se raportează faza exactă și se cere HTTP 200, fără retry sau relaxarea timpului-limită.
+
+### Ordinea reluării
+
+1. Citește README, acest index, VERIFICATION și DECISIONS-PENDING; verifică ultimele PR-uri și versiunea Sites.
+2. Verifică ramura, arborele și modificările locale. Nu suprascrie lucrul necomis și nu porni o livrare concurentă. Folosește ultimul PR al lanțului ca bază, niciodată `main`.
+3. Reproduce problema aleasă, păstrează dovada înainte/după și rulează verificările existente pe noua sursă. Nu transforma cifrele istorice în rezultate curente.
+4. Creează PR draft succesiv cu raport și livrează numai prin Sites, exclusiv proprietarului; recitește audiența după livrare.
+
+L2 (variante foto/stocare) rămâne la decizia de arhitectură. SMS real, două conturi SIWC găzduite, dispozitive fizice, VoiceOver, import uman ICS, operare și juridic rămân deschise în [DECISIONS-PENDING](DECISIONS-PENDING.md). Nicio bifă automată nu autorizează acces public sau costuri.
+
+
 ## L0 — PR #10
 
 Fișiere: `docs/BASELINE-ETAPA-10.md`, `docs/DECISIONS-PENDING.md`, `scripts/measure-baseline.mjs`. Fără modificări ale produsului. Sursa exactă din PR #9 a fost recuperată și comparată prin hash-ul arborelui Git.

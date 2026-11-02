@@ -55,3 +55,7 @@
 - README, produs, arhitectură, verificări și decizii actualizate. Tarifele de referință Twilio sunt reverificate, fără cont sau trimiteri.
 
 Nu este o lansare publică. Prima livrare Etapa 10 este versiunea 13, privată proprietarului. Accesul temporar Sites a fost reînnoit după autorizarea continuării, iar migrările aditive au fost aplicate prin mecanismul de livrare existent. SMS real, două conturi găzduite, dispozitive fizice, VoiceOver, importuri umane ICS și condițiile juridice/operaționale rămân neconfirmate. `main` nu este modificată.
+
+## 2 noiembrie 2026 — puncte de reluare
+
+README pornește din ramura suplimentului de documentație, nu din filtrele versiunii 17. Indexul de livrări leagă versiunile 16–20 și identifică sursa exactă, CI și limitele. VERIFICATION separă referința curentă de istoricul păstrat. Fără schimbare de produs sau configurație.
