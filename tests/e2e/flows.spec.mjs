@@ -199,3 +199,14 @@ test('live inbox refresh preserves keyboard focus on the conversation row',async
     await page.screenshot({path:folder+'/after-refresh.png',fullPage:true});
   }finally{await owner.close();}
 });
+
+test('saved search seen failure preserves usable results',async({page},info)=>{
+  await page.setViewportSize({width:375,height:812});await login(page,'buyer');
+  const saved=await post(page,'/api/saved-searches',{filters:{transaction:'sale',currency:'EUR',district:'Centru'}});expect(saved.status()).toBe(201);
+  let seenRequests=0;await page.route('**/api/saved-searches/*/seen',async route=>{seenRequests++;await route.fulfill({status:503,contentType:'application/json',body:JSON.stringify({error:'DEMO: marcaj indisponibil.'})});});
+  await page.goto('/atelier?view=account');await page.getByRole('button',{name:'Vezi rezultatele',exact:true}).press('Enter');
+  await expect(page.locator('.saved-search-sync-warning')).toContainText('Nu am putut actualiza numărul');await expect(page.locator('.property-card')).toHaveCount(2);await expect(page.locator('.search-error')).toHaveCount(0);expect(seenRequests).toBe(1);
+  const folder='outputs/e2e/'+info.project.name+'/saved-search-failure';await mkdir(folder,{recursive:true});await page.screenshot({path:folder+'/results-preserved.png',fullPage:true});
+  const axe=await new AxeBuilder({page}).analyze();await writeFile(folder+'/axe.json',JSON.stringify(axe.violations,null,2));expect(axe.violations.filter(v=>['serious','critical'].includes(v.impact))).toEqual([]);
+  await page.locator('.card-photo-link').first().press('Enter');await expect(page.locator('h1')).toContainText('DEMO');
+});

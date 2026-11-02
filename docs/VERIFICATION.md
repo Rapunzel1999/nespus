@@ -1,5 +1,9 @@
 # Criterii de acceptare și evidențe
 
+## Rezultate păstrate la eroarea marcajului de citire
+
+[Raport](ETAPA-10-SEARCH-SEEN.md): un eșec seen nu mai șterge cardurile încărcate. Regresii DOM 1/2 înainte, 2/2 după; 150 Node, TypeScript/build/izolare trecute. Scenariu nou Chromium/WebKit, capturi și axe în PR după CI.
+
 ## Trimitere și reconfirmare eligibile la salvare
 
 [Raport](ETAPA-10-OWNER-GATES.md): submit/reconfirm refuză schimbarea eligibilității înainte de UPDATE; submit refuză și ciorna rămasă fără fotografii. Regresii 0/2 înainte, 2/2 după; 148 Node, TypeScript/build/izolare trecute. CI și livrare în PR.
