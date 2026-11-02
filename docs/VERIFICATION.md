@@ -1,5 +1,9 @@
 # Criterii de acceptare și evidențe
 
+## Dezvăluirea telefonului fără salvare parțială
+
+[Raport](ETAPA-10-PHONE-AUDIT.md): eșecul jurnalului anulează și dezvăluirea telefonului. Regresie 0/1 înainte, 4/4 țintite după, 142 Node, TypeScript/build/izolare trecute. CI, capturi și proveniență în PR. Fără injecție de erori în găzduire.
+
 ## Salvarea mesajului și activității împreună
 
 [Raport](ETAPA-10-MESSAGE-ATOMIC.md): eroarea actualizării inboxului anulează și inserarea mesajului. Regresie 0/1 înainte, 9/9 teste țintite după; 140 Node, TypeScript, build și izolare trecute. Scenariul D1 local verifică timestamp-ul și replay-ul; CI, capturi și livrare în PR. Fără schimbare vizuală sau test de concurență distribuită găzduită.

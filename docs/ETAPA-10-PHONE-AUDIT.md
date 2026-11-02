@@ -1,0 +1,26 @@
+# Dezvăluirea telefonului și jurnalul — 2 noiembrie 2026
+
+Pornire: versiunea 27 privată / PR #33; sursă curată, README, VERIFICATION, ETAPA-10-LIVRABILE și DECISIONS-PENDING recitite. Ramură succesivă `imobiliare-cluj-etapa-10-phone-audit`; helper Sites existent, fără main GitHub.
+
+## Defect și corecție
+
+Actualizarea phone_shared și înregistrarea phone_shared în audit erau separate. Dacă auditul eșua, API întorcea 503, dar telefonul devenea vizibil cumpărătorului. Un trigger TEMP SQLite, exclusiv în memoria testului, reproduce cazul: număr vizibil în loc de null după eroare. Nu s-a provocat o eroare în găzduire.
+
+`lib/api.mjs`: cele două scrieri sunt în același db.batch. auditChanged înregistrează numai o schimbare efectivă. Eroarea auditului anulează dezvăluirea și schimbarea activității. MAX păstrează activitatea mai nouă; reîncercarea unei dezvăluiri reușite rămâne idempotentă.
+
+`tests/security.test.mjs`: două teste noi verifică rollback, reîncercare cu un singur audit, telefon ascuns la eșec, blocare sosită după verificarea inițială fără audit fals și păstrarea activității mai noi. Nicio aserțiune veche slăbită, fără retry sau timeout modificat.
+
+Acest raport, VERIFICATION și CHANGELOG consemnează schimbarea. Interfața și schema nu sunt modificate.
+
+## Verificări locale
+
+- `node --test --test-name-pattern='phone disclosure and audit' tests/security.test.mjs`: înainte 0/1; telefonul fixture era vizibil după răspunsul 503.
+- `node --test --test-name-pattern='phone disclosure' tests/security.test.mjs`: după 4/4.
+- `pnpm test`: 142/142.
+- `pnpm run typecheck`, `pnpm build`, `pnpm run test:production-isolation`, `git diff --check`: exit 0. Izolare: 55 fișiere scanate, login test 404, cookie DEMO ignorat și telefon simulat oprit inclusiv cu flaguri test.
+
+## CI, capturi și limite
+
+Suita Chromium/WebKit existentă include dezvăluirea explicită, citirea de către cumpărător și revocarea după blocare, pe D1 local. Rezultatele exacte pe noua sursă, axe, artefactele și livrarea privată se completează în PR după CI. Referința vizuală anterioară este [v27](https://github.com/Rapunzel1999/nespus/actions/runs/41425973700/artifacts/13132845024). Nu se revendică diferențe vizuale: schimbarea este în tranzacția serverului.
+
+Rollback-ul este probat în SQLite în memorie, nu prin injecție de erori sau concurență distribuită în găzduire. Nu sunt verificate dispozitive fizice, VoiceOver, UI autentificat găzduit, două conturi SIWC găzduite, SMS real sau import uman ICS. Nicio schimbare de main, autentificare, audiență, schema/date găzduite, secret în GitHub, serviciu plătit sau notificare reală. SMS oprit/cap zero. L2, juridic și operare rămân deschise; timeout-ul istoric nu este declarat rezolvat.
