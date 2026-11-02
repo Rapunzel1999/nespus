@@ -1,5 +1,9 @@
 # Criterii de acceptare și evidențe
 
+## Punct de control v34 — 3 noiembrie 2026
+
+[Index de reluare și lanț PR #27–#40](ETAPA-10-LIVRABILE.md#reluare-după-versiunea-34). CI 41518604850 confirmă sursa PR #40: 155 Node, 37 Playwright trecute / 1 omis, zero încălcări axe în 46 evaluări; TypeScript/build/izolare trecute. Suplimentul de documentare v34 corectează comanda de clonare și indexul; rezultatele noii ramuri sunt consemnate în propriul PR, fără a reutiliza cifrele ca teste noi. Nu există modificare UI, deci capturile înainte/după produs nu se aplică acestui supliment.
+
 ## Rezumate complete pentru căutările salvate
 
 [Raport](ETAPA-10-SEARCH-LABELS.md): filtrele de tip, preț minim, suprafață și camere apar în rezumat. Regresii noi 0/2 înainte, suita dedicată 7/7 după; 155 Node, TypeScript/build/izolare trecute. Scenariu mobil, capturi și axe în PR.

@@ -1,5 +1,9 @@
 # Changelog
 
+## Reluare din punctul de control v34 — 2026-11-03
+
+- README pornește din sursa actualizată, iar indexul include corecțiile PR #27–#40 și dovezile v34. Reperele istorice și condițiile de lansare sunt distincte. Numai documentație.
+
 ## Rezumatele căutărilor salvate — 2026-11-02
 
 - Căutările afișează toate filtrele salvate, inclusiv tipul locuinței, prețul minim, suprafața și camerele. Limitele de preț au monedă explicită.

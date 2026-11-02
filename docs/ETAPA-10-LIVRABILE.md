@@ -1,5 +1,42 @@
 # Etapa 10 · jurnal de livrare
 
+## Reluare după versiunea 34
+
+Punct de control recitit la **3 noiembrie 2026**: Site activ, v34, acces exclusiv proprietarului, fără editori/grupuri/vizitatori externi. Ultimul PR de produs este [#40](https://github.com/Rapunzel1999/nespus/pull/40), `imobiliare-cluj-etapa-10-search-labels`. Acest supliment `imobiliare-cluj-etapa-10-handoff-v34` actualizează doar documentația. Verifică întotdeauna dacă există o sursă mai nouă; reperele de mai jos nu sunt o indicație de merge în main.
+
+- GitHub head `2a1a4ca539db917736a6ab1d5a094548a214bd9c`, sursa Sites v34 `99baaf4ed32cf171966f34d3dcd2d793e094950e`, arbore comun `57686f8890376a0578523c748a19dc8844cc0381`.
+- [CI v34](https://github.com/Rapunzel1999/nespus/actions/runs/41518604850): 155 Node, TypeScript/build/izolare trecute; 37 Playwright trecute / 1 omis Lighthouse WebKit; zero încălcări axe în 46 evaluări. Sunt rezultatele sursei PR #40.
+- [Capturi și rapoarte v34](https://github.com/Rapunzel1999/nespus/actions/runs/41518604850/artifacts/13177400959), retenție GitHub 14 zile. Lighthouse local performanță/accesibilitate: acasă 98/100, rezultate 99/100, anunț 99/100. Nu măsoară gateway-ul găzduit.
+- Auditurile suplimentare din PR #40 păstrează codul și rezultatele: opt probe de revalidare foto (24 cereri cu ETag), șase probe de atomicitate pentru blocare/suspendare. Sunt SQLite local în memorie; nu sunt execuții găzduite sau rerulări browser.
+
+| PR succesiv | Livrabil / raport |
+| --- | --- |
+| [#27](https://github.com/Rapunzel1999/nespus/pull/27) | Documentație de reluare v20 |
+| [#28](https://github.com/Rapunzel1999/nespus/pull/28) | [Validarea filtrelor salvate](ETAPA-10-SAVED-SEARCH-VALIDATION.md) |
+| [#29](https://github.com/Rapunzel1999/nespus/pull/29) | [Recență monotonă la mesaje](ETAPA-10-MESSAGE-ORDER.md) |
+| [#30](https://github.com/Rapunzel1999/nespus/pull/30) | [Activitatea vizionărilor](ETAPA-10-VIEWING-ACTIVITY.md) |
+| [#31](https://github.com/Rapunzel1999/nespus/pull/31) | [Focus stabil în inbox](ETAPA-10-INBOX-FOCUS.md) |
+| [#32](https://github.com/Rapunzel1999/nespus/pull/32) | [Ora vizionării și saltul DST](ETAPA-10-VIEWING-TIME.md) |
+| [#33](https://github.com/Rapunzel1999/nespus/pull/33) | [Mesaj și activitate atomice](ETAPA-10-MESSAGE-ATOMIC.md) |
+| [#34](https://github.com/Rapunzel1999/nespus/pull/34) | [Telefon și audit atomice](ETAPA-10-PHONE-AUDIT.md) |
+| [#35](https://github.com/Rapunzel1999/nespus/pull/35) | [Anunț și declarație atomice](ETAPA-10-LISTING-ATOMIC.md) |
+| [#36](https://github.com/Rapunzel1999/nespus/pull/36) | [Eligibilitate la aprobarea anunțului](ETAPA-10-PUBLICATION-GATE.md) |
+| [#37](https://github.com/Rapunzel1999/nespus/pull/37) | [Eligibilitate la trimitere/reconfirmare](ETAPA-10-OWNER-GATES.md) |
+| [#38](https://github.com/Rapunzel1999/nespus/pull/38) | [Rezultate păstrate la eșecul marcajului](ETAPA-10-SEARCH-SEEN.md) |
+| [#39](https://github.com/Rapunzel1999/nespus/pull/39) | [Izolarea marcajului la navigare](ETAPA-10-SEARCH-NAVIGATION.md) |
+| [#40](https://github.com/Rapunzel1999/nespus/pull/40) | [Rezumate complete și contrast în cont](ETAPA-10-SEARCH-LABELS.md) |
+
+### Ce rămâne deschis
+
+L2 foto/stocare necesită decizie de arhitectură și buget. SMS oprit/cap zero, fără cont Twilio. Lansarea cere SMS real autorizat, două conturi SIWC găzduite, dispozitive fizice, VoiceOver, import uman ICS, operare și texte **DE REVIZUIT JURIDIC**. Timeout-ul istoric de izolare nu este declarat rezolvat de rulările verzi. Vezi [DECISIONS-PENDING](DECISIONS-PENDING.md).
+
+### Cum continui fără să pierzi corecțiile
+
+1. Recitește Site, ultimul PR/CI și documentele; controlează arborele local și orice lucru necomis.
+2. Pornește de la cel mai recent PR al lanțului imobiliare-cluj; baza noului PR este ramura precedentă, niciodată main. Nu merge PR-urile fără autorizare.
+3. Reproduce problema, rulează verificările pe noua sursă și păstrează rezultatele/capturile în raport și PR. Cifrele istorice nu sunt verificări noi.
+4. Livrează numai prin Sites, păstrând owner-only, apoi recitește audiența. Nu activa costuri, SMS sau date DEMO găzduite.
+
 ## Reluare după versiunea 20
 
 Referință recitită la 2 noiembrie 2026: Site activ, versiunea 20, acces custom cu un singur owner, fără editori/grupuri/vizitatori externi. Ultimul PR de produs/infrastructură este [#26](https://github.com/Rapunzel1999/nespus/pull/26), ramura `imobiliare-cluj-etapa-10-isolation-diagnostics`. Suplimentul `imobiliare-cluj-etapa-10-handoff` schimbă numai documentația. La o reluare ulterioară se recitesc Site și cele mai recente PR-uri; acest index este o referință datată, nu o garanție că nu există o livrare mai nouă.
