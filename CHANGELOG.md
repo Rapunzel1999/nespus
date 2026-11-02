@@ -1,5 +1,10 @@
 # Changelog
 
+## Mesaje fără salvare parțială — 2026-11-02
+
+- Mesajul și activitatea conversației se salvează în același batch. O eroare nu mai lasă mesajul salvat cu inboxul neactualizat.
+- Reîncercările rămân idempotente; duplicatele și mesajele refuzate nu mută conversația. Raport: `docs/ETAPA-10-MESSAGE-ATOMIC.md`.
+
 ## Ora vizionării — 2026-11-02
 
 - Orele inexistente la trecerea la ora de vară sunt refuzate, fără mutarea tacită a vizionării. Valoarea rămâne în formular pentru corectare.

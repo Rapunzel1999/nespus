@@ -670,8 +670,9 @@ test('a simultaneous duplicate message is safe and a reused ID cannot cross conv
       f.sql.prepare('INSERT INTO messages(id,conversation_id,sender_id,body,created_at) VALUES (?,?,?,?,?)').run(...args.slice(0,5));
     }
   };
-  const r=await f.request('/conversations/'+c+'/messages',{as:'buyer',method:'POST',data:{body:message,requestId}});
+  const r=await f.request('/conversations/'+c+'/messages',{as:'buyer',method:'POST',now:NOW+1000,data:{body:message,requestId}});
   assert.equal(r.status,200);assert.equal(r.data.replayed,true);assert.equal(f.sql.prepare('SELECT count(*) AS n FROM messages').get().n,1);
+  assert.equal(f.sql.prepare('SELECT updated_at FROM contact_requests WHERE id=?').get(c).updated_at,NOW,'duplicate insert must not bump activity');
   f.listing(lid(2));const second=await f.contact(lid(2));await f.request('/conversations/'+second.data.id+'/decision',{as:'owner',method:'POST',data:{decision:'accepted'}});
   assert.equal((await f.request('/conversations/'+second.data.id+'/messages',{as:'buyer',method:'POST',data:{body:message,requestId}})).status,409);
 });
@@ -891,9 +892,10 @@ test('saved search accepts scalar filters and preserves normalized duplicate det
 
 test('a delayed message cannot move conversation activity behind a newer message',async()=>{
   const f=fixture(),conversationId=await f.accepted();
-  f.hooks.beforeRun=async(query)=>{
-    if(!query.startsWith('UPDATE contact_requests SET updated_at='))return;
-    f.hooks.beforeRun=null;
+  // Delay before the transaction: D1 batches cannot interleave their statements.
+  f.hooks.beforeFirst=async(query)=>{
+    if(!query.startsWith('SELECT conversation_id,sender_id,body FROM messages'))return;
+    f.hooks.beforeFirst=null;
     const newer=await f.request('/conversations/'+conversationId+'/messages',{as:'owner',method:'POST',now:NOW+1000,data:{body:'Putem discuta detaliile vizionării.',requestId:lid(902)}});
     assert.equal(newer.status,201);
   };
@@ -946,4 +948,30 @@ test('viewing and activity writes roll back together when activity update fails'
   assert.equal((await f.request('/viewings/'+visit.data.id,{as:'owner',method:'POST',now:NOW+3000,data:{decision:'accepted'}})).status,503);
   assert.equal(f.sql.prepare('SELECT status FROM viewings WHERE id=?').get(visit.data.id).status,'requested');
   assert.equal(f.sql.prepare('SELECT updated_at FROM contact_requests WHERE id=?').get(c).updated_at,NOW+2000);
+});
+
+
+test('message and inbox activity roll back together so a failed send can be retried',async()=>{
+  const f=fixture(),c=await f.accepted(),requestId=lid(940);
+  const send=now=>f.request('/conversations/'+c+'/messages',{as:'buyer',method:'POST',now,data:{body:'Aș dori să stabilim detaliile vizionării.',requestId}});
+  f.sql.exec("CREATE TEMP TRIGGER fail_message_activity BEFORE UPDATE OF updated_at ON contact_requests BEGIN SELECT RAISE(ABORT,'simulated local activity write failure'); END");
+  assert.equal((await send(NOW+1000)).status,503);
+  assert.equal(f.sql.prepare('SELECT COUNT(*) AS n FROM messages').get().n,0,'failed send must not leave a message without its inbox activity');
+  assert.equal(f.sql.prepare('SELECT updated_at FROM contact_requests WHERE id=?').get(c).updated_at,NOW);
+  f.sql.exec('DROP TRIGGER fail_message_activity');
+  assert.equal((await send(NOW+2000)).status,201);
+  assert.equal(f.sql.prepare('SELECT COUNT(*) AS n FROM messages').get().n,1);
+  assert.equal(f.sql.prepare('SELECT updated_at FROM contact_requests WHERE id=?').get(c).updated_at,NOW+2000);
+  const replay=await send(NOW+3000);assert.equal(replay.status,200);assert.equal(replay.data.replayed,true);
+  assert.equal(f.sql.prepare('SELECT COUNT(*) AS n FROM messages').get().n,1);
+  assert.equal(f.sql.prepare('SELECT updated_at FROM contact_requests WHERE id=?').get(c).updated_at,NOW+2000);
+  assert.equal(f.sql.prepare("SELECT hits FROM rate_limits WHERE key LIKE 'messages:buyer:%'").get().hits,2,'failed write consumes quota, replay does not');
+});
+
+test('a message denied at insertion cannot bump inbox activity',async()=>{
+  const f=fixture(),c=await f.accepted();
+  f.hooks.beforeRun=async query=>{if(query.startsWith('INSERT INTO messages ')){f.hooks.beforeRun=null;f.sql.prepare('INSERT INTO blocks(blocker_id,blocked_id,created_at) VALUES (?,?,?)').run('owner','buyer',NOW+1000);}};
+  const result=await f.request('/conversations/'+c+'/messages',{as:'buyer',method:'POST',now:NOW+1000,data:{body:'Doresc să discutăm despre locuință.',requestId:lid(941)}});
+  assert.equal(result.status,403);assert.equal(f.sql.prepare('SELECT COUNT(*) AS n FROM messages').get().n,0);
+  assert.equal(f.sql.prepare('SELECT updated_at FROM contact_requests WHERE id=?').get(c).updated_at,NOW);
 });

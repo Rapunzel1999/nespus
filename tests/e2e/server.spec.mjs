@@ -22,6 +22,10 @@ test('local D1 exercises real API with isolated DEMO identities and simulated Ve
   await login('owner');expect((await post('/api/conversations/'+id+'/decision',{decision:'accepted'})).status()).toBe(200);expect((await post('/api/conversations/'+id+'/share-phone')).status()).toBe(200);
   await login('buyer');expect((await (await request.get('/api/conversations/'+id)).json()).phone).toBeTruthy();
   expect((await post('/api/conversations/'+id+'/messages',{body:'DEMO mesaj de test',requestId:'f'.repeat(32)})).status()).toBe(201);
+  const sent=await (await request.get('/api/conversations/'+id)).json();expect(sent.messages).toHaveLength(1);
+  expect(sent.conversation.updatedAt).toBe(sent.messages[0].createdAt);
+  const replay=await post('/api/conversations/'+id+'/messages',{body:'DEMO mesaj de test',requestId:'f'.repeat(32)});expect(replay.status()).toBe(200);expect((await replay.json()).replayed).toBe(true);
+  const afterReplay=await (await request.get('/api/conversations/'+id)).json();expect(afterReplay.messages).toHaveLength(1);expect(afterReplay.conversation.updatedAt).toBe(sent.conversation.updatedAt);
   const proposalStarted=Date.now();
   const visit=await post('/api/conversations/'+id+'/viewings',{startsAt:Date.now()+86400000});expect(visit.status()).toBe(201);const v=await visit.json();
   expect((await (await request.get('/api/conversations')).json()).conversations.find(row=>row.id===id).updatedAt).toBeGreaterThanOrEqual(proposalStarted);
