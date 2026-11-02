@@ -1,5 +1,10 @@
 # Changelog
 
+## Trimitere și reconfirmare — 2026-11-02
+
+- Schimbarea eligibilității înainte de salvare refuză trimiterea și reconfirmarea. O ciornă rămasă fără fotografii nu intră în moderare. Fără audit fals.
+- Dovezi: `docs/ETAPA-10-OWNER-GATES.md`.
+
 ## Eligibilitate la moderare — 2026-11-02
 
 - Aprobarea este refuzată dacă proprietarul devine neeligibil înainte de salvarea deciziei; anunțul rămâne în așteptare, fără audit fals de publicare. Respingerea rămâne disponibilă.

@@ -1,5 +1,9 @@
 # Criterii de acceptare și evidențe
 
+## Trimitere și reconfirmare eligibile la salvare
+
+[Raport](ETAPA-10-OWNER-GATES.md): submit/reconfirm refuză schimbarea eligibilității înainte de UPDATE; submit refuză și ciorna rămasă fără fotografii. Regresii 0/2 înainte, 2/2 după; 148 Node, TypeScript/build/izolare trecute. CI și livrare în PR.
+
 ## Eligibilitate la aprobarea anunțului
 
 [Raport](ETAPA-10-PUBLICATION-GATE.md): publicarea verifică proprietarul în UPDATE; o schimbare de eligibilitate refuză aprobarea fără audit fals. Regresie înainte 1/2, după 2/2; 146 Node, TypeScript/build/izolare trecute. CI și livrarea exactă în PR.
