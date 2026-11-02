@@ -22,8 +22,11 @@ test('local D1 exercises real API with isolated DEMO identities and simulated Ve
   await login('owner');expect((await post('/api/conversations/'+id+'/decision',{decision:'accepted'})).status()).toBe(200);expect((await post('/api/conversations/'+id+'/share-phone')).status()).toBe(200);
   await login('buyer');expect((await (await request.get('/api/conversations/'+id)).json()).phone).toBeTruthy();
   expect((await post('/api/conversations/'+id+'/messages',{body:'DEMO mesaj de test',requestId:'f'.repeat(32)})).status()).toBe(201);
+  const proposalStarted=Date.now();
   const visit=await post('/api/conversations/'+id+'/viewings',{startsAt:Date.now()+86400000});expect(visit.status()).toBe(201);const v=await visit.json();
-  await login('owner');expect((await post('/api/viewings/'+v.id,{decision:'accepted'})).status()).toBe(200);
+  expect((await (await request.get('/api/conversations')).json()).conversations.find(row=>row.id===id).updatedAt).toBeGreaterThanOrEqual(proposalStarted);
+  await login('owner');const decisionStarted=Date.now();expect((await post('/api/viewings/'+v.id,{decision:'accepted'})).status()).toBe(200);
+  expect((await (await request.get('/api/conversations')).json()).conversations.find(row=>row.id===id).updatedAt).toBeGreaterThanOrEqual(decisionStarted);
   await login('buyer');expect((await post('/api/reports',{conversationId:id,reason:'misleading',details:'DEMO: raport pentru testarea fluxului local.'})).status()).toBe(201);
   expect((await post('/api/conversations/'+id+'/block')).status()).toBe(200);expect((await (await request.get('/api/conversations/'+id)).json()).phone).toBeNull();expect((await post('/api/conversations/'+id+'/messages',{body:'DEMO blocat'})).status()).toBe(403);
 });

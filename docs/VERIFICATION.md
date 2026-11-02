@@ -1,5 +1,9 @@
 # Criterii de acceptare și evidențe
 
+## Activitatea vizionărilor
+
+[Raport](ETAPA-10-VIEWING-ACTIVITY.md): propunerea și decizia reușite actualizează recența conversației în același batch. 3 teste țintite și 136 teste Node trecute; TypeScript, build și izolare trecute. Scenariul D1 local verifică timestamp-ul; CI și livrarea sunt în PR. Nu se revendică testare găzduită multiutilizator.
+
 ## Mesaje finalizate în ordine inversă
 
 [Raport](ETAPA-10-MESSAGE-ORDER.md): o trimitere întârziată nu mai înlocuiește ora unei activități mai noi. Regresie SQLite 0/1 înainte, 1/1 după; suita locală 133/133, TypeScript, build și izolare trecute. Nu este test de concurență distribuită găzduită. CI și livrarea sunt urmărite în PR.

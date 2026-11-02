@@ -67,3 +67,7 @@ API-ul refuză structurile JSON invalide ale filtrelor cu HTTP 400 înainte de s
 ## 2 noiembrie 2026 — recența conversațiilor
 
 La trimiteri finalizate în ordine inversă, actualizarea activității de după mesaj păstrează cel mai nou timestamp. Regresie API/SQLite cu două cereri intercalate; fără migrare sau schimbare de UI.
+
+## 2 noiembrie 2026 — activitatea vizionărilor
+
+Propunerile și răspunsurile reușite la vizionări actualizează recența conversației. Scrierile sunt grupate în batch; erorile și repetările nu schimbă recența. Teste SQLite și verificări API pe D1 local, fără migrare.
