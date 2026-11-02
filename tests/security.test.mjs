@@ -39,6 +39,18 @@ function fixture() {
   return {sql,db,user,listing,request,contact,accepted,hooks};
 }
 
+test('search treats percent, underscore and backslash as literal text',async()=>{
+  const f=fixture();
+  for(const [n,title] of [[1,'Locuință cu reducere 5%'],[2,'Locuință cod A_B'],[3,'Locuință cod A\\B'],[4,'Locuință cod AXB']]){f.listing(lid(n));f.sql.prepare('UPDATE listings SET title=? WHERE id=?').run(title,lid(n));}
+  for(const [query,n] of [['%',1],['_',2],['\\',3],['5%',1],['A_B',2],['A\\B',3]]){
+    const r=await f.request('/listings?q='+encodeURIComponent(query));assert.equal(r.status,200);assert.deepEqual(r.data.listings.map(l=>l.id),[lid(n)],query);
+  }
+  assert.equal((await f.request('/listings?q=Locuin')).data.listings.length,4);
+  assert.equal((await f.request('/listings?q='+encodeURIComponent('%absent_'))).data.listings.length,0);
+  for(const q of ['%','_','\\'])assert.equal((await f.request('/saved-searches',{as:'buyer',method:'POST',data:{filters:{transaction:'sale',currency:'EUR',q}}})).status,201);
+  const saved=await f.request('/saved-searches',{as:'buyer'});assert.deepEqual(saved.data.searches.map(s=>s.filters.q).sort(),['%','_','\\'].sort());
+});
+
 test('public feed/detail/favorites never disclose phone or exact address; drafts and expiry are inaccessible',async()=>{
   const f=fixture();f.listing();f.listing(lid(2),'draft');f.listing(lid(3),'published','owner',NOW);
   for(const path of ['/listings','/listings/'+lid(1)]){const r=await f.request(path);assert.equal(r.status,200);const serialized=JSON.stringify(r.data);assert.ok(!serialized.includes('SECRETĂ'));assert.ok(!serialized.includes('+407'));assert.ok(!serialized.includes('exactAddress'));assert.equal(r.headers.get('cache-control'),'no-store');}
