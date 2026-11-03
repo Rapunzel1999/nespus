@@ -1246,3 +1246,21 @@ test('appeal decision rechecks a conflict that appears after the initial read',a
   assert.equal(f.sql.prepare("SELECT status FROM users WHERE id='buyer'").get().status,'restricted');
   assert.equal(f.sql.prepare("SELECT count(*) AS n FROM audit_events WHERE action='appeal_upheld'").get().n,0);
 });
+
+test('moderation queue reserves its ten listing slots for independent review',async()=>{
+  const f=fixture();
+  const own=Array.from({length:10},(_,i)=>f.listing(lid(i+1),'pending','mod'));
+  const eligible=f.listing(lid(11),'pending','owner');
+  f.sql.prepare('UPDATE listings SET created_at=? WHERE id=?').run(NOW+1,eligible);
+  const queue=as=>f.request('/moderation',{as});
+  const moderator=await queue('mod');
+  assert.equal(moderator.status,200);
+  assert.deepEqual(moderator.data.listings.map(row=>row.id),[eligible]);
+  assert.deepEqual((await queue('mod2')).data.listings.map(row=>row.id),own);
+  assert.deepEqual(new Set((await f.request('/mine',{as:'mod'})).data.listings.map(row=>row.id)),new Set(own));
+  const decide=(id,as,decision)=>f.request('/moderation/listings/'+id,{as,method:'POST',data:{decision,reason:'Revizuire independentă DEMO.'}});
+  for(const decision of ['published','rejected'])assert.equal((await decide(own[0],'mod',decision)).status,403);
+  assert.equal((await decide(own[0],'mod2','published')).status,200);
+  assert.equal((await decide(eligible,'mod','published')).status,200);
+  assert.equal((await queue('mod')).data.listings.length,0);
+});
