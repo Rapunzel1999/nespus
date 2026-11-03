@@ -608,7 +608,7 @@ function favoriteCollection(listings){
   for(const[value,label]of[['all','Toate'],['sale','De vânzare'],['rent','De închiriat']]){const count=listings.filter(l=>value==='all'||l.transaction===value).length;const button=b(label+' · '+count,()=>{S.favoriteFilter=value;paint();},'favorite-filter');button.setAttribute('data-favorite-filter',value);filters.append(button);}
   query.addEventListener('input',()=>{S.favoriteQuery=query.value;paint();});
   const tray=el('aside',{class:'comparison-tray','aria-label':'Selecția pentru comparație'},el('div',{class:'comparison-tray-main'},el('div',{},trayTitle,trayHint),el('div',{class:'comparison-tray-actions'},compare,clear)),feedback,chips);
-  section.append(el('div',{class:'favorite-tools'},filters,query),counter,el('p',{class:'favorites-availability-note'},'Apar doar favoritele care îndeplinesc condițiile de publicare la încărcare. Selecția de comparație rămâne în această filă și poate include anunțuri ascunse de filtre.'),result,tray);
+  section.append(el('h2',{class:'visually-hidden'},'Locuințe salvate'),el('div',{class:'favorite-tools'},filters,query),counter,el('p',{class:'favorites-availability-note'},'Apar doar favoritele care îndeplinesc condițiile de publicare la încărcare. Selecția de comparație rămâne în această filă și poate include anunțuri ascunse de filtre.'),result,tray);
   paint();return section;
 }
 async function favorites(options={}){

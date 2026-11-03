@@ -281,7 +281,7 @@ test('favorite pages preserve loaded cards after failure and expose older saves'
   await expect(page.getByRole('group',{name:'Proprietăți selectate pentru comparație'})).toBeAttached();
   const firstAxe=await new AxeBuilder({page}).analyze();
   await writeFile(folder+'/axe-first.json',JSON.stringify(firstAxe.violations,null,2));
-  expect(firstAxe.violations.filter(v=>['serious','critical'].includes(v.impact))).toEqual([]);
+  expect(firstAxe.violations).toEqual([]);
   await cards.first().locator('.favorite-compare-button').press('Enter');
   await more.press('Enter');
   await expect(page.getByText('Pagina următoare este temporar indisponibilă.',{exact:false})).toBeVisible();
@@ -298,5 +298,5 @@ test('favorite pages preserve loaded cards after failure and expose older saves'
   await page.keyboard.press('Escape');
   const result=await new AxeBuilder({page}).analyze();
   await writeFile(folder+'/axe.json',JSON.stringify(result.violations,null,2));
-  expect(result.violations.filter(v=>['serious','critical'].includes(v.impact))).toEqual([]);
+  expect(result.violations).toEqual([]);
 });
