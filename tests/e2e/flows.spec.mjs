@@ -327,7 +327,7 @@ test('photo draft stays editable when account save and tab storage both fail',as
   await page.locator('[name=area]').fill('60');await page.locator('[name=rooms]').fill('2');await next();
   await page.locator('[name=price]').fill('120000');await next();
   const state=page.locator('.editor-save-state');
-  await expect(state).toContainText('Salvat acum');
+  await expect(state).toHaveText(/^Salvat acum \d+ secunde$/);
   const fixture=await page.evaluate(()=>{
     const c=document.createElement('canvas');c.width=2600;c.height=1950;
     const ctx=c.getContext('2d');ctx.fillStyle='#435d45';ctx.fillRect(0,0,c.width,c.height);
@@ -361,7 +361,10 @@ test('photo draft stays editable when account save and tab storage both fail',as
   expect(axe.violations.filter(v=>['serious','critical'].includes(v.impact))).toEqual([]);
   offline=false;await next();
   await page.locator('[name=title]').fill('DEMO Ciornă recuperată după întrerupere');
-  await expect(state).toContainText('Salvat acum');
+  await expect(state).toHaveText(/^Salvat acum \d+ secunde$/);
+  const stored=await (await page.request.get('/api/editor-draft')).json();
+  expect(stored.draft.title).toBe('DEMO Ciornă recuperată după întrerupere');
+  expect(stored.draft.photos).toHaveLength(1);
   await page.reload();await page.getByRole('button',{name:'Continuă editarea',exact:true}).press('Enter');
   await expect(page.locator('[name=title]')).toHaveValue('DEMO Ciornă recuperată după întrerupere');
   await page.getByRole('button',{name:'← Pasul anterior'}).press('Enter');

@@ -17,7 +17,7 @@ function draftMatchesConfirmed(){
   return S.photos.every((photo,index)=>photo===saved.draft.photos[index])&&Object.keys({...saved.draft,...S.draft}).every(key=>key==='photos'||saved.draft[key]===S.draft[key]);
 }
 function draftSaveLabel(){
-  const keepOpen='Ține fila deschisă până când apare „Salvat acum”.';
+  const keepOpen='Ține fila deschisă până când ciorna este salvată în cont.';
   if(S.autosaveError)return S.autosaveError+' '+(S.tabBackupCurrent?'Modificările sunt păstrate în această filă.':keepOpen);
   if(S.autosaveBusy)return 'Salvăm automat ciorna în cont…';
   if(S.draftSavedAt&&draftMatchesConfirmed())return 'Salvat acum '+Math.max(0,Math.floor((Date.now()-S.draftSavedAt)/1000))+' secunde';
