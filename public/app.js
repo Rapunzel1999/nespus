@@ -652,16 +652,36 @@ async function favorites(options={}){
     },'button secondary');
     host.append(el('p',{class:'favorites-limit'},'Filtrele se aplică favoritelor încărcate.'),more,feedback);
   }
-  try{
-    await loadPage();
-    if(revision!==S.screenRevision)return;
-    // Restore pages containing properties already chosen for comparison.
-    while(cursor && S.comparisonIds.some(id=>!records.has(id))){
-      await loadPage();
+  async function restoreSelection(){
+    try{
+      while(cursor && S.comparisonIds.some(id=>!records.has(id))){
+        await loadPage();
+        if(revision!==S.screenRevision)return;
+      }
+    }catch(error){
       if(revision!==S.screenRevision)return;
+      const retry=b('Reîncearcă încărcarea selecției',async()=>{
+        if(retry.disabled)return;
+        retry.disabled=true;
+        host.setAttribute('aria-busy','true');
+        await restoreSelection();
+        if(revision!==S.screenRevision)return;
+        host.setAttribute('aria-busy','false');
+        const target=host.querySelector('.selection-retry')||host.querySelector('.comparison-open:not(:disabled)')||host.querySelector('.card-title');
+        target?.focus();
+      },'button secondary selection-retry');
+      host.replaceChildren(el('h2',{},'Favorite disponibile'),
+        el('p',{role:'alert'},'Nu am putut încărca toată selecția pentru comparație. '+error.message),
+        retry,cards([...records.values()]));
+      return;
     }
     if(!cursor)S.favorites=new Set(records.keys());
     render();
+  }
+  try{
+    await loadPage();
+    if(revision!==S.screenRevision)return;
+    await restoreSelection();
   }catch(error){if(revision!==S.screenRevision)return;host.replaceChildren(el('div',{class:'favorites-load-error',role:'alert'},el('h2',{},'Favoritele nu au putut fi încărcate.'),el('p',{},error.message),b('Încearcă din nou',()=>go('favorites'),'button secondary')));}
   finally{if(revision===S.screenRevision)host.setAttribute('aria-busy','false');}
 }
