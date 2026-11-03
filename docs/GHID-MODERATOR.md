@@ -15,7 +15,7 @@ Proprietarul găsește în cont starea **Necesită modificări** și **Motivul m
 
 ## Sesizări și contestații
 
-În **Sesizări**, folosește **Consultă contextul sesizării** dacă ai nevoie de dovezi pentru cazul respectiv. Lista îți arată numai sesizările în care nu ești autor, proprietar sau participant la conversație. Un alt moderator le poate analiza pe cele în care ești implicat. Pentru o sesizare depusă de tine, urmărește starea în contul personal. Pentru o contestație, verifică cine a luat decizia inițială înainte de a o analiza. Până la desemnarea celui de-al doilea moderator, lasă cazurile cu conflict deschise. Nu trimite conversații sau fotografii private în afara pilotului.
+În **Sesizări**, folosește **Consultă contextul sesizării** dacă ai nevoie de dovezi pentru cazul respectiv. Lista îți arată numai sesizările în care nu ești autor, proprietar sau participant la conversație. Un alt moderator le poate analiza pe cele în care ești implicat. Pentru o sesizare depusă de tine, urmărește starea în contul personal. Lista de contestații exclude cazurile în care ești implicat sau ai luat decizia contestată. Autorul își poate urmări contestația în contul personal. Până la desemnarea celui de-al doilea moderator, lasă cazurile cu conflict deschise. Nu trimite conversații sau fotografii private în afara pilotului.
 
 ## Repetiția locală
 

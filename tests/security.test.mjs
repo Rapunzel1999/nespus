@@ -1204,3 +1204,45 @@ test('report queue excludes involved moderators before the limit and preserves i
   assert.equal((await f.request(path,{as:'mod',method:'POST',data:{decision:'resolved',reason:'Analiză locală de moderator.'}})).status,403);
   assert.equal((await f.request(path+'/evidence',{as:'mod2'})).status,200);
 });
+
+test('appeal queue only exposes cases the moderator may independently decide',async()=>{
+  const f=fixture(),listing=f.listing();
+  const contact=await f.contact(listing,'mod');
+  assert.equal(contact.status,201);
+  const addAppeal=f.sql.prepare('INSERT INTO appeals(id,user_id,report_id,reason,created_at) VALUES (?,?,?,?,?)');
+  const addReport=f.sql.prepare('INSERT INTO reports(id,reporter_id,listing_id,conversation_id,reason,details,created_at) VALUES (?,?,?,?,?,?,?)');
+  addReport.run(lid(10),'owner',listing,contact.data.id,'other','Context local DEMO',NOW);
+  addReport.run(lid(11),'buyer',listing,null,'other','Alt context local DEMO',NOW);
+  const audit=f.sql.prepare('INSERT INTO audit_events(id,actor_id,action,target_id,reason,created_at) VALUES (?,?,?,?,?,?)');
+  audit.run(lid(12),'mod','report_dismissed',lid(11),'Motiv anterior',NOW);
+  audit.run(lid(13),'mod','user_restricted','other','Motiv anterior',NOW);
+  const conflicts=[['mod',null],['owner',null],['other',null],['owner',lid(10)],['buyer',lid(11)]];
+  for(let i=0;i<50;i++)addAppeal.run(lid(100+i),...conflicts[i%5],'Motiv privat DEMO',NOW+i);
+  const independent=lid(200);
+  addAppeal.run(independent,'buyer',null,'Contestație eligibilă DEMO',NOW+51);
+  const queue=await f.request('/moderation',{as:'mod'});
+  assert.equal(queue.status,200);
+  assert.deepEqual(queue.data.appeals.map(a=>a.id),[independent]);
+  const second=await f.request('/moderation',{as:'mod2'});
+  assert.equal(second.status,200);
+  assert.equal(second.data.appeals.length,50);
+  const decide=(id,as)=>f.request('/moderation/appeals/'+id,{as,method:'POST',data:{decision:'dismissed',reason:'Decizie motivată pentru probă.'}});
+  for(let i=0;i<5;i++)assert.equal((await decide(lid(100+i),'mod')).status,403);
+  assert.ok((await f.request('/my-cases',{as:'mod'})).data.appeals.some(a=>a.id===lid(100)));
+  assert.equal((await decide(lid(104),'mod2')).status,200);
+  assert.equal((await decide(independent,'mod')).status,200);
+});
+
+test('appeal decision rechecks a conflict that appears after the initial read',async()=>{
+  const f=fixture(),id=lid(500);
+  f.sql.prepare("UPDATE users SET status='restricted' WHERE id='buyer'").run();
+  f.sql.prepare('INSERT INTO appeals(id,user_id,reason,created_at) VALUES (?,?,?,?)').run(id,'buyer','Motiv de contestație DEMO',NOW);
+  f.hooks.beforeRun=query=>{
+    if(query.startsWith('UPDATE appeals SET'))f.sql.prepare('INSERT INTO audit_events(id,actor_id,action,target_id,reason,created_at) VALUES (?,?,?,?,?,?)').run(lid(501),'mod','user_restricted','buyer','Decizie concurentă DEMO',NOW);
+  };
+  const result=await f.request('/moderation/appeals/'+id,{as:'mod',method:'POST',data:{decision:'upheld',reason:'Verificare concurență DEMO'}});
+  assert.equal(result.status,409);
+  assert.equal(f.sql.prepare('SELECT status FROM appeals WHERE id=?').get(id).status,'open');
+  assert.equal(f.sql.prepare("SELECT status FROM users WHERE id='buyer'").get().status,'restricted');
+  assert.equal(f.sql.prepare("SELECT count(*) AS n FROM audit_events WHERE action='appeal_upheld'").get().n,0);
+});
