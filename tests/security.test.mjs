@@ -953,7 +953,7 @@ test('viewing activity preserves newer timestamps and failed writes do not bump 
   assert.equal((await f.request('/viewings/'+proposed.data.id,{as:'owner',method:'POST',now:NOW+2000,data:{decision:'accepted'}})).status,200);
   assert.equal(f.sql.prepare('SELECT updated_at FROM contact_requests WHERE id=?').get(c).updated_at,NOW+5000);
   f.hooks.beforeRun=async query=>{if(query.startsWith('INSERT INTO viewings ')){f.hooks.beforeRun=null;f.sql.prepare('INSERT INTO blocks(blocker_id,blocked_id,created_at) VALUES (?,?,?)').run('owner','buyer',NOW+6000);}};
-  assert.equal((await f.request('/conversations/'+c+'/viewings',{as:'buyer',method:'POST',now:NOW+6000,data:{startsAt:NOW+2*3600000}})).status,403);
+  assert.equal((await f.request('/conversations/'+c+'/viewings',{as:'buyer',method:'POST',now:NOW+6000,data:{startsAt:NOW+3*3600000}})).status,403);
   assert.equal(f.sql.prepare('SELECT updated_at FROM contact_requests WHERE id=?').get(c).updated_at,NOW+5000);
   assert.equal(f.sql.prepare('SELECT COUNT(*) AS n FROM viewings').get().n,1);
 });
@@ -1263,4 +1263,36 @@ test('moderation queue reserves its ten listing slots for independent review',as
   assert.equal((await decide(own[0],'mod2','published')).status,200);
   assert.equal((await decide(eligible,'mod','published')).status,200);
   assert.equal((await queue('mod')).data.listings.length,0);
+});
+
+test('repeated viewing time reuses the active proposal without consuming another slot',async()=>{
+  const f=fixture(),c=await f.accepted(),startsAt=NOW+4*3600000;
+  const propose=(time,now)=>f.request('/conversations/'+c+'/viewings',{as:'buyer',method:'POST',now,data:{startsAt:time}});
+  const first=await propose(startsAt,NOW);
+  assert.equal(first.status,201);
+  for(let i=1;i<=3;i++){
+    const repeated=await propose(startsAt,NOW+i);
+    assert.equal(repeated.status,200);
+    assert.equal(repeated.data.id,first.data.id);
+  }
+  assert.equal(f.sql.prepare('SELECT updated_at FROM contact_requests WHERE id=?').get(c).updated_at,NOW);
+  const confirmed=await f.request('/viewings/'+first.data.id,{as:'owner',method:'POST',data:{decision:'accepted'}});
+  assert.equal(confirmed.status,200);
+  assert.deepEqual((await propose(startsAt,NOW+4)).data,{id:first.data.id,status:'accepted'});
+  assert.equal((await propose(startsAt+60000,NOW+5)).status,201);
+  assert.equal(f.sql.prepare('SELECT count(*) AS n FROM viewings').get().n,2);
+});
+
+test('a competing insert for the same viewing time cannot duplicate the appointment',async()=>{
+  const f=fixture(),c=await f.accepted(),startsAt=NOW+2*3600000,id=lid(990);
+  f.hooks.beforeRun=query=>{
+    if(query.startsWith('INSERT INTO viewings ')){
+      f.hooks.beforeRun=null;
+      f.sql.prepare('INSERT INTO viewings(id,conversation_id,proposed_by,starts_at,created_at) VALUES (?,?,?,?,?)').run(id,c,'buyer',startsAt,NOW);
+    }
+  };
+  const response=await f.request('/conversations/'+c+'/viewings',{as:'buyer',method:'POST',data:{startsAt}});
+  assert.equal(response.status,200);
+  assert.deepEqual(response.data,{id,status:'requested'});
+  assert.equal(f.sql.prepare('SELECT count(*) AS n FROM viewings').get().n,1);
 });
