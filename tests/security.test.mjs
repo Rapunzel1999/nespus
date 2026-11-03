@@ -1070,3 +1070,31 @@ test('submission rechecks photos after a concurrent draft edit',async()=>{
   assert.equal(f.sql.prepare('SELECT status FROM listings WHERE id=?').get(listingId).status,'draft');
   assert.equal(f.sql.prepare("SELECT COUNT(*) AS n FROM audit_events WHERE action='listing_submitted'").get().n,0);
 });
+
+for (const lateResponse of ['approved', 'expired']) {
+  test('late ' + lateResponse + ' response preserves a resend with the same verification SID', async () => {
+    const f = fixture();
+    assert.equal((await startPhone(f)).status, 200);
+    let time = NOW + 1000;
+    const oldCheck = await checkPhone(f, {
+      now: time,
+      clock: () => time,
+      fetcher: async () => {
+        time = NOW + 61000;
+        // The second operation acquires a new lease. The provider can reuse
+        // the SID for a resend while the first code is still valid.
+        assert.equal((await startPhone(f, {now: time})).status, 200);
+        return lateResponse === 'approved'
+          ? Response.json(smsResponse('approved'))
+          : Response.json({code: 20404}, {status: 404});
+      },
+    });
+    assert.equal(oldCheck.status, 409);
+    assert.equal(isVerified(f), false);
+    const challenge = f.sql.prepare('SELECT provider_sid, expires_at FROM phone_challenges WHERE user_id=?').get('unverified');
+    assert.equal(challenge?.provider_sid, smsResponse().sid);
+    assert.equal(challenge.expires_at, NOW + 600000);
+    assert.equal((await checkPhone(f, {now: time + 1000})).status, 200);
+    assert.equal(isVerified(f), true);
+  });
+}
