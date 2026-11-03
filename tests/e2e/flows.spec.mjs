@@ -252,3 +252,51 @@ test('saved search summaries distinguish all saved filters on mobile',async({pag
  const folder='outputs/e2e/'+info.project.name+'/saved-search-labels';await mkdir(folder,{recursive:true});await page.screenshot({path:folder+'/distinct-searches.png',fullPage:true});const axe=await new AxeBuilder({page}).analyze();await writeFile(folder+'/axe.json',JSON.stringify(axe.violations,null,2));expect(axe.violations.filter(v=>['serious','critical'].includes(v.impact))).toEqual([]);
  await apartment.getByRole('button',{name:'Vezi rezultatele',exact:true}).press('Enter');await expect(page).toHaveURL(/type=apartment/);await expect(page).toHaveURL(/minArea=50/);await expect(page).toHaveURL(/rooms=2/);await expect(page).toHaveURL(/currency=RON/);
 });
+
+test('favorite pages preserve loaded cards after failure and expose older saves',async({page},info)=>{
+  await page.setViewportSize({width:375,height:812});
+  await login(page,'buyer');
+  for(const n of [1,2,3]){
+    expect((await page.request.put('/api/favorites/'+listingId(n),{headers})).ok()).toBeTruthy();
+  }
+  let failNext=true;
+  // Small real D1 pages exercise the boundary with three existing DEMO listings.
+  await page.route('**/api/favorites*',async route=>{
+    const url=new URL(route.request().url());
+    if(url.pathname!=='/api/favorites')return route.continue();
+    if(!url.searchParams.has('idsOnly') && url.searchParams.has('cursor') && failNext){
+      failNext=false;
+      return route.fulfill({status:503,json:{error:'Pagina următoare este temporar indisponibilă.'}});
+    }
+    url.searchParams.set('limit','2');
+    return route.continue({url:url.href});
+  });
+  await page.goto('/atelier?view=favorites');
+  const cards=page.locator('.property-card');
+  await expect(cards).toHaveCount(2);
+  const folder='outputs/e2e/'+info.project.name+'/favorite-pages';
+  await mkdir(folder,{recursive:true});
+  await page.screenshot({path:folder+'/first-page.png',fullPage:true});
+  const more=page.getByRole('button',{name:'Arată mai multe favorite'});
+  await expect(page.getByRole('group',{name:'Proprietăți selectate pentru comparație'})).toBeAttached();
+  const firstAxe=await new AxeBuilder({page}).analyze();
+  await writeFile(folder+'/axe-first.json',JSON.stringify(firstAxe.violations,null,2));
+  expect(firstAxe.violations).toEqual([]);
+  await cards.first().locator('.favorite-compare-button').press('Enter');
+  await more.press('Enter');
+  await expect(page.getByText('Pagina următoare este temporar indisponibilă.',{exact:false})).toBeVisible();
+  await expect(cards).toHaveCount(2);
+  await more.press('Enter');
+  await expect(cards).toHaveCount(3);
+  await expect(more).toHaveCount(0);
+  await expect(cards.last().locator('.card-title')).toBeFocused();
+  await expect(cards.last().locator('.favorite-toggle')).toHaveAttribute('aria-pressed','true');
+  await page.screenshot({path:folder+'/all-pages.png',fullPage:true});
+  await cards.last().locator('.favorite-compare-button').press('Enter');
+  await page.getByRole('button',{name:'Compară proprietățile ↗'}).press('Enter');
+  await expect(page.getByRole('dialog')).toBeVisible();
+  await page.keyboard.press('Escape');
+  const result=await new AxeBuilder({page}).analyze();
+  await writeFile(folder+'/axe.json',JSON.stringify(result.violations,null,2));
+  expect(result.violations).toEqual([]);
+});

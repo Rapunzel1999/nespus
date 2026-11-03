@@ -126,3 +126,5 @@ Migrările `0001`–`0004` sunt aditive: căutări salvate/costuri lunare/index 
 ## Izolarea testelor
 
 `tests/e2e/worker.mjs` este o intrare distinctă, exclusiv HTTP localhost și două marcaje explicite de test. Are D1 cu ID fictiv, nu un binding găzduit. Opt oferte și toate conturile sunt DEMO; banner vizibil. Providerul SMS este funcție locală și refuză orice URL neașteptat. Build-ul de producție este scanat și pornit cu marcajele injectate pentru a verifica ruta de login inexistentă, ignorarea cookie-ului DEMO și lipsa confirmării simulate. Nu se încarcă seed-ul în migrările de producție.
+
+Colecția de favorite poate depăși 50 de locuințe. API-ul servește cel mult 50 de rezumate per cerere, în ordinea ultimei actualizări și a ID-ului anunțului. Cursorul reține aceste două valori. Fiecare pagină verifică din nou contul și disponibilitatea anunțului. La inițializare, clientul încarcă numai ID-urile pentru marcarea butoanelor de salvare. Pagina Favorite încarcă următoarele rezumate la cerere și aplică filtrele asupra locuințelor deja încărcate.

@@ -28,7 +28,7 @@
 .comparison-chip{display:inline-flex;align-items:center;gap:12px;max-width:280px;background:#ffffff0b;border:1px solid #ffffff36;border-radius:5px;padding:8px 11px;min-height:40px;color:#edeedc;font-size:11px;text-align:left}
 .comparison-chip-name{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}.comparison-chip>span:last-child{font-size:18px;line-height:1;flex-shrink:0}
 .comparison-feedback{font-size:12px;line-height:1.8;background:#f1e5ca;color:#674c28;border-radius:5px;padding:11px 14px;margin:15px 0 0}.comparison-feedback:empty{display:none}
-.favorites-limit{font-size:11px;line-height:1.8;color:#6a775e;margin-top:18px}
+.favorites-limit{font-size:12px;line-height:1.8;color:var(--muted);margin-top:18px}
 .favorites-empty{display:grid;grid-template-columns:170px minmax(0,1fr);align-items:center;gap:48px;background:#f0eee2;border:1px solid #e1dfcd;border-radius:14px;padding:56px 60px}
 .favorites-empty-icon{display:grid;place-items:center;font:400 96px/1 Georgia,serif;color:#8a9b75;height:158px;width:158px;border:1px solid #d2dac4;border-radius:50%;background:#e7ebdd}
 .favorites-empty .eyebrow{font-size:9px;letter-spacing:1.4px;color:#647855;margin-bottom:19px}.favorites-empty h2{font:400 42px/1.09 Georgia,serif;letter-spacing:-1.3px}.favorites-empty h2 em{font-weight:400;color:#7e886d}
