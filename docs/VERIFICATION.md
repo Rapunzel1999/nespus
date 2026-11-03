@@ -1,5 +1,9 @@
 # Criterii de acceptare și evidențe
 
+## Accesibilitatea versiunii private 51
+
+Am verificat [arhiva CI a PR #57](https://github.com/Rapunzel1999/nespus/actions/runs/41709736886/artifacts/13267478954) cu SHA-256 `e6abb1e78ced250bb3b969abaa39a552662192abe94844163fc64f32d5cf61a2`. Cele 18 fișiere JSON axe conțin 54 de evaluări, 27 în Chromium și 27 în WebKit mobil, cu zero încălcări raportate. Pentru fiecare browser, 21 de evaluări acoperă șapte pagini la trei lățimi. Alte șase acoperă stări de ciornă, căutări salvate și favorite. Cifrele descriu acele pagini și stări cu date locale. Testarea cu VoiceOver pe iPhone rămâne deschisă.
+
 ## Diagnostic independent după timeout bootstrap
 
 [Raport](ETAPA-10-RUNTIME-PROBES.md): probe HTTP locale, limitate, fără corpuri tipărite; eroarea originală rămâne blocantă. 5 teste dedicate și 160 Node trecute; TypeScript/build/izolare trecute local. Probă cu eroare injectată: exit 1 păstrat chiar cu diagnostice HTTP 200. Nu reprezintă remedierea timeout-ului istoric.
