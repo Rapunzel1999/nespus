@@ -572,9 +572,9 @@ function favoriteCollection(listings){
   }
   if(!['all','sale','rent'].includes(S.favoriteFilter))S.favoriteFilter='all';
   let compareButtons=[];
-  const filters=el('div',{class:'favorite-filters','aria-label':'Tipul favoritelor'}),query=el('input',{type:'search',name:'favoriteSearch',value:S.favoriteQuery||'',maxlength:100,placeholder:'Caută după titlu sau cartier','aria-label':'Caută în favorite'});
+  const filters=el('div',{class:'favorite-filters',role:'group','aria-label':'Tipul favoritelor'}),query=el('input',{type:'search',name:'favoriteSearch',value:S.favoriteQuery||'',maxlength:100,placeholder:'Caută după titlu sau cartier','aria-label':'Caută în favorite'});
   const result=el('div',{class:'favorite-results'}),counter=el('p',{class:'favorite-result-count',role:'status','aria-live':'polite'}),feedback=el('p',{class:'comparison-feedback',role:'alert','aria-live':'polite'});
-  const trayTitle=el('p',{class:'comparison-tray-title',role:'status','aria-live':'polite'}),trayHint=el('p',{class:'comparison-tray-hint'}),chips=el('div',{class:'comparison-selection','aria-label':'Proprietăți selectate pentru comparație'});
+  const trayTitle=el('p',{class:'comparison-tray-title',role:'status','aria-live':'polite'}),trayHint=el('p',{class:'comparison-tray-hint'}),chips=el('div',{class:'comparison-selection',role:'group','aria-label':'Proprietăți selectate pentru comparație'});
   const compare=b('Compară proprietățile ↗',()=>{
     const selected=S.comparisonIds.map(id=>available.get(id)).filter(Boolean);
     if(selected.some(l=>S.favoritePending.has(l.id))){feedback.textContent='Așteaptă salvarea modificărilor din favorite.';return;}
@@ -636,12 +636,12 @@ async function favorites(options={}){
       if(more.disabled)return;
       more.disabled=true;
       feedback.textContent='Se încarcă alte favorite…';
-      const loadedBefore=records.size;
+      const previousLinks=new Set([...host.querySelectorAll('.card-title')].map(link=>link.getAttribute('href')));
       try{
         await loadPage();
         if(revision!==S.screenRevision)return;
         render();
-        const firstNew=[...host.querySelectorAll('.card-title')].at(loadedBefore);
+        const firstNew=[...host.querySelectorAll('.card-title')].find(link=>!previousLinks.has(link.getAttribute('href')));
         (firstNew||host.querySelector('input[name=favoriteSearch]'))?.focus();
       }catch(error){
         if(revision!==S.screenRevision)return;
