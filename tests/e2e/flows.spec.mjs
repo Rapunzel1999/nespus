@@ -316,3 +316,57 @@ test('favorite pages preserve loaded cards after failure and expose older saves'
   await restored.press('Enter');
   await expect(page.getByRole('dialog')).toBeVisible();
 });
+
+test('photo draft stays editable when account save and tab storage both fail',async({page},info)=>{
+  await page.setViewportSize({width:375,height:812});
+  await login(page,'unverified');await page.goto('/atelier');
+  await page.getByRole('button',{name:'Publică anunț +',exact:true}).press('Enter');
+  await page.getByRole('button',{name:'Vreau să vând →',exact:true}).press('Enter');
+  const next=()=>page.getByRole('button',{name:'Continuă →',exact:true}).press('Enter');
+  await next();await page.locator('[name=district]').selectOption('Centru');await next();
+  await page.locator('[name=area]').fill('60');await page.locator('[name=rooms]').fill('2');await next();
+  await page.locator('[name=price]').fill('120000');await next();
+  const state=page.locator('.editor-save-state');
+  await expect(state).toHaveText(/^Salvat acum \d+ secunde$/);
+  const fixture=await page.evaluate(()=>{
+    const c=document.createElement('canvas');c.width=2600;c.height=1950;
+    const ctx=c.getContext('2d');ctx.fillStyle='#435d45';ctx.fillRect(0,0,c.width,c.height);
+    ctx.fillStyle='white';ctx.font='120px sans-serif';ctx.fillText('DEMO',100,200);
+    return c.toDataURL('image/jpeg').split(',')[1];
+  });
+  const folder='outputs/e2e/'+info.project.name+'/draft-storage-full';
+  await mkdir(folder,{recursive:true});
+  await page.screenshot({path:folder+'/before-photo.png',fullPage:true});
+  await page.evaluate(()=>{
+    const original=Storage.prototype.setItem;
+    Storage.prototype.setItem=function(key,value){
+      if(key.startsWith('intre-noi-editor:'))throw new DOMException('DEMO: spațiu epuizat','QuotaExceededError');
+      return original.call(this,key,value);
+    };
+  });
+  let offline=true;
+  await page.route('**/api/editor-draft',route=>offline && route.request().method()==='PUT'
+    ? route.fulfill({status:503,json:{error:'Salvarea în cont este temporar indisponibilă.'}})
+    : route.continue());
+  await page.getByLabel('Adaugă fotografii',{exact:true}).setInputFiles({name:'DEMO.jpg',mimeType:'image/jpeg',buffer:Buffer.from(fixture,'base64')});
+  const photo=page.locator('.editor-photo img');
+  await expect(photo).toHaveCount(1);
+  await expect(state).toContainText('Salvarea în cont este temporar indisponibilă.');
+  await expect(state).toContainText('Ține fila deschisă');
+  await expect(page.locator('.editor-save-announcement')).toContainText('Ține fila deschisă');
+  expect(await photo.evaluate(async image=>{await image.decode();return [image.naturalWidth,image.naturalHeight];})).toEqual([1200,900]);
+  await page.screenshot({path:folder+'/unsaved-photo.png',fullPage:true});
+  const axe=await new AxeBuilder({page}).analyze();
+  await writeFile(folder+'/axe.json',JSON.stringify(axe.violations,null,2));
+  expect(axe.violations.filter(v=>['serious','critical'].includes(v.impact))).toEqual([]);
+  offline=false;await next();
+  await page.locator('[name=title]').fill('DEMO Ciornă recuperată după întrerupere');
+  await expect(state).toHaveText(/^Salvat acum \d+ secunde$/);
+  const stored=await (await page.request.get('/api/editor-draft')).json();
+  expect(stored.draft.title).toBe('DEMO Ciornă recuperată după întrerupere');
+  expect(stored.draft.photos).toHaveLength(1);
+  await page.reload();await page.getByRole('button',{name:'Continuă editarea',exact:true}).press('Enter');
+  await expect(page.locator('[name=title]')).toHaveValue('DEMO Ciornă recuperată după întrerupere');
+  await page.getByRole('button',{name:'← Pasul anterior'}).press('Enter');
+  await expect(page.locator('.editor-photo')).toHaveCount(1);
+});

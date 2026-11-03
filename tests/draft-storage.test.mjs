@@ -118,3 +118,28 @@ test('successful replacement starts after the pending guard clears and never hij
     else{assert.equal(h.run('S.page'),'create');assert.equal(h.run('S.draft.transaction'),'rent');assert.equal(h.run('editorBusy()'),false);}
   }
 });
+
+test('draft status distinguishes a failed tab backup from an older recoverable copy',async()=>{
+  let full=false, online=false;
+  const disk=new Map();
+  const h=frontend({fetcher:()=>online?{revision:1,savedAt:Date.now()}:Response.json({error:'Conexiune întreruptă.'},{status:503})});
+  h.context.window.sessionStorage={
+    setItem(k,v){if(full)throw Error('QuotaExceededError');disk.set(k,v);},
+    getItem:k=>disk.get(k), removeItem:k=>disk.delete(k),
+  };
+  h.run("S.editorDirty=true;S.draft={title:'Titlu inițial'};preserveDraftLocally()");
+  full=true;
+  h.run("S.draft.title='Text nou';S.photos=['data:image/jpeg;base64,DEMO'];scheduleDraftSave()");
+  await assert.rejects(h.run('flushDraftSave()'),/Conexiune întreruptă/);
+  assert.equal(JSON.parse([...disk.values()][0]).draft.title,'Titlu inițial');
+  assert.match(h.run('draftSaveLabel()'),/Ține fila deschisă/);
+  assert.doesNotMatch(h.run('draftSaveLabel()'),/păstrate în această filă/);
+  assert.equal(h.run('S.photos.length'),1);
+  full=false;
+  await assert.rejects(h.run('flushDraftSave()'));
+  assert.match(h.run('draftSaveLabel()'),/păstrate în această filă/);
+  assert.equal(JSON.parse([...disk.values()][0]).draft.title,'Text nou');
+  online=true;full=true;
+  await h.run('flushDraftSave()');
+  assert.match(h.run('draftSaveLabel()'),/^Salvat acum/);
+});
