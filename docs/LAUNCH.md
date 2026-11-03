@@ -1,5 +1,7 @@
 # Pilot Cluj-Napoca și pregătirea lansării
 
+Pentru procesul de revizuire și proba locală, vezi [Ghidul moderatorului](GHID-MODERATOR.md).
+
 ## Etape
 
 1. **Pilot tehnic privat:** cont SIWC, ciorne, persistență, interfață și teste de autorizare. Fără plăți, fără promisiunea unei piețe active.
