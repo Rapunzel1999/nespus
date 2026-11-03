@@ -3,6 +3,7 @@ import {join} from 'node:path';
 import {spawn} from 'node:child_process';
 import {once} from 'node:events';
 import assert from 'node:assert/strict';
+import {diagnoseLocalRuntime} from './isolation-diagnostics.mjs';
 let files=0;
 async function scan(path){for(const entry of await readdir(path,{withFileTypes:true})){const p=join(path,entry.name);if(entry.isDirectory())await scan(p);else if(/\.(?:js|mjs|html)$/.test(p)){files++;const source=await readFile(p,'utf8');if(/DEMO-test-role|local-d1-only|DEMO-fixture-only-not-a-credential|__test\/reset/.test(source))throw Error('Test auth/phone/seed leaked into production: '+p);}}}
 await scan('dist');if(!files)throw Error('Production build missing');console.log('Production isolation: '+files+' built files scanned; test auth, fake phone and seed absent.');
@@ -33,4 +34,8 @@ try{
   assert.equal(bootstrap.user,null);assert.equal(bootstrap.capabilities.phoneVerification,false);
   checkpoint('complete');
   console.log('Production runtime: test login 404; DEMO cookie ignored; simulated phone disabled, including with test flags.');
-}catch(error){throw new Error('Production isolation runtime failed at '+phase+' after '+Math.round(performance.now()-phaseStarted)+' ms (child exit='+child.exitCode+', signal='+child.signalCode+'): '+error.message+'\n'+diagnostic,{cause:error});}finally{if(child.exitCode===null){const closed=once(child,'exit');child.kill('SIGTERM');await closed;}}
+}catch(error){
+  const failedAfter=Math.round(performance.now()-phaseStarted);
+  if(phase==='bootstrap response')console.error('Independent local HTTP diagnostics: '+JSON.stringify(await diagnoseLocalRuntime(origin)));
+  throw new Error('Production isolation runtime failed at '+phase+' after '+failedAfter+' ms (child exit='+child.exitCode+', signal='+child.signalCode+'): '+error.message+'\n'+diagnostic,{cause:error});
+}finally{if(child.exitCode===null){const closed=once(child,'exit');child.kill('SIGTERM');await closed;}}

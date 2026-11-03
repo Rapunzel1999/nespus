@@ -1,5 +1,9 @@
 # Changelog
 
+## Diagnostic bootstrap — 2026-11-03
+
+- Verificarea izolării colectează metadata HTTP locală după timeout, păstrând eroarea originală și limitele existente. Cauza intermitenței rămâne deschisă. Vezi `docs/ETAPA-10-RUNTIME-PROBES.md`.
+
 ## Reluare din punctul de control v34 — 2026-11-03
 
 - README pornește din sursa actualizată, iar indexul include corecțiile PR #27–#40 și dovezile v34. Reperele istorice și condițiile de lansare sunt distincte. Numai documentație.
