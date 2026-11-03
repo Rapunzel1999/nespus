@@ -1178,3 +1178,29 @@ test('moderation rehearsal: reject, revise, independently approve and audit',asy
   assert.deepEqual(audit.data.events.filter(e=>e.targetId===id).map(e=>[e.action,e.actorId,e.reason]),[
     ['listing_published','mod2',approval],['listing_rejected','mod',reason]]);
 });
+
+test('report queue excludes involved moderators before the limit and preserves independent review',async()=>{
+  const f=fixture();
+  const listed=f.listing(),owned=f.listing(lid(2),'published','mod');
+  const conversation=(await f.contact(listed,'mod')).data.id;
+  const add=f.sql.prepare('INSERT INTO reports(id,reporter_id,listing_id,conversation_id,reason,details,created_at) VALUES (?,?,?,?,?,?,?)');
+  for(let i=1;i<=50;i++){
+    const role=i%3;
+    add.run(lid(100+i),role===0?'mod':'buyer',role===1?owned:listed,role===2?conversation:null,'other','Context privat DEMO '+i,NOW+i);
+  }
+  const independent=lid(200);
+  add.run(independent,'buyer',listed,null,'other','Context pentru analiză independentă',NOW+51);
+  const queue=await f.request('/moderation',{as:'mod'});
+  assert.equal(queue.status,200);
+  assert.deepEqual(queue.data.reports.map(row=>row.id),[independent]);
+  assert.equal(JSON.stringify(queue.data).includes('Context privat DEMO'),false);
+  const second=await f.request('/moderation',{as:'mod2'});
+  assert.equal(second.status,200);
+  assert.equal(second.data.reports.length,50);
+  assert.equal(second.data.reports[0].details,'Context privat DEMO 1');
+  assert.ok((await f.request('/my-cases',{as:'mod'})).data.reports.some(row=>row.id===lid(103)));
+  const path='/moderation/reports/'+lid(102);
+  assert.equal((await f.request(path+'/evidence',{as:'mod'})).status,403);
+  assert.equal((await f.request(path,{as:'mod',method:'POST',data:{decision:'resolved',reason:'Analiză locală de moderator.'}})).status,403);
+  assert.equal((await f.request(path+'/evidence',{as:'mod2'})).status,200);
+});
