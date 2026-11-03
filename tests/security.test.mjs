@@ -1146,3 +1146,35 @@ test('favorites beyond the first 50 stay reachable only by their owner',async()=
   assert.deepEqual((await page(second+'&idsOnly=1')).ids,[lid(2),lid(1)]);
   assert.equal((await f.request('/favorites?cursor=bad',{as:'buyer'})).status,400);
 });
+test('moderation rehearsal: reject, revise, independently approve and audit',async()=>{
+  const f=fixture(), created=await f.request('/listings',{as:'owner',method:'POST',data:draftInput});
+  assert.equal(created.status,201);
+  const id=created.data.listing.id,path='/listings/'+id;
+  const submit=()=>f.request(path+'/submit',{as:'owner',method:'POST'});
+  const decide=(as,decision,reason)=>f.request('/moderation/listings/'+id,{as,method:'POST',data:{decision,reason}});
+  const reason='DEMO: descrie separat costurile lunare.';
+  const approval='DEMO: costurile lunare sunt acum explicate.';
+  const hidden=async()=>{
+    assert.equal((await f.request(path,{as:'buyer'})).status,404);
+    assert.equal((await f.request(path+'/photos/0',{as:'buyer'})).status,404);
+    assert.deepEqual((await f.request('/listings',{as:'buyer'})).data.listings,[]);
+  };
+  assert.equal((await submit()).status,200);await hidden();
+  assert.equal((await decide('buyer','published',approval)).status,403);
+  assert.equal((await decide('mod','rejected',reason)).status,200);await hidden();
+  assert.equal((await f.request('/mine/'+id,{as:'owner'})).data.listing.moderationReason,reason);
+  assert.equal((await f.request('/mine/'+id,{as:'buyer'})).status,404);
+  assert.equal((await decide('mod','rejected',reason)).status,404);
+  const edit=await f.request(path,{as:'owner',method:'PATCH',data:{...draftInput,description:draftInput.description+' Costurile lunare sunt declarate separat.'}});
+  assert.equal(edit.status,200);assert.equal(edit.data.listing.status,'draft');await hidden();
+  assert.equal((await submit()).status,200);await hidden();
+  assert.equal((await decide('mod2','published',approval)).status,200);
+  const detail=await f.request(path,{as:'buyer'});
+  assert.equal(detail.status,200);assert.ok(detail.data.listing.description.includes('declarate separat'));
+  assert.ok(!JSON.stringify(detail.data).includes(reason));
+  assert.equal((await f.request(path+'/photos/0',{as:'buyer'})).status,200);
+  assert.equal((await f.request('/moderation/audit',{as:'owner'})).status,403);
+  const audit=await f.request('/moderation/audit',{as:'mod2'});
+  assert.deepEqual(audit.data.events.filter(e=>e.targetId===id).map(e=>[e.action,e.actorId,e.reason]),[
+    ['listing_published','mod2',approval],['listing_rejected','mod',reason]]);
+});
