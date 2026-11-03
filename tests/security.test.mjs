@@ -1340,3 +1340,23 @@ test('recovering an accepted contact still requires permission to contact the ow
   assert.equal(blocked.data.id,undefined);
   assert.equal(f.sql.prepare("SELECT count(*) AS n FROM declarations WHERE kind='contact'").get().n,1);
 });
+
+test('repeated blocking across listings records a single event per direction and revokes shared phones',async()=>{
+  const f=fixture(),first=await f.accepted();
+  const secondListing=f.listing(lid(2));
+  const second=(await f.contact(secondListing)).data.id;
+  await f.request('/conversations/'+second+'/decision',{as:'owner',method:'POST',data:{decision:'accepted'}});
+  for(const conversation of [first,second]){
+    assert.equal((await f.request('/conversations/'+conversation+'/share-phone',{as:'owner',method:'POST'})).status,200);
+    assert.ok((await f.request('/conversations/'+conversation,{as:'buyer'})).data.phone);
+  }
+  const block=(conversation,as,now)=>f.request('/conversations/'+conversation+'/block',{as,method:'POST',now});
+  for(const [i,conversation] of [first,second,first].entries()){
+    assert.deepEqual((await block(conversation,'buyer',NOW+i)).data,{blocked:true});
+  }
+  assert.equal(f.sql.prepare("SELECT count(*) AS n FROM contact_requests WHERE phone_shared=1").get().n,0);
+  assert.deepEqual((await f.request('/conversations/'+second,{as:'buyer'})).data.phone,null);
+  assert.deepEqual((await block(second,'owner',NOW+4)).data,{blocked:true});
+  const events=f.sql.prepare("SELECT actor_id,target_id,created_at FROM audit_events WHERE action='user_blocked' ORDER BY created_at").all();
+  assert.deepEqual(events.map(row=>[row.actor_id,row.target_id,row.created_at]),[['buyer','owner',NOW],['owner','buyer',NOW+4]]);
+});
