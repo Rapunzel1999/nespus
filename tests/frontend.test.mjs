@@ -263,6 +263,21 @@ const moreButton=doc.querySelectorAll('button').find(button=>button.textContent=
 await moreButton.listeners.click();
 assert.equal(doc.querySelectorAll('.property-card').length,2);
 assert.doesNotMatch(roots.get('#app').textContent,/Arată mai multe favorite/);
+// A failed second page on return must not hide the first or discard the selection.
+run('S.comparisonIds='+JSON.stringify([favoriteListings[0].id,favoriteListings[1].id]));
+const beforeRestoreFetch=ctx.fetch;
+ctx.fetch=async(url,options)=>url==='/api/favorites?cursor=next'
+  ? {ok:false,json:async()=>({error:'Pagina lipsește temporar.'})}
+  : beforeRestoreFetch(url,options);
+await run('favorites()');
+assert.equal(doc.querySelectorAll('.property-card').length,1);
+assert.equal(run('S.comparisonIds.length'),2);
+ctx.fetch=beforeRestoreFetch;
+const restoreButton=doc.querySelectorAll('button').find(n=>n.textContent==='Reîncearcă încărcarea selecției');
+assert.ok(restoreButton);
+await restoreButton.listeners.click();
+assert.equal(doc.querySelectorAll('.property-card').length,2);
+assert.equal(doc.querySelector('.comparison-open').disabled,false);
 run('S.comparisonIds=[]');run('comparisonDialog('+JSON.stringify([favoriteListings[0]])+')');assert.equal(roots.get('#modal').open,false);
 const saleComparison=[favoriteListings[4],{...favoriteListings[4],id:'f'.repeat(32),price:200000}];run('comparisonDialog('+JSON.stringify(saleComparison)+')');assert.match(roots.get('#modal-content').textContent,/Preț aproximativ \/ m²/);assert.doesNotMatch(roots.get('#modal-content').textContent,/Chirie lunară|Garanție|Monede diferite/);roots.get('#modal').close();
 
