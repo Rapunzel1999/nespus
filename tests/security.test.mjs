@@ -1296,3 +1296,47 @@ test('a competing insert for the same viewing time cannot duplicate the appointm
   assert.deepEqual(response.data,{id,status:'requested'});
   assert.equal(f.sql.prepare('SELECT count(*) AS n FROM viewings').get().n,1);
 });
+
+test('contact resubmission recovers the same open conversation and cannot reopen a refusal',async()=>{
+  const f=fixture();f.listing();
+  const first=await f.contact();
+  assert.equal(first.status,201);
+  for(let i=0;i<4;i++){
+    const repeated=await f.contact();
+    assert.equal(repeated.status,200);
+    assert.deepEqual(repeated.data,first.data);
+  }
+  assert.equal((await f.contact(lid(1),'buyer',{purpose:'O altă solicitare cu alt scop declarat.'})).status,409);
+  assert.equal(f.sql.prepare("SELECT count(*) AS n FROM audit_events WHERE action='contact_requested'").get().n,1);
+  assert.equal(f.sql.prepare("SELECT count(*) AS n FROM declarations WHERE kind='contact'").get().n,1);
+  assert.equal((await f.request('/conversations/'+first.data.id+'/decision',{as:'owner',method:'POST',data:{decision:'declined'}})).status,200);
+  assert.equal((await f.contact()).status,409);
+  assert.equal(f.sql.prepare('SELECT count(*) AS n FROM contact_requests').get().n,1);
+});
+
+test('a concurrent identical contact returns the winning conversation without an extra audit',async()=>{
+  const f=fixture();f.listing();const winner=lid(990);
+  f.hooks.beforeRun=query=>{
+    if(query.startsWith('INSERT INTO contact_requests ')){
+      f.hooks.beforeRun=null;
+      f.sql.prepare('INSERT INTO contact_requests(id,listing_id,requester_id,owner_id,purpose,created_at,updated_at) VALUES (?,?,?,?,?,?,?)').run(winner,lid(1),'buyer','owner','Doresc să cumpăr această locuință pentru familia mea.',NOW,NOW);
+    }
+  };
+  const repeated=await f.contact();
+  assert.equal(repeated.status,200);
+  assert.deepEqual(repeated.data,{id:winner,status:'requested'});
+  assert.equal(f.sql.prepare("SELECT count(*) AS n FROM audit_events WHERE action='contact_requested'").get().n,0);
+  assert.equal(f.sql.prepare("SELECT count(*) AS n FROM declarations WHERE kind='contact'").get().n,0);
+});
+
+test('recovering an accepted contact still requires permission to contact the owner',async()=>{
+  const f=fixture(),id=await f.accepted();
+  const replay=await f.contact();
+  assert.equal(replay.status,200);
+  assert.deepEqual(replay.data,{id,status:'accepted'});
+  await f.request('/conversations/'+id+'/block',{as:'owner',method:'POST',data:{}});
+  const blocked=await f.contact();
+  assert.equal(blocked.status,403);
+  assert.equal(blocked.data.id,undefined);
+  assert.equal(f.sql.prepare("SELECT count(*) AS n FROM declarations WHERE kind='contact'").get().n,1);
+});
