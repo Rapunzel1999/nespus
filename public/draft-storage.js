@@ -3,7 +3,13 @@
 function draftStorageKey(){return 'intre-noi-editor:'+S.boot?.user?.id;}
 function preserveDraftLocally(){
   if(!S.boot?.user)return;
-  try{window.sessionStorage?.setItem(draftStorageKey(),JSON.stringify({draft:{...S.draft,photos:S.photos},step:S.step,revision:S.draftVersion||0,confirmedAt:draftMatchesConfirmed()?S.draftSavedAt:0,modifiedAt:Date.now()}));}catch{/* RAM remains intact if tab storage is full/unavailable. */}
+  S.tabBackupCurrent=false;
+  try{
+    const storage=window.sessionStorage;
+    if(!storage)return;
+    storage.setItem(draftStorageKey(),JSON.stringify({draft:{...S.draft,photos:S.photos},step:S.step,revision:S.draftVersion||0,confirmedAt:draftMatchesConfirmed()?S.draftSavedAt:0,modifiedAt:Date.now()}));
+    S.tabBackupCurrent=true;
+  }catch{/* Keep editing in memory if storage is full or unavailable. */}
 }
 function draftMatchesConfirmed(){
   const saved=S.draftConfirmed;if(!saved||saved.step!==S.step||saved.draft.photos.length!==S.photos.length)return false;
@@ -11,9 +17,11 @@ function draftMatchesConfirmed(){
   return S.photos.every((photo,index)=>photo===saved.draft.photos[index])&&Object.keys({...saved.draft,...S.draft}).every(key=>key==='photos'||saved.draft[key]===S.draft[key]);
 }
 function draftSaveLabel(){
-  if(S.autosaveError)return S.autosaveError+' Modificările sunt păstrate în această filă.';
+  const keepOpen='Ține fila deschisă până când apare „Salvat acum”.';
+  if(S.autosaveError)return S.autosaveError+' '+(S.tabBackupCurrent?'Modificările sunt păstrate în această filă.':keepOpen);
   if(S.autosaveBusy)return 'Salvăm automat ciorna în cont…';
   if(S.draftSavedAt&&draftMatchesConfirmed())return 'Salvat acum '+Math.max(0,Math.floor((Date.now()-S.draftSavedAt)/1000))+' secunde';
+  if(S.editorDirty && S.tabBackupCurrent===false)return 'Modificări nesalvate. '+keepOpen;
   if(S.editorDirty)return 'Modificări nesalvate încă · salvarea automată urmează';
   return 'Ciornă în lucru · salvare automată după completare';
 }
@@ -41,7 +49,7 @@ function flushDraftSave(){
 }
 function resetDraftBuffer({preserveUntilConfirmed=false}={}){
   clearTimeout(S.autosaveTimer);
-  const clearLocal=()=>{try{window.sessionStorage?.removeItem(draftStorageKey());window.sessionStorage?.removeItem(draftStorageKey()+':conflict');}catch{}S.conflictingDraft=null;S.draftSavedAt=0;S.draftSavedSignature='';S.draftConfirmed=null;S.autosaveError='';};
+  const clearLocal=()=>{S.tabBackupCurrent=undefined;try{window.sessionStorage?.removeItem(draftStorageKey());window.sessionStorage?.removeItem(draftStorageKey()+':conflict');}catch{}S.conflictingDraft=null;S.draftSavedAt=0;S.draftSavedSignature='';S.draftConfirmed=null;S.autosaveError='';};
   if(!preserveUntilConfirmed)clearLocal();
   const task=(S.draftQueue||Promise.resolve()).then(async()=>{
     if(preserveUntilConfirmed&&!S.draftHasContent&&S.autosaveError)throw Error('Nu am putut verifica ciorna din cont. Reîncarcă înainte să renunți; copia ta rămâne aici.');
@@ -73,4 +81,4 @@ function recoverConflictingDraft(){
   openModal(el('div',{},el('h2',{},'Copia păstrată în această filă'),el('p',{},copy.draft?.title||'Ciornă fără titlu'),el('p',{},'Versiunea din cont rămâne intactă până alegi să continui cu această copie. O modificare mai nouă din altă filă va fi refuzată, fără suprascriere.'),b('Continuă cu copia locală',()=>{S.draft=copy.draft;S.photos=[...(copy.draft.photos||[])];S.step=Math.max(0,Math.min(7,Number(copy.step)||0));if(S.draft.declarationVersion!==S.boot.declarations.version)S.draft.ownerDeclaration=false;S.editorDirty=true;S.draftSavedSignature='';S.autosaveError='';S.conflictingDraft=null;dialog.close();resumeEditor();}),b('Păstrează versiunea din cont',()=>dialog.close(),'button secondary')));
 }
 
-function forgetLocalDraftOnSignout(){clearTimeout(S.autosaveTimer);S.draftStorageGeneration=(S.draftStorageGeneration||0)+1;try{window.sessionStorage?.removeItem(draftStorageKey());window.sessionStorage?.removeItem(draftStorageKey()+':conflict');}catch{}}
+function forgetLocalDraftOnSignout(){S.tabBackupCurrent=undefined;clearTimeout(S.autosaveTimer);S.draftStorageGeneration=(S.draftStorageGeneration||0)+1;try{window.sessionStorage?.removeItem(draftStorageKey());window.sessionStorage?.removeItem(draftStorageKey()+':conflict');}catch{}}
