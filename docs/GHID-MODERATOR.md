@@ -4,7 +4,7 @@ Ghid intern pentru pilotul privat din Cluj-Napoca. Aprobarea este o decizie edit
 
 ## Prima revizuire
 
-1. Intră în **Moderare → Anunțuri în așteptare**. Dacă anunțul îți aparține, lasă-l unui alt moderator. Dacă nu există un decident independent disponibil, anunțul rămâne în așteptare.
+1. Intră în **Moderare → Anunțuri în așteptare**. Lista arată până la zece anunțuri ale altor proprietari, cele mai vechi mai întâi. Îți urmărești propriile anunțuri în cont. Acestea apar la moderare pentru un coleg. Dacă nu există un decident independent disponibil, anunțul rămâne în așteptare.
 2. Verifică dacă locuința este în municipiul Cluj-Napoca și autorul publică în nume propriu ca proprietar sau coproprietar. Citește descrierea și privește fotografiile. Dacă apar indicii de intermediere, verifică contextul înainte să decizi. Un cuvânt-cheie sau o fotografie asemănătoare nu justifică singure o respingere.
 3. Alege **Aprobă** sau **Respinge** și scrie motivul concret. Pentru o corecție, numește câmpul și ce trebuie schimbat. De exemplu, pentru o chirie cu costuri neclare: „Precizează ce costuri lunare sunt incluse în chirie și ce se plătește separat.” Evită datele de contact, adresa exactă și afirmațiile despre identitatea autorului în motiv.
 4. După confirmare, deschide **Jurnalul deciziilor**. Verifică anunțul, acțiunea și motivul. Dacă răspunsul s-a pierdut, verifică jurnalul și coada înainte de altă decizie. Dacă primești mesajul că starea s-a schimbat, reîncarcă lista și citește starea actuală.
