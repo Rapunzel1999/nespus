@@ -113,7 +113,7 @@ La 1 noiembrie 2026, 20:53:57 Europe/Bucharest, `save_version_and_deploy_private
 - iPhone fizic și Android: SIWC, tastatură virtuală, safe-area, upload foto, galerie, editor, compozitor; VoiceOver și navigare asistată. WebKit emulat nu le substituie.
 - Două conturi SIWC găzduite, cu acces privat explicit și telefoane reale; un cont terț și moderatori independenți pentru matricea completă de permisiuni.
 - Crearea/configurarea Twilio numai după autorizare, buget și numere aprobate; livrare și confirmare SMS reale, expirare, repetări și refuzul publicării/contactului fără verificare. Contul Twilio nu există încă.
-- Importul ICS în Apple Calendar, Google Calendar și Outlook, inclusiv ora ambiguă de toamnă. Captura descărcării și parserul nu dovedesc importul în aceste produse.
+- Importul ICS în Apple Calendar, Google Calendar și Outlook, inclusiv ora ambiguă de toamnă. Captura descărcării și parserul nu dovedesc importul în aceste produse. [Fișiere DEMO și procedură de verificare](IMPORT-CALENDAR.md).
 - Variantele foto 400/800/1600, WebP, srcset și migrarea reversibilă, după aprobarea arhitecturii/stocării. Niciun serviciu plătit activat; pragul de 100 KB nu este certificat cu imagini DEMO uniforme.
 - Revizuire juridică a declarațiilor/regulilor/confidențialității, operator/retenție/ștergere, al doilea moderator, backup/restaurare, buget și proceduri de operare.
 - Verificare vizuală autentificată a găzduirii: browserul a ajuns la poarta SIWC, apoi la formularul OpenAI fără sesiune; fluxurile autentificate nu au fost executate. Livrarea privată și accesul sunt confirmate prin Sites, nu prin presupunerea unui login reușit.
