@@ -1098,3 +1098,33 @@ for (const lateResponse of ['approved', 'expired']) {
     assert.equal(isVerified(f), true);
   });
 }
+
+test('closing a listing before the favorite write refuses the save', async () => {
+  const f = fixture();
+  const id = f.listing();
+  f.hooks.beforeRun = async query => {
+    if (!query.startsWith('INSERT INTO favorites')) return;
+    f.hooks.beforeRun = null;
+    assert.equal((await f.request('/listings/'+id+'/close', {
+      as:'owner', method:'POST', data:{status:'sold'},
+    })).status, 200);
+  };
+  const saved = await f.request('/favorites/'+id, {as:'buyer',method:'PUT'});
+  assert.equal(saved.status, 404);
+  assert.equal(f.sql.prepare('SELECT count(*) n FROM favorites').get().n, 0);
+  assert.deepEqual((await f.request('/favorites',{as:'buyer'})).data.listings, []);
+});
+
+test('repeat favorite is idempotent and a closed listing can still be removed', async () => {
+  const f = fixture();
+  const id = f.listing();
+  const save = () => f.request('/favorites/'+id, {as:'buyer',method:'PUT'});
+  for (let i=0;i<2;i++) assert.deepEqual((await save()).data,{saved:true});
+  assert.equal(f.sql.prepare('SELECT count(*) n FROM favorites').get().n,1);
+  assert.equal((await f.request('/listings/'+id+'/close',{as:'owner',method:'POST',data:{status:'sold'}})).status,200);
+  assert.deepEqual((await f.request('/favorites',{as:'buyer'})).data.listings,[]);
+  assert.equal((await f.request('/listings/'+id,{as:'buyer'})).status,404);
+  assert.equal((await save()).status,404);
+  assert.deepEqual((await f.request('/favorites/'+id,{as:'buyer',method:'DELETE'})).data,{saved:false});
+  assert.equal(f.sql.prepare('SELECT count(*) n FROM favorites').get().n,0);
+});
