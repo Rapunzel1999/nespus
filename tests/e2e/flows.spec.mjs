@@ -206,6 +206,24 @@ test('saved search seen failure preserves usable results',async({page},info)=>{
   let seenRequests=0;await page.route('**/api/saved-searches/*/seen',async route=>{seenRequests++;await route.fulfill({status:503,contentType:'application/json',body:JSON.stringify({error:'DEMO: marcaj indisponibil.'})});});
   await page.goto('/atelier?view=account');await page.getByRole('button',{name:'Vezi rezultatele',exact:true}).press('Enter');
   await expect(page.locator('.saved-search-sync-warning')).toContainText('Nu am putut actualiza numărul');await expect(page.locator('.property-card')).toHaveCount(2);await expect(page.locator('.search-error')).toHaveCount(0);expect(seenRequests).toBe(1);
+  // These local DEMO cards both have a photo. Exercise the lazy image as a
+  // visitor would, then return to the original position for the full-page proof.
+  const photos = page.locator('.property-card .card-photo-link img');
+  await expect(photos).toHaveCount(2);
+  const initialScroll = await page.evaluate(() => window.scrollY);
+  for (const photo of await photos.all()) {
+    await photo.scrollIntoViewIfNeeded();
+    const width = await photo.evaluate(async image => {
+      await image.decode();
+      return image.naturalWidth;
+    });
+    expect(width).toBeGreaterThan(0);
+  }
+  await page.evaluate(async y => {
+    window.scrollTo({top: y, behavior: 'instant'});
+    await new Promise(requestAnimationFrame);
+    await new Promise(requestAnimationFrame);
+  }, initialScroll);
   const folder='outputs/e2e/'+info.project.name+'/saved-search-failure';await mkdir(folder,{recursive:true});await page.screenshot({path:folder+'/results-preserved.png',fullPage:true});
   const axe=await new AxeBuilder({page}).analyze();await writeFile(folder+'/axe.json',JSON.stringify(axe.violations,null,2));expect(axe.violations.filter(v=>['serious','critical'].includes(v.impact))).toEqual([]);
   await page.locator('.card-photo-link').first().press('Enter');await expect(page.locator('h1')).toContainText('DEMO');
