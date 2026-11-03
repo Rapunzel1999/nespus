@@ -320,7 +320,9 @@ test('favorite pages preserve loaded cards after failure and expose older saves'
 test('photo draft stays editable when account save and tab storage both fail',async({page},info)=>{
   await page.setViewportSize({width:375,height:812});
   await login(page,'unverified');await page.goto('/atelier');
-  await page.getByRole('button',{name:'Publică anunț +',exact:true}).press('Enter');
+  const publish=page.getByRole('button',{name:'Publică anunț +',exact:true});
+  await expect(publish).toBeEnabled();
+  await publish.press('Enter');
   await page.getByRole('button',{name:'Vreau să vând →',exact:true}).press('Enter');
   const next=()=>page.getByRole('button',{name:'Continuă →',exact:true}).press('Enter');
   await next();await page.locator('[name=district]').selectOption('Centru');await next();
