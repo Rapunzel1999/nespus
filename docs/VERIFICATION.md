@@ -1,5 +1,9 @@
 # Criterii de acceptare și evidențe
 
+## Diagnostic independent după timeout bootstrap
+
+[Raport](ETAPA-10-RUNTIME-PROBES.md): probe HTTP locale, limitate, fără corpuri tipărite; eroarea originală rămâne blocantă. 5 teste dedicate și 160 Node trecute; TypeScript/build/izolare trecute local. Probă cu eroare injectată: exit 1 păstrat chiar cu diagnostice HTTP 200. Nu reprezintă remedierea timeout-ului istoric.
+
 ## Punct de control v34 — 3 noiembrie 2026
 
 [Index de reluare și lanț PR #27–#40](ETAPA-10-LIVRABILE.md#reluare-după-versiunea-34). CI 41518604850 confirmă sursa PR #40: 155 Node, 37 Playwright trecute / 1 omis, zero încălcări axe în 46 evaluări; TypeScript/build/izolare trecute. Suplimentul de documentare v34 corectează comanda de clonare și indexul; rezultatele noii ramuri sunt consemnate în propriul PR, fără a reutiliza cifrele ca teste noi. Nu există modificare UI, deci capturile înainte/după produs nu se aplică acestui supliment.
