@@ -1,7 +1,8 @@
-import {readdir,readFile} from 'node:fs/promises';
-import {join} from 'node:path';
-import {spawn} from 'node:child_process';
-import {once} from 'node:events';
+import './sites-env.mjs';
+import {createRequire} from 'node:module';
+import {unstable_getMiniflareWorkerOptions} from 'wrangler';
+import {glob,readdir,readFile} from 'node:fs/promises';
+import {dirname,join} from 'node:path';
 import {get} from 'node:http';
 import {json as readJson} from 'node:stream/consumers';
 import assert from 'node:assert/strict';
@@ -11,19 +12,36 @@ async function scan(path){for(const entry of await readdir(path,{withFileTypes:t
 await scan('dist');if(!files)throw Error('Production build missing');console.log('Production isolation: '+files+' built files scanned; test auth, fake phone and seed absent.');
 // Even if test flags are injected accidentally, the production entry point must
 // not recognize test sessions or expose a simulated phone provider.
-const origin='http://127.0.0.1:4181';
-const child=spawn(process.execPath,['--import','./scripts/sites-env.mjs','./node_modules/wrangler/bin/wrangler.js','dev','--config','dist/server/wrangler.json','--local','--persist-to','.wrangler/production-isolation','--ip','127.0.0.1','--port','4181','--inspector-port','0','--var','INTRE_NOI_TEST_MODE:local-d1-only','--var','INTRE_NOI_BUILD:test'],{stdio:['ignore','pipe','pipe']});
-let diagnostic='';for(const stream of [child.stdout,child.stderr])stream.on('data',chunk=>{diagnostic=(diagnostic+chunk).slice(-4000);});
+// Use the runtime paired with the installed Wrangler config parser.
+const {Miniflare} = createRequire(import.meta.resolve('wrangler'))('miniflare');
+const {workerOptions, main, externalWorkers} =
+  unstable_getMiniflareWorkerOptions('dist/server/wrangler.json');
+assert.equal(externalWorkers.length, 0, 'Review additional workers before running the isolation check');
+const modulesRoot = dirname(main);
+const modules = [{type: 'ESModule', path: main}];
+for await (const file of glob('**/*.{js,mjs}', {cwd: modulesRoot})) {
+  const path = join(modulesRoot, file);
+  if (path !== main) modules.push({type: 'ESModule', path});
+}
+const runtime = new Miniflare({
+  ...workerOptions, modulesRoot, modules, host: '127.0.0.1', port: 0,
+  bindings: {...workerOptions.bindings, INTRE_NOI_TEST_MODE: 'local-d1-only', INTRE_NOI_BUILD: 'test'},
+});
+let origin, startupTimer;
 let phase='startup',phaseStarted=performance.now();
 const checkpoint=next=>{console.log('Production runtime phase: '+phase+' completed in '+Math.round(performance.now()-phaseStarted)+' ms');phase=next;phaseStarted=performance.now();};
 try{
-  let ready=false;
-  for(let n=0;n<100;n++){
-    if(child.exitCode!==null)throw Error('Production test server exited: '+diagnostic);
-    try{const response=await fetch(origin+'/api/health',{signal:AbortSignal.timeout(1000),headers:{connection:'close'}});ready=response.ok;await response.arrayBuffer();}catch{}
-    if(ready)break;await new Promise(resolve=>setTimeout(resolve,250));
-  }
-  if(!ready)throw Error('Production test server unavailable: '+diagnostic);
+  const url = await Promise.race([
+    runtime.ready,
+    new Promise((_, reject) => {
+      startupTimer = setTimeout(() => reject(Error('Local workerd startup timed out')), 25000);
+    }),
+  ]);
+  clearTimeout(startupTimer);
+  origin = url.origin;
+  const health = await fetch(origin + '/api/health', {signal: AbortSignal.timeout(1000)});
+  assert.equal(health.status, 200);
+  await health.arrayBuffer();
   checkpoint('test-login response');
   console.log('Production runtime: checking disabled test login route.');
   const login=await fetch(origin+'/__test/login',{signal:AbortSignal.timeout(15000),method:'POST',headers:{origin,connection:'close','Content-Type':'application/json'},body:JSON.stringify({role:'moderator'})});checkpoint('test-login status');assert.equal(login.status,404);checkpoint('test-login body');await login.arrayBuffer();
@@ -47,5 +65,8 @@ try{
 }catch(error){
   const failedAfter=Math.round(performance.now()-phaseStarted);
   if(phase==='bootstrap response')console.error('Independent local HTTP diagnostics: '+JSON.stringify(await diagnoseLocalRuntime(origin)));
-  throw new Error('Production isolation runtime failed at '+phase+' after '+failedAfter+' ms (child exit='+child.exitCode+', signal='+child.signalCode+'): '+error.message+'\n'+diagnostic,{cause:error});
-}finally{if(child.exitCode===null){const closed=once(child,'exit');child.kill('SIGTERM');await closed;}}
+  throw new Error('Production isolation runtime failed at '+phase+' after '+failedAfter+' ms: '+error.message,{cause:error});
+} finally {
+  clearTimeout(startupTimer);
+  await runtime.dispose();
+}
