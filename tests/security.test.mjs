@@ -1128,3 +1128,21 @@ test('repeat favorite is idempotent and a closed listing can still be removed', 
   assert.deepEqual((await f.request('/favorites/'+id,{as:'buyer',method:'DELETE'})).data,{saved:false});
   assert.equal(f.sql.prepare('SELECT count(*) n FROM favorites').get().n,0);
 });
+
+test('favorites beyond the first 50 stay reachable only by their owner',async()=>{
+  const f=fixture();
+  for(let i=1;i<=52;i++){
+    const id=f.listing(lid(i));
+    assert.equal((await f.request('/favorites/'+id,{as:'buyer',method:'PUT'})).status,200);
+  }
+  const page=async(query='',as='buyer')=>(await f.request('/favorites'+query,{as})).data;
+  const first=await page();
+  assert.equal(first.listings.length,50);
+  assert.ok(first.nextCursor);
+  const second='?cursor='+encodeURIComponent(first.nextCursor);
+  assert.deepEqual((await page(second)).listings.map(l=>l.id),[lid(2),lid(1)]);
+  assert.equal((await page(second)).nextCursor,null);
+  assert.deepEqual((await page(second,'other')).listings,[]);
+  assert.deepEqual((await page(second+'&idsOnly=1')).ids,[lid(2),lid(1)]);
+  assert.equal((await f.request('/favorites?cursor=bad',{as:'buyer'})).status,400);
+});

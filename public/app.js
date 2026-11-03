@@ -563,7 +563,7 @@ function comparisonDialog(listings){
     el('tbody',{},...rows.map(([name,value])=>el('tr',{},el('th',{scope:'row'},name),...listings.map(l=>el('td',{},value(l))))),el('tr',{},el('th',{scope:'row'},'Mai multe detalii'),...listings.map(l=>el('td',{},link(l))))));
   openModal(el('section',{class:'comparison-content'},eye('Alege ce contează pentru tine'),el('h2',{class:'comparison-heading'},'Una lângă alta.'),el('p',{class:'comparison-intro'},'Compară informațiile declarate. Disponibilitatea și condițiile se pot schimba; verifică anunțul înainte de contactare.'),mixedCurrencies?el('div',{class:'comparison-currency-note',role:'note'},'Monede diferite: sumele rămân în EUR sau RON. Nu facem conversii și nu ordonăm proprietățile după preț.'):null,el('div',{class:'comparison-scroll',tabindex:'0',role:'region','aria-label':'Tabel comparativ. Derulează orizontal pentru toate proprietățile.'},table),el('p',{class:'comparison-footnote'},'Costurile nespecificate nu înseamnă costuri zero. Confirmarea telefonului nu dovedește identitatea sau dreptul de proprietate.')),{className:'comparison-dialog',label:'Compară proprietățile salvate'});
 }
-function favoriteCollection(listings,limit=50){
+function favoriteCollection(listings){
   reconcileComparison(listings);
   const section=el('section',{class:'favorite-collection','aria-label':'Colecția de favorite'}),available=new Map(listings.map(l=>[l.id,l]));
   if(!listings.length){
@@ -609,7 +609,6 @@ function favoriteCollection(listings,limit=50){
   query.addEventListener('input',()=>{S.favoriteQuery=query.value;paint();});
   const tray=el('aside',{class:'comparison-tray','aria-label':'Selecția pentru comparație'},el('div',{class:'comparison-tray-main'},el('div',{},trayTitle,trayHint),el('div',{class:'comparison-tray-actions'},compare,clear)),feedback,chips);
   section.append(el('div',{class:'favorite-tools'},filters,query),counter,el('p',{class:'favorites-availability-note'},'Apar doar favoritele care îndeplinesc condițiile de publicare la încărcare. Selecția de comparație rămâne în această filă și poate include anunțuri ascunse de filtre.'),result,tray);
-  if(listings.length>=limit)section.append(el('p',{class:'favorites-limit'},'Lista încarcă cel mult '+limit+' de favorite disponibile. Filtrele și numărătorile se aplică numai acestei liste.'));
   paint();return section;
 }
 async function favorites(options={}){
@@ -617,9 +616,52 @@ async function favorites(options={}){
   const revision=beginScreen('favorites',options),host=el('div',{class:'favorites-host','aria-busy':'true'},loadingResults());
   const main=el('main',{class:'page favorites-page'},el('div',{class:'favorites-heading'},el('div',{},eye('Spațiul tău de explorare'),el('h1',{},'Locuri pe care',el('br'),el('em',{},'vrei să le revezi.')),el('p',{},'Păstrează ce te atrage. Compară ce contează. Alege când ești pregătit.')),b('Continuă căutarea ↗',()=>go('browse'),'button secondary')),host);
   shell(main);
+  const records = new Map();
+  let cursor = null;
+  async function loadPage(){
+    const path = '/api/favorites'+(cursor ? '?cursor='+encodeURIComponent(cursor) : '');
+    const page = await api(path);
+    if(revision!==S.screenRevision)return;
+    for(const listing of page.listings){
+      records.set(listing.id,listing);
+      S.favorites.add(listing.id);
+    }
+    cursor=page.nextCursor;
+  }
+  function render(){
+    host.replaceChildren(favoriteCollection([...records.values()]));
+    if(!cursor)return;
+    const feedback=el('p',{role:'status','aria-live':'polite'});
+    const more=b('Arată mai multe favorite',async()=>{
+      if(more.disabled)return;
+      more.disabled=true;
+      feedback.textContent='Se încarcă alte favorite…';
+      const loadedBefore=records.size;
+      try{
+        await loadPage();
+        if(revision!==S.screenRevision)return;
+        render();
+        const firstNew=[...host.querySelectorAll('.card-title')].at(loadedBefore);
+        (firstNew||host.querySelector('input[name=favoriteSearch]'))?.focus();
+      }catch(error){
+        if(revision!==S.screenRevision)return;
+        feedback.textContent=error.message+' Poți încerca din nou.';
+        more.disabled=false;
+        more.focus();
+      }
+    },'button secondary');
+    host.append(el('p',{class:'favorites-limit'},'Filtrele se aplică favoritelor încărcate.'),more,feedback);
+  }
   try{
-    const {listings,limit}=await api('/api/favorites');if(revision!==S.screenRevision)return;
-    S.favorites=new Set(listings.map(l=>l.id));host.replaceChildren(favoriteCollection(listings,limit||50));
+    await loadPage();
+    if(revision!==S.screenRevision)return;
+    // Restore pages containing properties already chosen for comparison.
+    while(cursor && S.comparisonIds.some(id=>!records.has(id))){
+      await loadPage();
+      if(revision!==S.screenRevision)return;
+    }
+    if(!cursor)S.favorites=new Set(records.keys());
+    render();
   }catch(error){if(revision!==S.screenRevision)return;host.replaceChildren(el('div',{class:'favorites-load-error',role:'alert'},el('h2',{},'Favoritele nu au putut fi încărcate.'),el('p',{},error.message),b('Încearcă din nou',()=>go('favorites'),'button secondary')));}
   finally{if(revision===S.screenRevision)host.setAttribute('aria-busy','false');}
 }
@@ -836,7 +878,17 @@ async function init(){
   const revision=beginScreen('initializing');shell(el('div',{class:'loading'},'Pregătim un loc pentru contact direct…'));
   try{
     const boot=await api('/api/bootstrap');if(revision!==S.screenRevision)return;S.boot=boot;
-    if(boot.user)try{const f=await api('/api/favorites');if(revision!==S.screenRevision)return;S.favorites=new Set(f.listings.map(l=>l.id));}catch{}
+    if(boot.user)try{
+      const saved=new Set();
+      let cursor=null;
+      do{
+        const page=await api('/api/favorites?idsOnly=1'+(cursor?'&cursor='+encodeURIComponent(cursor):''));
+        if(revision!==S.screenRevision)return;
+        for(const id of page.ids)saved.add(id);
+        cursor=page.nextCursor;
+      }while(cursor);
+      S.favorites=saved;
+    }catch{}
     if(revision!==S.screenRevision)return;
     if(boot.user)await recoverEditorDraft();
     if(revision!==S.screenRevision)return;await restoreLocation();startMessagePolling();
