@@ -26,3 +26,11 @@ globalThis.fetch=(input,options)=>String(input).endsWith('/api/bootstrap')
 ```
 
 Rezultatele CI și proveniența livrării se consemnează în PR. Nu există schimbare UI; capturi înainte/după nu se aplică. Nu s-au verificat UI/SIWC găzduite, dispozitive fizice, VoiceOver, SMS real sau import uman ICS. Fără schimbare de framework, autentificare, D1, audiență sau servicii; main neatins. SMS oprit/plafon zero, DEMO numai local/CI. Cauza timeout-ului și celelalte condiții de lansare rămân deschise.
+
+### 3 noiembrie 2026 · PR #44
+
+[CI 41582170970](https://github.com/Rapunzel1999/nespus/actions/runs/41582170970) a înregistrat un timeout după 15000 ms la cererea bootstrap. În același proces Wrangler, după eșec, diagnosticul HTTP independent a obținut health 200 în 17 ms și bootstrap 200 în 13 ms, cu utilizator anonim și verificarea telefonului dezactivată. Aceste date confirmă că serverul răspundea atunci când a început diagnosticul. Cauza cererii inițiale rămâne necunoscută.
+
+Verificarea principală cere acum bootstrap o singură dată prin HTTP, pe o conexiune dedicată. Termenul de 15 secunde acoperă inclusiv citirea corpului. Verificările pentru status 200, JSON valid, utilizator anonim și telefon dezactivat sunt obligatorii. Diagnosticul după o eroare de conectare rămâne separat. Proba istorică prin înlocuirea fetch nu mai injectează o eroare în noua cale HTTP.
+
+O probă locală cu răspuns HTTP 200 și utilizator DEMO în corp a produs exit 1 la verificarea utilizatorului anonim. Proba normală folosește Wrangler și baza locală. Niciuna dintre probe nu accesează site-ul găzduit.

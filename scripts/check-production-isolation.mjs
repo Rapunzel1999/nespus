@@ -2,6 +2,8 @@ import {readdir,readFile} from 'node:fs/promises';
 import {join} from 'node:path';
 import {spawn} from 'node:child_process';
 import {once} from 'node:events';
+import {get} from 'node:http';
+import {json as readJson} from 'node:stream/consumers';
 import assert from 'node:assert/strict';
 import {diagnoseLocalRuntime} from './isolation-diagnostics.mjs';
 let files=0;
@@ -27,9 +29,17 @@ try{
   const login=await fetch(origin+'/__test/login',{signal:AbortSignal.timeout(15000),method:'POST',headers:{origin,connection:'close','Content-Type':'application/json'},body:JSON.stringify({role:'moderator'})});checkpoint('test-login status');assert.equal(login.status,404);checkpoint('test-login body');await login.arrayBuffer();
   console.log('Production runtime: checking anonymous bootstrap with DEMO cookie.');
   checkpoint('bootstrap response');
-  const response=await fetch(origin+'/api/bootstrap',{signal:AbortSignal.timeout(15000),headers:{cookie:'DEMO-test-role=moderator',connection:'close'}});
-  checkpoint('bootstrap status');assert.equal(response.status,200);
-  checkpoint('bootstrap body');const bootstrap=await response.json();
+  // A single fresh loopback connection, with the same deadline for headers and body.
+  const response = await new Promise((resolve, reject) => {
+    const request = get(origin + '/api/bootstrap', {
+      agent: false,
+      signal: AbortSignal.timeout(15000),
+      headers: {cookie: 'DEMO-test-role=moderator', connection: 'close'},
+    }, resolve);
+    request.on('error', reject);
+  });
+  checkpoint('bootstrap status');assert.equal(response.statusCode,200);
+  checkpoint('bootstrap body');const bootstrap=await readJson(response);
   checkpoint('bootstrap assertions');
   assert.equal(bootstrap.user,null);assert.equal(bootstrap.capabilities.phoneVerification,false);
   checkpoint('complete');
