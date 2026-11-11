@@ -1,36 +1,60 @@
 <style>
 .bp{--ink:#0e0f11;--blue:#2f8fff;--soft:#f3f4f6;--line:#e4e6ea;--mute:#5d6470;font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:var(--ink);line-height:1.6;max-width:100%;overflow-x:hidden;font-size:16px}
 .bp *{box-sizing:border-box}
-.bp h2{font-size:1.7em;line-height:1.15;margin:0 0 .45em;font-weight:800;letter-spacing:-.01em}
-.bp h3{font-size:1.3em;line-height:1.2;margin:0 0 .7em;font-weight:800;letter-spacing:-.01em}
+.bp h2{font-size:1.75em;line-height:1.12;margin:0 0 .45em;font-weight:800;letter-spacing:-.015em}
+.bp h3{font-size:1.35em;line-height:1.18;margin:0 0 .7em;font-weight:800;letter-spacing:-.01em}
 .bp p{margin:0 0 1em}
 .bp img{display:block;width:100%;height:auto;border-radius:16px}
-.bp section{margin:0 0 34px}
+.bp section{margin:0 0 36px}
 .bp .eyebrow{font-size:.72em;letter-spacing:.14em;text-transform:uppercase;font-weight:700;color:var(--blue);margin:0 0 .8em}
-.bp .hero{background:var(--ink);color:#fff;border-radius:20px;padding:26px 20px 22px}
-.bp .hero p{color:#cfd3da;font-size:1.05em}
-.bp .hero h2 span{color:var(--blue)}
-.bp .chips{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0 0;padding:0;list-style:none}
-.bp .chips li{background:#1c1e22;border:1px solid #2c2f35;border-radius:999px;padding:7px 12px;font-size:.84em;font-weight:600;color:#fff;margin:0}
+.bp .dark{background:var(--ink);color:#fff;border-radius:22px;padding:26px 20px 22px}
+.bp .dark h2,.bp .dark h3{color:#fff}
+.bp .dark p{color:#cfd3da}
+.bp .hero{background:radial-gradient(120% 80% at 100% 0,#16345c 0,#0e0f11 55%)}
+.bp .hero p{font-size:1.05em}
+.bp .hero h2 span{color:var(--blue);white-space:nowrap}
+.bp .hero img{margin-top:18px;border-radius:14px}
+.bp .chips{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0 0;padding:0;list-style:none}
+.bp .chips li{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.14);border-radius:999px;padding:7px 12px;font-size:.84em;font-weight:600;color:#fff;margin:0}
 .bp .chips li:before{content:"✓";color:var(--blue);font-weight:800;margin-right:6px}
+.bp .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:-18px 0 36px}
+.bp .stats div{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px 6px;text-align:center;box-shadow:0 6px 18px rgba(14,15,17,.06)}
+.bp .stats b{display:block;font-size:1.55em;line-height:1;font-weight:800;color:var(--blue)}
+.bp .stats span{font-size:.74em;color:var(--mute);line-height:1.25;display:block;margin-top:5px}
+.bp .vs{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.bp .vs figure{margin:0;border-radius:16px;padding:12px;background:var(--soft);text-align:center}
+.bp .vs figure.ok{background:#eaf3ff;outline:2px solid var(--blue)}
+.bp .vs svg{width:100%;height:auto;display:block;border-radius:10px;background:#e9c9ae}
+.bp .vs figcaption{font-size:.86em;font-weight:700;margin-top:8px;line-height:1.25}
+.bp .vs small{display:block;font-weight:500;color:var(--mute);font-size:.92em}
 .bp .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .bp .card{background:var(--soft);border-radius:16px;padding:16px 14px}
 .bp .card svg{width:30px;height:30px;stroke:var(--blue);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;margin-bottom:10px;display:block}
-.bp .card strong{display:block;font-size:1em;line-height:1.25;margin-bottom:4px}
+.bp .card strong{display:block;line-height:1.25;margin-bottom:4px}
 .bp .card span{font-size:.88em;color:var(--mute);line-height:1.45;display:block}
+.bp .who{list-style:none;padding:0;margin:0}
+.bp .who li{padding:11px 0 11px 34px;position:relative;border-bottom:1px solid var(--line);margin:0}
+.bp .who li:before{content:"✓";position:absolute;left:0;top:11px;width:22px;height:22px;border-radius:50%;background:var(--blue);color:#fff;font-size:.75em;font-weight:800;text-align:center;line-height:22px}
+.bp .who li.no:before{content:"✕";background:#c9ccd2}
+.bp .who li.no{color:var(--mute)}
+.bp .when{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+.bp .when span{background:var(--soft);border-radius:999px;padding:8px 13px;font-size:.88em;font-weight:600}
 .bp .steps{list-style:none;padding:0;margin:0;counter-reset:s}
 .bp .steps li{counter-increment:s;display:flex;gap:14px;align-items:flex-start;padding:14px 0;border-bottom:1px solid var(--line);margin:0}
 .bp .steps li:last-child{border-bottom:0}
 .bp .steps li:before{content:counter(s);flex:0 0 40px;height:40px;border-radius:12px;background:var(--ink);color:#fff;font-weight:800;font-size:1.1em;display:flex;align-items:center;justify-content:center}
 .bp .steps strong{display:block}
 .bp .steps span{color:var(--mute);font-size:.93em}
+.bp .quote{text-align:center;padding:30px 20px}
+.bp .quote p{font-size:1.5em;line-height:1.2;font-weight:800;color:#fff;margin:0;letter-spacing:-.01em}
+.bp .quote p span{color:var(--blue)}
 .bp table{width:100%;border-collapse:separate;border-spacing:0;font-size:.9em;border:1px solid var(--line);border-radius:16px;overflow:hidden}
 .bp th,.bp td{padding:11px 10px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
 .bp tr:last-child td{border-bottom:0}
 .bp th{background:var(--soft);font-size:.82em;text-transform:uppercase;letter-spacing:.05em}
 .bp th.us,.bp td.us{background:#eaf3ff;font-weight:700}
 .bp td:first-child{color:var(--mute);width:30%}
-.bp .packs{display:grid;gap:10px}
+.bp .packs{display:grid;gap:12px}
 .bp .pack{border:2px solid var(--line);border-radius:16px;padding:14px 16px;display:flex;justify-content:space-between;align-items:center;gap:12px}
 .bp .pack.best{border-color:var(--blue);background:#f4f9ff;position:relative}
 .bp .pack.best:before{content:"Unul pentru tine, unul cadou";position:absolute;top:-11px;left:14px;background:var(--blue);color:#fff;font-size:.7em;font-weight:700;padding:3px 9px;border-radius:999px;letter-spacing:.03em}
@@ -39,12 +63,10 @@
 .bp .pack .pr{text-align:right;white-space:nowrap}
 .bp .pack .pr b{font-size:1.25em}
 .bp .pack .pr small{color:#12804a;font-weight:700}
-.bp .cod{background:var(--ink);color:#fff;border-radius:20px;padding:22px 20px}
-.bp .cod h3{color:#fff}
 .bp .cod ol{list-style:none;padding:0;margin:0 0 14px;counter-reset:c}
 .bp .cod li{counter-increment:c;padding:8px 0 8px 34px;position:relative;color:#dfe2e7;margin:0}
 .bp .cod li:before{content:counter(c);position:absolute;left:0;top:8px;width:24px;height:24px;border-radius:50%;background:var(--blue);color:#fff;font-size:.8em;font-weight:800;text-align:center;line-height:24px}
-.bp .cod .sum{border-top:1px solid #2c2f35;padding-top:12px;font-size:.95em;color:#cfd3da;margin:0}
+.bp .cod .sum{border-top:1px solid #2c2f35;padding-top:12px;font-size:.95em;margin:0}
 .bp .cod .sum b{color:#fff}
 .bp details{border-bottom:1px solid var(--line);padding:14px 0}
 .bp summary{font-weight:700;cursor:pointer}
@@ -54,26 +76,52 @@
 </style>
 <div class="bp">
 
-<section class="hero">
+<section class="dark hero">
 <p class="eyebrow">Creion pentru barbă · Dark Brown</p>
 <h2>Barba ta, dar <span>fără goluri.</span><br>În două minute.</h2>
 <p>Desenezi fire fine exact unde lipsesc, treci o dată cu peria și culoarea se pierde în barbă. Nimeni nu vede creionul. Se vede doar barba.</p>
-<ul class="chips"><li>Plată la livrare</li><li>Gata în 2 minute</li><li>Perie inclusă</li></ul>
+<ul class="chips"><li>Plată la livrare</li><li>Perie inclusă</li><li>Fără vopsea</li></ul>
+<img src="https://cdn.shopify.com/s/files/1/0945/7496/9213/files/referinta-baie.webp?v=1794417476" alt="Creion pentru barbă Dark Brown, capac, perie de estompare și cutie">
 </section>
 
+<div class="stats">
+<div><b>2 min</b><span>în fața oglinzii</span></div>
+<div><b>4</b><span>dinți fini la vârf</span></div>
+<div><b>0</b><span>vopsea de amestecat</span></div>
+</div>
+
 <section>
-<img src="https://cdn.shopify.com/s/files/1/0945/7496/9213/files/referinta-baie.webp?v=1794417476" alt="Creion pentru barbă Dark Brown, capac, perie de estompare și cutie" loading="lazy">
+<p class="eyebrow">Diferența e la vârf</p>
+<h3>Desenezi fire, nu o pată</h3>
+<div class="vs">
+<figure><svg viewBox="0 0 160 110"><path d="M38 34c18-12 62-10 82 4 14 10 10 34-8 42-22 10-58 8-74-4-14-11-12-33 0-42z" fill="#4a2f22" opacity=".82"/></svg><figcaption>Vârf gros<small>o pată uniformă, se vede</small></figcaption></figure>
+<figure class="ok"><svg viewBox="0 0 160 110"><g stroke="#3b241a" stroke-width="1.6" stroke-linecap="round" fill="none"><path d="M30 30l5 22M38 28l6 24M46 30l4 22M54 27l6 24M64 31l5 22M72 28l5 24M80 30l6 22M90 27l4 24M98 31l6 22M106 28l5 24M114 30l5 22M124 28l4 24"/><path d="M34 58l5 22M43 57l5 24M52 59l5 22M61 56l5 24M70 59l4 22M78 57l6 24M88 59l4 22M96 56l6 24M105 59l4 22M113 57l5 24M122 59l4 21"/></g></svg><figcaption>Vârf cu 4 dinți<small>linii subțiri, ca firele</small></figcaption></figure>
+</div>
+<p class="note" style="margin-top:10px">Ilustrație.</p>
 </section>
 
 <section>
 <p class="eyebrow">De ce arată natural</p>
-<h3>Desenezi fire, nu o pată</h3>
+<h3>Gândit să nu se observe</h3>
 <div class="grid">
 <div class="card"><svg viewBox="0 0 24 24"><path d="M6 21V10M10 21V8M14 21V8M18 21V10M6 10V5M10 8V3M14 8V3M18 10V5"/></svg><strong>4 dinți fini</strong><span>Fiecare trecere lasă linii subțiri, ca firele de barbă.</span></div>
 <div class="card"><svg viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="9" rx="2"/><path d="M8 12v4M12 12v5M16 12v4M12 17v4"/></svg><strong>Perie de estompare</strong><span>Amesteci culoarea cu barba ta. Dispar marginile.</span></div>
 <div class="card"><svg viewBox="0 0 24 24"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5M9 2h6"/></svg><strong>2 minute</strong><span>Scoți capacul și desenezi. Fără amestecat, fără așteptat.</span></div>
 <div class="card"><svg viewBox="0 0 24 24"><path d="M12 3s6 6.2 6 11a6 6 0 0 1-12 0c0-4.8 6-11 6-11z"/></svg><strong>Se spală seara</strong><span>Apă caldă și gelul de față. Nu e vopsea permanentă.</span></div>
 </div>
+</section>
+
+<section>
+<p class="eyebrow">Pentru cine e</p>
+<h3>Dacă te recunoști în una dintre ele</h3>
+<ul class="who">
+<li>Barba crește inegal și rămân goluri pe obraz.</li>
+<li>Mustața nu se leagă de barbă.</li>
+<li>Linia obrazului se strică între două tunsori.</li>
+<li>Vrei să arăți aranjat într-o poză sau la o ieșire, fără să te vopsești.</li>
+<li class="no">Nu e pentru barbă blondă, roșcată sau complet căruntă.</li>
+</ul>
+<div class="when"><span>Întâlnire</span><span>Nuntă</span><span>Interviu</span><span>Poze</span><span>Între tunsori</span></div>
 </section>
 
 <section>
@@ -84,6 +132,10 @@
 <li><div><strong>Linii scurte, în direcția firului</strong><span>Doar în zonele rare. Începe cu puțin, mai adaugi dacă e nevoie.</span></div></li>
 <li><div><strong>Estompezi cu peria, de sus în jos</strong><span>Gata. Poți pleca.</span></div></li>
 </ol>
+</section>
+
+<section class="dark quote">
+<p>Nimeni nu vede creionul.<br><span>Se vede doar barba.</span></p>
 </section>
 
 <section>
@@ -115,7 +167,7 @@
 <p style="margin-top:12px">Creion pentru barbă, nuanța <strong>Dark Brown (maro închis)</strong> · perie pentru estompare · cutie. Arată bine și ca dar pentru el.</p>
 </section>
 
-<section class="cod">
+<section class="dark cod">
 <p class="eyebrow">Fără card, fără risc</p>
 <h3>Plătești abia când îl ai în mână</h3>
 <ol>
