@@ -1,6 +1,6 @@
 # PLAN — Armata de agenți de marketing
 
-Stare: **Faza 1 — aștept răspunsurile lui Paul. Construcția nu a început.**
+Stare: **Faza 1 — produs de test schimbat de Paul în „creion pentru barbă” (`products/creion-barba/`). Întrebările 1, 3, 4, 5 încă deschise; lucrez cu valorile recomandate.**
 Data: 10 noiembrie 2026
 
 ## 1. Ce am găsit (Faza 0)

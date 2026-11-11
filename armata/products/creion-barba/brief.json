@@ -1,0 +1,52 @@
+{
+  "slug": "creion-barba",
+  "name_ro": "Creion pentru umplerea bărbii + perie",
+  "status": "draft — not approved for launch",
+  "source": {
+    "reference_image": "research/referinta-furnizor.png",
+    "supplier_brand_on_pack": "EELHOE",
+    "shade_in_reference": "Dark Brown",
+    "supplier_url": null,
+    "unit_cost": null,
+    "landed_cost_ron": null
+  },
+  "kit_contents": [
+    "creion cu vârf cu 4 dinți fini",
+    "capac",
+    "perie pentru estompare",
+    "cutie"
+  ],
+  "what_it_does": "Colorează temporar pielea și firele din zonele rare ale bărbii, ca barba să pară mai plină. Efect cosmetic, se îndepărtează la spălare.",
+  "what_it_does_not_do": [
+    "nu crește barba",
+    "nu este tratament",
+    "nu este vopsea permanentă"
+  ],
+  "main_angle": "Barbă care pare plină în 2 minute, fără vopsea și fără frizer",
+  "secondary_angles": [
+    "cadou pentru el (Moș Nicolae, Crăciun)",
+    "contur curat între două tunsori",
+    "retuș rapid înainte de o ieșire sau o poză"
+  ],
+  "offer_draft": {
+    "note": "ESTIMARE. Se recalculează când avem costul real de la furnizor (regula: preț >= 3x cost landed).",
+    "single_ron": 99,
+    "bundle_2_ron": 149,
+    "bundle_note": "al doilea pentru altă nuanță sau cadou"
+  },
+  "open_points": [
+    "cost furnizor și transport",
+    "ce nuanțe sunt în stoc (în poză: Dark Brown)",
+    "produsul livrat poartă marca EELHOE exact ca în poză?",
+    "conformitate cosmetice UE: persoană responsabilă, notificare CPNP, etichetă în română, listă de ingrediente",
+    "afirmații de confirmat cu furnizorul: rezistență la apă/transpirație, durată",
+    "plată la livrare disponibilă?"
+  ],
+  "claims_forbidden": [
+    "crește barba",
+    "rezultat garantat",
+    "permanent",
+    "rezistent la apă (până la confirmare)",
+    "orice cifră sau recenzie inventată"
+  ]
+}
