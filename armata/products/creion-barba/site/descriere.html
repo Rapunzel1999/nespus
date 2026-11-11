@@ -1,62 +1,139 @@
 <style>
-.bp{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;color:#1c1c1c;line-height:1.65;max-width:100%;overflow-x:hidden}
-.bp h2{font-size:1.45em;line-height:1.25;margin:0 0 .5em}
-.bp h3{font-size:1.15em;margin:1.8em 0 .6em}
+.bp{--ink:#0e0f11;--blue:#2f8fff;--soft:#f3f4f6;--line:#e4e6ea;--mute:#5d6470;font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:var(--ink);line-height:1.6;max-width:100%;overflow-x:hidden;font-size:16px}
+.bp *{box-sizing:border-box}
+.bp h2{font-size:1.7em;line-height:1.15;margin:0 0 .45em;font-weight:800;letter-spacing:-.01em}
+.bp h3{font-size:1.3em;line-height:1.2;margin:0 0 .7em;font-weight:800;letter-spacing:-.01em}
 .bp p{margin:0 0 1em}
-.bp .lead{font-size:1.08em}
-.bp .box{background:#f4f4f2;border-radius:12px;padding:16px 18px;margin:1.2em 0}
-.bp .pay{background:#111;color:#fff;border-radius:12px;padding:16px 18px;margin:1.4em 0}
-.bp .pay strong{color:#6cb8ff}
-.bp ul,.bp ol{padding-left:1.2em;margin:0 0 1em}
-.bp li{margin-bottom:.45em}
-.bp .steps{list-style:none;padding:0;counter-reset:s}
-.bp .steps li{counter-increment:s;position:relative;padding:12px 14px 12px 52px;background:#f4f4f2;border-radius:12px;margin-bottom:8px}
-.bp .steps li:before{content:counter(s);position:absolute;left:14px;top:12px;width:26px;height:26px;border-radius:50%;background:#111;color:#fff;font-weight:700;text-align:center;line-height:26px}
-.bp details{border-bottom:1px solid #e3e3e0;padding:12px 0}
-.bp summary{font-weight:600;cursor:pointer}
-.bp details p{margin:.6em 0 0}
-.bp .note{font-size:.9em;color:#5a5a5a}
+.bp img{display:block;width:100%;height:auto;border-radius:16px}
+.bp section{margin:0 0 34px}
+.bp .eyebrow{font-size:.72em;letter-spacing:.14em;text-transform:uppercase;font-weight:700;color:var(--blue);margin:0 0 .8em}
+.bp .hero{background:var(--ink);color:#fff;border-radius:20px;padding:26px 20px 22px}
+.bp .hero p{color:#cfd3da;font-size:1.05em}
+.bp .hero h2 span{color:var(--blue)}
+.bp .chips{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0 0;padding:0;list-style:none}
+.bp .chips li{background:#1c1e22;border:1px solid #2c2f35;border-radius:999px;padding:7px 12px;font-size:.84em;font-weight:600;color:#fff;margin:0}
+.bp .chips li:before{content:"✓";color:var(--blue);font-weight:800;margin-right:6px}
+.bp .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.bp .card{background:var(--soft);border-radius:16px;padding:16px 14px}
+.bp .card svg{width:30px;height:30px;stroke:var(--blue);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;margin-bottom:10px;display:block}
+.bp .card strong{display:block;font-size:1em;line-height:1.25;margin-bottom:4px}
+.bp .card span{font-size:.88em;color:var(--mute);line-height:1.45;display:block}
+.bp .steps{list-style:none;padding:0;margin:0;counter-reset:s}
+.bp .steps li{counter-increment:s;display:flex;gap:14px;align-items:flex-start;padding:14px 0;border-bottom:1px solid var(--line);margin:0}
+.bp .steps li:last-child{border-bottom:0}
+.bp .steps li:before{content:counter(s);flex:0 0 40px;height:40px;border-radius:12px;background:var(--ink);color:#fff;font-weight:800;font-size:1.1em;display:flex;align-items:center;justify-content:center}
+.bp .steps strong{display:block}
+.bp .steps span{color:var(--mute);font-size:.93em}
+.bp table{width:100%;border-collapse:separate;border-spacing:0;font-size:.9em;border:1px solid var(--line);border-radius:16px;overflow:hidden}
+.bp th,.bp td{padding:11px 10px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
+.bp tr:last-child td{border-bottom:0}
+.bp th{background:var(--soft);font-size:.82em;text-transform:uppercase;letter-spacing:.05em}
+.bp th.us,.bp td.us{background:#eaf3ff;font-weight:700}
+.bp td:first-child{color:var(--mute);width:30%}
+.bp .packs{display:grid;gap:10px}
+.bp .pack{border:2px solid var(--line);border-radius:16px;padding:14px 16px;display:flex;justify-content:space-between;align-items:center;gap:12px}
+.bp .pack.best{border-color:var(--blue);background:#f4f9ff;position:relative}
+.bp .pack.best:before{content:"Unul pentru tine, unul cadou";position:absolute;top:-11px;left:14px;background:var(--blue);color:#fff;font-size:.7em;font-weight:700;padding:3px 9px;border-radius:999px;letter-spacing:.03em}
+.bp .pack b{display:block;font-size:1.02em}
+.bp .pack small{color:var(--mute);font-size:.84em}
+.bp .pack .pr{text-align:right;white-space:nowrap}
+.bp .pack .pr b{font-size:1.25em}
+.bp .pack .pr small{color:#12804a;font-weight:700}
+.bp .cod{background:var(--ink);color:#fff;border-radius:20px;padding:22px 20px}
+.bp .cod h3{color:#fff}
+.bp .cod ol{list-style:none;padding:0;margin:0 0 14px;counter-reset:c}
+.bp .cod li{counter-increment:c;padding:8px 0 8px 34px;position:relative;color:#dfe2e7;margin:0}
+.bp .cod li:before{content:counter(c);position:absolute;left:0;top:8px;width:24px;height:24px;border-radius:50%;background:var(--blue);color:#fff;font-size:.8em;font-weight:800;text-align:center;line-height:24px}
+.bp .cod .sum{border-top:1px solid #2c2f35;padding-top:12px;font-size:.95em;color:#cfd3da;margin:0}
+.bp .cod .sum b{color:#fff}
+.bp details{border-bottom:1px solid var(--line);padding:14px 0}
+.bp summary{font-weight:700;cursor:pointer}
+.bp details p{margin:.6em 0 0;color:#333}
+.bp .note{font-size:.84em;color:var(--mute);margin:0 0 .6em}
+@media(min-width:700px){.bp .grid{grid-template-columns:repeat(4,1fr)}.bp .packs{grid-template-columns:repeat(3,1fr)}.bp .pack{flex-direction:column;align-items:flex-start}.bp .pack .pr{text-align:left}}
 </style>
 <div class="bp">
 
-<h2>Barbă care arată mai plină, în două minute</h2>
-<p class="lead">Zonele mai rare din barbă se văd cel mai tare exact când nu ai timp de ele. Cu creionul desenezi fire fine acolo unde lipsesc, treci cu peria și culoarea se pierde în barba ta.</p>
+<section class="hero">
+<p class="eyebrow">Creion pentru barbă · Dark Brown</p>
+<h2>Barba ta, dar <span>fără goluri.</span><br>În două minute.</h2>
+<p>Desenezi fire fine exact unde lipsesc, treci o dată cu peria și culoarea se pierde în barbă. Nimeni nu vede creionul. Se vede doar barba.</p>
+<ul class="chips"><li>Plată la livrare</li><li>Gata în 2 minute</li><li>Perie inclusă</li></ul>
+</section>
 
-<div class="pay">
-<strong>Plătești la livrare.</strong> Comanzi acum, plătești curierului când primești coletul.<br>
-Preț: 80 lei · Transport: 19,88 lei
+<section>
+<img src="https://cdn.shopify.com/s/files/1/0945/7496/9213/files/referinta-baie.webp?v=1794417476" alt="Creion pentru barbă Dark Brown, capac, perie de estompare și cutie" loading="lazy">
+</section>
+
+<section>
+<p class="eyebrow">De ce arată natural</p>
+<h3>Desenezi fire, nu o pată</h3>
+<div class="grid">
+<div class="card"><svg viewBox="0 0 24 24"><path d="M6 21V10M10 21V8M14 21V8M18 21V10M6 10V5M10 8V3M14 8V3M18 10V5"/></svg><strong>4 dinți fini</strong><span>Fiecare trecere lasă linii subțiri, ca firele de barbă.</span></div>
+<div class="card"><svg viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="9" rx="2"/><path d="M8 12v4M12 12v5M16 12v4M12 17v4"/></svg><strong>Perie de estompare</strong><span>Amesteci culoarea cu barba ta. Dispar marginile.</span></div>
+<div class="card"><svg viewBox="0 0 24 24"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5M9 2h6"/></svg><strong>2 minute</strong><span>Scoți capacul și desenezi. Fără amestecat, fără așteptat.</span></div>
+<div class="card"><svg viewBox="0 0 24 24"><path d="M12 3s6 6.2 6 11a6 6 0 0 1-12 0c0-4.8 6-11 6-11z"/></svg><strong>Se spală seara</strong><span>Apă caldă și gelul de față. Nu e vopsea permanentă.</span></div>
 </div>
+</section>
 
-<h3>De ce arată natural</h3>
-<ul>
-<li><strong>Vârf cu 4 dinți fini.</strong> Fiecare trecere lasă linii subțiri, ca niște fire, nu o dungă de culoare.</li>
-<li><strong>Perie de estompare în pachet.</strong> Amesteci culoarea cu barba ta și dispar marginile.</li>
-<li><strong>Fără vopsea, fără amestecat.</strong> Scoți capacul și desenezi. Se curăță la spălarea feței.</li>
-<li><strong>Bun și pentru contur.</strong> Îndrepți linia obrazului între două tunsori.</li>
-</ul>
-
-<h3>Cum îl folosești</h3>
+<section>
+<p class="eyebrow">Cum îl folosești</p>
+<h3>Trei pași în fața oglinzii</h3>
 <ol class="steps">
-<li><strong>Barbă curată și uscată.</strong> Pe pielea umedă sau cu ulei de barbă culoarea prinde mai slab.</li>
-<li><strong>Desenezi linii scurte</strong> în direcția în care crește firul, doar în zonele rare. Începe cu puțin, mai adaugi dacă e nevoie.</li>
-<li><strong>Estompezi cu peria,</strong> de sus în jos. Gata.</li>
+<li><div><strong>Barbă curată și uscată</strong><span>Pe piele umedă sau cu ulei de barbă culoarea prinde mai slab.</span></div></li>
+<li><div><strong>Linii scurte, în direcția firului</strong><span>Doar în zonele rare. Începe cu puțin, mai adaugi dacă e nevoie.</span></div></li>
+<li><div><strong>Estompezi cu peria, de sus în jos</strong><span>Gata. Poți pleca.</span></div></li>
 </ol>
+</section>
 
-<h3>Ce primești</h3>
-<div class="box">
-<ul>
-<li>1 creion pentru barbă, nuanța <strong>Dark Brown (maro închis)</strong></li>
-<li>1 perie pentru estompare</li>
-<li>cutie</li>
-</ul>
+<section>
+<p class="eyebrow">Creion sau vopsea?</p>
+<h3>Când vrei rezultat azi, nu un proiect</h3>
+<table>
+<tr><th></th><th class="us">Creion</th><th>Vopsea de barbă</th></tr>
+<tr><td>Timp</td><td class="us">Cam 2 minute</td><td>Amestecat, aplicat, așteptat, clătit</td></tr>
+<tr><td>Unde acționează</td><td class="us">Doar unde desenezi</td><td>Pe toată barba</td></tr>
+<tr><td>Dacă nu-ți place</td><td class="us">Îl speli și gata</td><td>Aștepți să iasă</td></tr>
+<tr><td>Contur</td><td class="us">Da, linie fină</td><td>Nu</td></tr>
+</table>
+</section>
+
+<section>
+<p class="eyebrow">Alege pachetul</p>
+<h3>Ia două și scade prețul pe bucată</h3>
+<div class="packs">
+<div class="pack"><div><b>1 creion + perie</b><small>Să-l încerci</small></div><div class="pr"><b>80 lei</b></div></div>
+<div class="pack best"><div><b>2 creioane + 2 perii</b><small>67 lei bucata</small></div><div class="pr"><b>134 lei</b><br><small>economisești 26 lei</small></div></div>
+<div class="pack"><div><b>3 creioane + 3 perii</b><small>56,67 lei bucata</small></div><div class="pr"><b>170 lei</b><br><small>economisești 70 lei</small></div></div>
 </div>
+</section>
 
-<h3>Întrebări frecvente</h3>
-<details><summary>Se vede că am folosit ceva?</summary><p>Dacă desenezi linii scurte și estompezi cu peria, arată ca firele de barbă. Sfatul nostru: pune puțin la început. Mai ușor adaugi decât scoți.</p></details>
+<section>
+<p class="eyebrow">Ce primești</p>
+<h3>Tot ce îți trebuie, într-o cutie</h3>
+<img src="https://cdn.shopify.com/s/files/1/0945/7496/9213/files/referinta-furnizor.png?v=1794417476" alt="Conținutul pachetului: cutie, creion pentru barbă, capac și perie" loading="lazy">
+<p style="margin-top:12px">Creion pentru barbă, nuanța <strong>Dark Brown (maro închis)</strong> · perie pentru estompare · cutie. Arată bine și ca dar pentru el.</p>
+</section>
+
+<section class="cod">
+<p class="eyebrow">Fără card, fără risc</p>
+<h3>Plătești abia când îl ai în mână</h3>
+<ol>
+<li>Alegi pachetul și completezi adresa.</li>
+<li>Curierul îți aduce coletul.</li>
+<li>Plătești la livrare, direct curierului.</li>
+</ol>
+<p class="sum">Produs <b>80 lei</b> · Transport <b>19,88 lei</b></p>
+</section>
+
+<section>
+<p class="eyebrow">Întrebări frecvente</p>
+<details><summary>Se vede că am folosit ceva?</summary><p>Dacă desenezi linii scurte și estompezi cu peria, arată ca firele de barbă. Pune puțin la început: mai ușor adaugi decât scoți.</p></details>
 <details><summary>Mi se potrivește nuanța?</summary><p>Dark Brown merge pe barbă maro închis și pe barbă neagră care bate în maro. Pentru barbă blondă, roșcată sau complet căruntă nu e nuanța potrivită.</p></details>
 <details><summary>Face barba să crească?</summary><p>Nu. Este un produs cosmetic de colorare temporară: acoperă zonele rare cât timp îl porți. Nu este tratament.</p></details>
 <details><summary>Cum îl dau jos?</summary><p>Cu apă caldă și gelul sau săpunul cu care îți speli fața.</p></details>
 <details><summary>Cum plătesc?</summary><p>La livrare, direct curierului. Produsul costă 80 lei, iar transportul 19,88 lei.</p></details>
+</section>
 
 <p class="note">Produs cosmetic, doar pentru uz extern. Înainte de prima folosire, testează pe o zonă mică de piele și așteaptă 24 de ore. Nu aplica pe piele iritată sau rănită. Evită zona ochilor. Nu lăsa la îndemâna copiilor.</p>
 <p class="note">Ingrediente: [DE COMPLETAT de pe ambalaj înainte de publicare]</p>
