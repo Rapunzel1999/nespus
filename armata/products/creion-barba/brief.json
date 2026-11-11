@@ -28,12 +28,6 @@
     "contur curat între două tunsori",
     "retuș rapid înainte de o ieșire sau o poză"
   ],
-  "offer_draft": {
-    "note": "ESTIMARE. Se recalculează când avem costul real de la furnizor (regula: preț >= 3x cost landed).",
-    "single_ron": 99,
-    "bundle_2_ron": 149,
-    "bundle_note": "al doilea pentru altă nuanță sau cadou"
-  },
   "open_points": [
     "cost furnizor și transport",
     "ce nuanțe sunt în stoc (în poză: Dark Brown)",
@@ -48,5 +42,20 @@
     "permanent",
     "rezistent la apă (până la confirmare)",
     "orice cifră sau recenzie inventată"
-  ]
+  ],
+  "offer": {
+    "decided_by": "Paul",
+    "single_ron": 80,
+    "shipping_ron": 19.88,
+    "payment": "plata la livrare",
+    "bundle_2_ron": 134,
+    "bundle_3_ron": 170,
+    "bundle_note": "bundles added by Claude following the store's existing 80/134/170 ladder; pending Paul's confirmation"
+  },
+  "shopify": {
+    "store": "Luma Lift (megashop-romania.ro)",
+    "product_gid": "gid://shopify/Product/16105364062589",
+    "status": "DRAFT",
+    "description_source": "site/descriere.html"
+  }
 }
